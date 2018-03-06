@@ -1,0 +1,3 @@
+[submodule "sai"]
+	path = sai
+	url = https://github.com/opencomputeproject/SAI.git
