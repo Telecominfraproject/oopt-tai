@@ -1,17 +1,18 @@
 /**
  * @file    tai.h
- * @brief   This module defines an entry point into Transponder Abstraction 
+ * @brief   This module defines an entry point into Transponder Abstraction
  *          Interface (TAI)
  *
  * @copyright Copyright (c) 2014 Microsoft Open Technologies, Inc.
+ * @copyright Copyright (c) 2018 Nippon Telegraph and Telephone Corporation
  * @copyright Copyright (c) 2017 Cumulus Networks, Inc.
  *
- * @remark  Licensed under the Apache License, Version 2.0 (the "License"); you 
+ * @remark  Licensed under the Apache License, Version 2.0 (the "License"); you
  *          may not use this file except in compliance with the License. You may
  *          obtain a copy of the License at
  *          http://www.apache.org/licenses/LICENSE-2.0
  *
- * @remark  THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR 
+ * @remark  THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR
  *          CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT
  *          LIMITATION ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS
  *          FOR A PARTICULAR PURPOSE, MERCHANTABILITY OR NON-INFRINGEMENT.
@@ -19,7 +20,7 @@
  * @remark  See the Apache Version 2.0 License for specific language governing
  *          permissions and limitations under the License.
  *
- * @remark  Microsoft would like to thank the following companies for their 
+ * @remark  Microsoft would like to thank the following companies for their
  *          review and assistance with these files: Intel Corporation, Mellanox
  *          Technologies Ltd, Dell Products, L.P., Facebook, Inc., Marvell
  *          International Ltd.
@@ -27,6 +28,10 @@
 
 #if !defined (__TAI_H_)
 #define __TAI_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "taihostif.h"
 #include "taimodule.h"
@@ -57,7 +62,7 @@ typedef enum _tai_api_t
 } tai_api_t;
 
 /**
- * @brief Defines the logging level. 
+ * @brief Defines the logging level.
  */
 typedef enum _tai_log_level_t
 {
@@ -71,15 +76,16 @@ typedef enum _tai_log_level_t
 } tai_log_level_t;
 
 /**
- * @brief The adapter host calls this function, whose address is provided by the
- *        adapter, whenever there is a change in an optical module's presence.
- *        This function will be called once for each module present toward the
- *        end of the tai_api_initialze function, and then whenever there is a
- *        change. The adapter should be ready to accept calls to this function
- *        at any time after invoking the tai_api_initialize function. Because
- *        this function may be called in different contexts (such as interrupt
- *        context or from a different thread/process) the adapter must not
- *        invoke other TAI interfaces directly from this function.
+ * @brief The adapter calls this function, whose address is provided by the
+ *        adapter host, whenever there is a change in an optical module's
+ *        presence. This function will be called once for each module present
+ *        toward the end of the tai_api_initialze function, and then whenever
+ *        there is a change. The adapter host should be ready to accept calls to
+ *        this function at any time after invoking the tai_api_initialize
+ *        function. Because this function may be called in different contexts
+ *        (such as interrupt context or from a different thread/process) the
+ *        adapter host must not invoke other TAI interfaces directly from this
+ *        function.
  */
 typedef void (*tai_module_presence_event_fn)(
         _In_ bool present,
@@ -87,8 +93,8 @@ typedef void (*tai_module_presence_event_fn)(
 
 /**
  * @brief Method table that contains function pointers for services exposed by
- * the adapter host for the adapter. This is currently a single service: module 
- * presence, which is called whenever a module is inserted or removed. 
+ * the adapter host for the adapter. This is currently a single service: module
+ * presence, which is called whenever a module is inserted or removed.
  */
 typedef struct _tai_service_method_table_t
 {
@@ -102,9 +108,9 @@ typedef struct _tai_service_method_table_t
 /**
  * @brief Adapter module initialization call
  *
- * This is NOT for SDK initialization. This function allows the adapter host to 
- * initialize any data/control structures that may be necessary during 
- * subsequent TAI operations. 
+ * This is NOT for SDK initialization. This function allows the adapter to
+ * initialize any data/control structures that may be necessary during
+ * subsequent TAI operations.
  *
  * @param[in] flags Reserved for future use, must be zero
  * @param[in] services Methods table with services provided by adapter host
@@ -168,9 +174,9 @@ tai_object_type_t tai_object_type_query(
  * @param[in] tai_object_id Object id
  *
  * @return #TAI_NULL_OBJECT_ID when tai_object_id is not valid.
- * Otherwise, return a valid TAI_OBJECT_TYPE_MODULE object on which provided 
- * object id belongs. If valid module id object is provided as input parameter 
- * it should return itself. 
+ * Otherwise, return a valid TAI_OBJECT_TYPE_MODULE object on which provided
+ * object id belongs. If valid module id object is provided as input parameter
+ * it should return itself.
  */
 tai_object_id_t tai_module_id_query(
         _In_ tai_object_id_t tai_object_id);
@@ -185,6 +191,10 @@ tai_object_id_t tai_module_id_query(
  */
 tai_status_t tai_dbg_generate_dump(
         _In_ const char *dump_file_name);
+
+#ifdef __cplusplus
+}
+#endif
 
 /**
  * @}

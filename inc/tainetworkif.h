@@ -1,17 +1,18 @@
 /**
  * @file    tainetworkif.h
- * @brief   This module defines the network interface for the Transponder 
+ * @brief   This module defines the network interface for the Transponder
  *          Abstraction Interface (TAI)
  *
  * @copyright Copyright (c) 2014 Microsoft Open Technologies, Inc.
+ * @copyright Copyright (c) 2018 Nippon Telegraph and Telephone Corporation
  * @copyright Copyright (c) 2017 Cumulus Networks, Inc.
  *
- * @remark  Licensed under the Apache License, Version 2.0 (the "License"); you 
+ * @remark  Licensed under the Apache License, Version 2.0 (the "License"); you
  *          may not use this file except in compliance with the License. You may
  *          obtain a copy of the License at
  *          http://www.apache.org/licenses/LICENSE-2.0
  *
- * @remark  THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR 
+ * @remark  THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR
  *          CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT
  *          LIMITATION ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS
  *          FOR A PARTICULAR PURPOSE, MERCHANTABILITY OR NON-INFRINGEMENT.
@@ -19,7 +20,7 @@
  * @remark  See the Apache Version 2.0 License for specific language governing
  *          permissions and limitations under the License.
  *
- * @remark  Microsoft would like to thank the following companies for their 
+ * @remark  Microsoft would like to thank the following companies for their
  *          review and assistance with these files: Intel Corporation, Mellanox
  *          Technologies Ltd, Dell Products, L.P., Facebook, Inc., Marvell
  *          International Ltd.
@@ -35,28 +36,6 @@
  *
  * @{
  */
-
-/** @brief The transmit turn-up state */
-typedef enum _tai_network_interface_tx_turn_up_state_t
-{
-    TAI_NETWORK_INTERFACE_TX_TURN_UP_PATH_INIT      = 0x01,
-    TAI_NETWORK_INTERFACE_TX_TURN_UP_DATA_PATH      = 0x02,
-    TAI_NETWORK_INTERFACE_TX_TURN_UP_LASER_OFF      = 0x04,
-    TAI_NETWORK_INTERFACE_TX_TURN_UP_LASER_READY    = 0x08,
-    TAI_NETWORK_INTERFACE_TX_TURN_UP_MODULATOR_CONV = 0x10,
-    TAI_NETWORK_INTERFACE_TX_TURN_UP_POWER_ADJUST   = 0x20
-} tai_network_interface_tx_turn_up_state_t;
-
-/** @brief The receive turn-up state */
-typedef enum _tai_network_interface_rx_turn_up_state_t
-{
-    TAI_NETWORK_INTERFACE_RX_TURN_UP_PATH_INIT      = 0x01,
-    TAI_NETWORK_INTERFACE_RX_TURN_UP_DATA_PATH      = 0x02,
-    TAI_NETWORK_INTERFACE_RX_TURN_UP_OPTICAL_SIGNAL = 0x04,
-    TAI_NETWORK_INTERFACE_RX_TURN_UP_ADC_OUTPUT     = 0x08,
-    TAI_NETWORK_INTERFACE_RX_TURN_UP_GOOD_DISP      = 0x10,
-    TAI_NETWORK_INTERFACE_RX_TURN_UP_DEMOD_LOCK     = 0x20
-} tai_network_interface_rx_turn_up_state_t;
 
 /** @brief The transmit alignment status */
 typedef enum _tai_network_interface_tx_align_status_t
@@ -91,26 +70,6 @@ typedef enum _tai_network_interface_tx_grid_spacing_t
     TAI_NETWORK_INTERFACE_TX_GRID_SPACING_MAX,
 } tai_network_interface_tx_grid_spacing_t;
 
-/** @brief The modulation format */
-typedef enum _tai_network_interface_modulation_format_t
-{
-    TAI_NETWORK_INTERFACE_MODULATION_FORMAT_UNKNOWN,
-    TAI_NETWORK_INTERFACE_MODULATION_FORMAT_16_QAM,
-    TAI_NETWORK_INTERFACE_MODULATION_FORMAT_8_QAM,
-    TAI_NETWORK_INTERFACE_MODULATION_FORMAT_PM_QPSK,
-    TAI_NETWORK_INTERFACE_MODULATION_FORMAT_MAX
-} tai_network_interface_modulation_format_t;
-
-/** @brief The forward error correction mode */
-typedef enum _tai_network_interface_fec_mode_t
-{
-    TAI_NETWORK_INTERFACE_FEC_MODE_UNKNOWN,
-    TAI_NETWORK_INTERFACE_FEC_MODE_15,
-    TAI_NETWORK_INTERFACE_FEC_MODE_15_NON_STD,
-    TAI_NETWORK_INTERFACE_FEC_MODE_25,
-    TAI_NETWORK_INTERFACE_FEC_MODE_MAX
-} tai_network_interface_fec_mode_t;
-
 /**
  * @brief Network interface attribute IDs
  */
@@ -124,7 +83,7 @@ typedef enum _tai_network_interface_attr_t
     /**
      * @brief The location of the network interface
      *
-     * Used (and required) in the tai_create_network_interface_fn call. This 
+     * Used (and required) in the tai_create_network_interface_fn call. This
      * allows the adapter to uniquely identify the network interface. This is an
      * index of the network interface upon a module.
      *
@@ -208,132 +167,6 @@ typedef enum _tai_network_interface_attr_t
     /** Custom range base value */
     TAI_NETWORK_INTERFACE_ATTR_CUSTOM_RANGE_START = 0x10000000,
 
-    /**
-     * @brief The transmit turn-up state
-     *
-     * A bit in this attribute is set for each state successfully completed 
-     * during TX turn-up. 
-     *
-     * @type #tai_network_interface_tx_turn_up_state_t
-     * @flags READ_ONLY
-     */
-    TAI_NETWORK_INTERFACE_ATTR_TX_TURN_UP_STATE = TAI_NETWORK_INTERFACE_ATTR_CUSTOM_RANGE_START,
-
-    /**
-     * @brief The receive turn-up state
-     *
-     * A bit in this attribute is set for each state successfully completed 
-     * during RX turn-up. 
-     *
-     * @type #tai_network_interface_rx_turn_up_state_t
-     * @flags READ_ONLY
-     */
-    TAI_NETWORK_INTERFACE_ATTR_RX_TURN_UP_STATE,
-
-    /**
-     * @brief The current BER for the network interface
-     *
-     * @type #tai_float_t
-     * @flags READ_ONLY
-     */
-    TAI_NETWORK_INTERFACE_ATTR_CURRENT_BER,
-
-    /**
-     * @brief Clear FEC accumuluative counters
-     *
-     * @type bool
-     */
-    TAI_NETWORK_INTERFACE_ATTR_CLEAR_FEC_COUNTERS,
-
-    /**
-     * @brief FEC Uncorrectable code blocks since reset
-     *
-     * @type #tai_uint64_t
-     * @flags READ_ONLY
-     */
-    TAI_NETWORK_INTERFACE_ATTR_FEC_UNCORRECTABLE,
-
-    /**
-     * @brief Master Enable, when enabled the modem will turn-up if low power is 
-     *        de-asserted.
-     *
-     * @type bool
-     */
-    TAI_NETWORK_INTERFACE_ATTR_MASTER_ENABLE,
-
-    /**
-    * @brief The modulation format
-    *
-    * @type #tai_network_interface_modulation_format_t
-    */
-   TAI_NETWORK_INTERFACE_ATTR_MODULATION_FORMAT,
-
-    /**
-     * @brief Differential phase encoding.
-     *
-     * @type bool
-     */
-    TAI_NETWORK_INTERFACE_ATTR_DIFFERENTIAL_ENCODING,
-
-    /**
-    * @brief FEC mode
-    *
-    * @type #tai_network_interface_fec_mode_t
-    */
-   TAI_NETWORK_INTERFACE_ATTR_FEC_MODE,
-
-    /**
-     * @brief TX Reset
-     *
-     * @type bool
-     */
-    TAI_NETWORK_INTERFACE_ATTR_TX_RESET,
-
-    /**
-     * @brief TX FIFO Reset
-     *
-     * @type bool
-     */
-    TAI_NETWORK_INTERFACE_ATTR_TX_FIFO_RESET,
-
-    /**
-     * @brief RX Reset
-     *
-     * @type bool
-     */
-    TAI_NETWORK_INTERFACE_ATTR_RX_RESET,
-
-    /**
-     * @brief RX FIFO Reset
-     *
-     * @type bool
-     */
-    TAI_NETWORK_INTERFACE_ATTR_RX_FIFO_RESET,
-
-    /**
-     * @brief Independent TX network tributary
-     *
-     * Defines which client interfaces are mapped to the tributaries on this 
-     * network interface when operating in independent mode. Client interfaces 
-     * are zero-based. The first element in the list is for tributary 0, the 
-     * second for tributary 1, and so on.
-     *
-     * @type #tai_u16_list_t
-     */
-    TAI_NETWORK_INTERFACE_ATTR_INDEP_TX_CLIENT_TRIBUTARY,
-
-    /**
-     * @brief Coupled TX network tributary
-     *
-     * Defines which client interfaces are mapped to the tributaries on this 
-     * network interface when operating in coupled mode. Client interfaces are
-     * zero-based. The first element in the list is for tributary 0, the second 
-     * for tributary 1, and so on.
-     *
-     * @type #tai_u16_list_t
-     */
-    TAI_NETWORK_INTERFACE_ATTR_COUPLED_TX_CLIENT_TRIBUTARY,
-
     /** End of custom range base */
     TAI_NETWORK_INTERFACE_ATTR_CUSTOM_RANGE_END
 
@@ -342,7 +175,7 @@ typedef enum _tai_network_interface_attr_t
 /**
  * @brief Create network interface.
  *
- * Allocates and initializes a network interface. 
+ * Allocates and initializes a network interface.
  *
  * @param[out] network_interface_id Network interface id
  * @param[in] module_id Module id on which the network interface exists

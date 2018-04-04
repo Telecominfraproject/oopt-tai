@@ -1,19 +1,20 @@
 /**
  * @file    taimodule.h
  * @brief   This module defines the TAI Module interface
- * @details A "module" in this context refers to an optical module. The 
+ * @details A "module" in this context refers to an optical module. The
  *          #tai_create_module_fn causes a new module to be allocated and
  *          initialized, including the SDK which controls that module.
  *
  * @copyright Copyright (c) 2014 Microsoft Open Technologies, Inc.
+ * @copyright Copyright (c) 2018 Nippon Telegraph and Telephone Corporation
  * @copyright Copyright (c) 2017 Cumulus Networks, Inc.
  *
- * @remark  Licensed under the Apache License, Version 2.0 (the "License"); you 
+ * @remark  Licensed under the Apache License, Version 2.0 (the "License"); you
  *          may not use this file except in compliance with the License. You may
  *          obtain a copy of the License at
  *          http://www.apache.org/licenses/LICENSE-2.0
  *
- * @remark  THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR 
+ * @remark  THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR
  *          CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT
  *          LIMITATION ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS
  *          FOR A PARTICULAR PURPOSE, MERCHANTABILITY OR NON-INFRINGEMENT.
@@ -21,7 +22,7 @@
  * @remark  See the Apache Version 2.0 License for specific language governing
  *          permissions and limitations under the License.
  *
- * @remark  Microsoft would like to thank the following companies for their 
+ * @remark  Microsoft would like to thank the following companies for their
  *          review and assistance with these files: Intel Corporation, Mellanox
  *          Technologies Ltd, Dell Products, L.P., Facebook, Inc., Marvell
  *          International Ltd.
@@ -87,17 +88,6 @@ typedef enum _tai_module_laser_grid_spacing_t
 } tai_module_laser_grid_spacing_t;
 
 /**
- * @brief Configuration modes for the network interfaces
- */
-typedef enum _tai_module_network_mode_t
-{
-    TAI_MODULE_NETWORK_MODE_UNKNOWN,
-    TAI_MODULE_NETWORK_MODE_INDEPENDENT,
-    TAI_MODULE_NETWORK_MODE_COUPLED,
-    TAI_MODULE_NETWORK_MODE_MAX
-} tai_module_network_mode_t;
-
-/**
  * @brief Attribute Id in tai_set_module_attribute() and
  *        tai_get_module_attribute() calls.
  */
@@ -113,8 +103,8 @@ typedef enum _tai_module_attr_t
      *
      * Used (and required) in the tai_create_module_fn call. This allows the
      * adapter to uniquely identify the module. This could be a PCI address,
-     * slot identifier, or other value that allows the adapter to determine 
-     * which optical module is being initialized. 
+     * slot identifier, or other value that allows the adapter to determine
+     * which optical module is being initialized.
      *
      * @type #tai_char_list_t
      * @flags MANDATORY_ON_CREATE | CREATE_ONLY
@@ -145,8 +135,8 @@ typedef enum _tai_module_attr_t
     /**
      * @brief The module firmware versions
      *
-     * The firmware versions for firmware A (list index 0) and firmware B (list 
-     * index 1) in x.y format. 
+     * The firmware versions for firmware A (list index 0) and firmware B (list
+     * index 1) in x.y format.
      *
      * @type #tai_float_list_t
      * @flags READ_ONLY
@@ -178,7 +168,7 @@ typedef enum _tai_module_attr_t
     TAI_MODULE_ATTR_FINE_TUNE_LASER_FREQ,
 
     /**
-     * @brief The laser grid spacing support. A bitfield of the supported grid 
+     * @brief The laser grid spacing support. A bitfield of the supported grid
      *        spacing.
      *
      * @type #tai_module_laser_grid_spacing_t
@@ -241,13 +231,6 @@ typedef enum _tai_module_attr_t
     /** Custom range base value */
     TAI_MODULE_ATTR_CUSTOM_RANGE_START = 0x10000000,
 
-    /**
-     * @brief The operational mode of the network interfaces
-     *
-     * @type #tai_module_network_mode_t
-     */
-    TAI_MODULE_ATTR_NETWORK_MODE = TAI_MODULE_ATTR_CUSTOM_RANGE_START,
-
     /** End of custom range base */
     TAI_MODULE_ATTR_CUSTOM_RANGE_END
 
@@ -289,8 +272,8 @@ typedef struct _tai_module_notification_t
  *
  * SDK initialization/connect to SDK. After the call the capability attributes
  * should be ready for retrieval via tai_get_module_attribute(). Returned Module
- * Object id should be used in subsequent TAI function calls in order to 
- * identify the module. 
+ * Object id should be used in subsequent TAI function calls in order to
+ * identify the module.
  *
  * @param[out] module_id The Module Object ID
  * @param[in] attr_count Number of attributes
