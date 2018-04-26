@@ -1,122 +1,185 @@
 #include <tai.h>
 #include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
-tai_device_api_t *device_api;
-tai_optical_module_api_t *optical_module_api;
-tai_optical_channel_api_t *optical_channel_api;
+tai_module_api_t *module_api;
+tai_network_interface_api_t *network_interface_api;
+tai_host_interface_api_t *host_interface_api;
 
-sai_object_id_t g_device_id;
-sai_object_id_t g_port_ids[8];
-sai_object_id_t g_channel_ids[8][2];
+#define TAI_MAX_HOST_IFS    8
+#define TAI_MAX_NET_IFS     8
 
-sai_status_t create_device() {
-    sai_status_t status;
-    tai_attribute_t attr;
-    status = device_api->create_device(&g_device_id, 0, NULL);
-    if ( status != SAI_STATUS_SUCCESS ) {
-        return status;
-    }
-    attr.id = TAI_DEVICE_ATTR_OPTICAL_MODULE_NUMBER;
-    attr.value.u32 = 0;
-    status = device_api->get_device_attribute(g_device_id, 1, &attr);
-    if ( status != SAI_STATUS_SUCCESS ) {
-        return status;
-    }
-    printf("number of optical module: %d\n", attr.value.u32);
+int g_module_location_head = 0;
+int g_module_location_tail = 0;
+char g_module_locations[TAI_MAX_MODULES+1][TAI_MAX_HARDWARE_ID_LEN];
 
-    return status;
+tai_object_id_t g_module_ids[TAI_MAX_MODULES];
+tai_object_id_t g_netif_ids[TAI_MAX_MODULES][TAI_MAX_NET_IFS];
+tai_object_id_t g_hostif_ids[TAI_MAX_MODULES][TAI_MAX_HOST_IFS];
+
+
+void module_shutdown(tai_object_id_t module_id)
+{
+    printf("Module shutdown request received for module_id %lx", module_id);
 }
 
-sai_status_t create_port(int i) {
-    sai_status_t status;
-    tai_attribute_t attr_list[6];
-    int j;
+void module_state_change(tai_object_id_t module_id, tai_module_oper_status_t status)
+{
+    printf("Module state change received for module_id %lx. New state: %d",
+           module_id, status);
+}
 
-    attr_list[0].id = TAI_OPTICAL_MODULE_ATTR_MODULE_INDEX;
-    attr_list[0].value.u32 = (sai_uint32_t)i;
+tai_module_notification_t g_module_notifications = {
+    .shutdown_request   = module_shutdown,
+    .state_change       = module_state_change
+};
 
-    attr_list[1].id = TAI_OPTICAL_MODULE_ATTR_MODULATION_FORMAT;
-    attr_list[1].value.s32 = TAI_OPTICAL_MODULE_MODULATION_FORMAT_DP_16QAM;
+tai_status_t create_modules() {
+    tai_status_t status;
+    tai_attribute_t attr[5];
+    int network_ifs;
+    int host_ifs;
+    int i;
 
-    attr_list[2].id = TAI_OPTICAL_MODULE_ATTR_TX_FREQUENCY_GRID;
-    attr_list[2].value.s32 = TAI_OPTICAL_MODULE_CHANNEL_GRID_50GHZ;
-
-    attr_list[3].id = TAI_OPTICAL_MODULE_ATTR_TX_FREQUENCY_CHANNEL;
-    attr_list[3].value.u8 = 1;
-
-    attr_list[4].id = TAI_OPTICAL_MODULE_ATTR_RX_FREQUENCY_GRID;
-    attr_list[4].value.s32 = TAI_OPTICAL_MODULE_CHANNEL_GRID_50GHZ;
-
-    attr_list[5].id = TAI_OPTICAL_MODULE_ATTR_RX_FREQUENCY_CHANNEL;
-    attr_list[5].value.u8 = 1;
-
-    status = optical_module_api->create_optical_module(&g_port_ids[i], g_device_id, 6, attr_list);
-    if ( status != SAI_STATUS_SUCCESS ) {
-        printf("failed to create optical module %d\n", i);
-        return status;
-    }
-
-    attr_list[0].id = TAI_OPTICAL_MODULE_ATTR_OPTICAL_CHANNEL_NUMBER;
-
-    status = optical_module_api->get_optical_module_attribute(g_port_ids[i], 1, attr_list);
-    if ( status != SAI_STATUS_SUCCESS ) {
-        printf("failed to get optical channel number\n");
-        return status;
-    }
-
-    for ( j = 0; j < attr_list[0].value.u32; j++ ) {
-        status = optical_channel_api->create_optical_channel(&g_channel_ids[i][j], g_port_ids[i], 0, NULL);
-        if ( status != SAI_STATUS_SUCCESS ) {
-            printf("failed to create optical channel: i %d, j %d\n", i, j);
+    while (g_module_location_head != g_module_location_tail) {
+        attr[0].id = TAI_MODULE_ATTR_LOCATION;
+        attr[0].value.charlist.count = strlen(g_module_locations[g_module_location_tail]);
+        attr[0].value.charlist.list = g_module_locations[g_module_location_tail];
+        status = module_api->create_module(&g_module_ids[g_module_location_tail],
+                                           1, &attr[0], &g_module_notifications); 
+        if ( status != TAI_STATUS_SUCCESS ) {
             return status;
         }
-    }
 
+        attr[0].id = TAI_MODULE_ATTR_NUM_NETWORK_INTERFACES;
+        attr[0].value.u32 = 0;
+        status = module_api->get_module_attribute(g_module_ids[g_module_location_tail], &attr[0]);
+        if ( status != TAI_STATUS_SUCCESS ) {
+            return status;
+        }
+        printf("number of network interfaces on module %s: %d\n",
+               g_module_locations[g_module_location_tail], attr[0].value.u32);
+        network_ifs = attr[0].value.u32;
+
+        for (i = 0; i < network_ifs; i++) {
+            attr[0].id = TAI_NETWORK_INTERFACE_ATTR_INDEX;
+            attr[0].value.u32 = i;
+
+            attr[1].id = TAI_NETWORK_INTERFACE_ATTR_TX_ENABLE;
+            attr[1].value.booldata = true;
+
+            attr[2].id = TAI_NETWORK_INTERFACE_ATTR_TX_GRID_SPACING;
+            attr[2].value.u32 = TAI_NETWORK_INTERFACE_TX_GRID_SPACING_50_GHZ;
+
+            attr[3].id = TAI_NETWORK_INTERFACE_ATTR_TX_CHANNEL;
+            attr[3].value.u16 = 52;
+
+            attr[4].id = TAI_NETWORK_INTERFACE_ATTR_OUTPUT_POWER;
+            attr[4].value.flt = 1.0;
+
+            status = network_interface_api->create_network_interface(
+               &g_netif_ids[g_module_location_tail][i],
+               g_module_ids[g_module_location_tail], 5, &attr[0]); 
+            if ( status != TAI_STATUS_SUCCESS ) {
+                return status;
+            }
+        }
+
+        attr[0].id = TAI_MODULE_ATTR_NUM_HOST_INTERFACES;
+        attr[0].value.u32 = 0;
+        status = module_api->get_module_attribute(g_module_ids[g_module_location_tail], &attr[0]);
+        if ( status != TAI_STATUS_SUCCESS ) {
+            return status;
+        }
+        printf("number of host interfaces on module %s: %d\n",
+               g_module_locations[g_module_location_tail], attr[0].value.u32);
+        host_ifs = attr[0].value.u32;
+
+        for (i = 0; i < host_ifs; i++) {
+            attr[0].id = TAI_HOST_INTERFACE_ATTR_INDEX;
+            attr[0].value.u32 = i;
+
+            status = host_interface_api->create_host_interface(
+               &g_hostif_ids[g_module_location_tail][i],
+               g_module_ids[g_module_location_tail], 1, &attr[0]); 
+            if ( status != TAI_STATUS_SUCCESS ) {
+                return status;
+            }
+        }
+
+        attr[0].id = TAI_MODULE_ATTR_OPER_STATUS;
+        attr[0].value.u32 = TAI_MODULE_OPER_STATUS_READY;
+
+        status = module_api->set_module_attribute(
+           g_module_ids[g_module_location_tail], &attr[0]); 
+        if ( status != TAI_STATUS_SUCCESS ) {
+            return status;
+        }
+
+        g_module_location_tail = (g_module_location_tail + 1) % (TAI_MAX_MODULES+1);
+    }
     return status;
 }
 
+void module_event(bool present, char * module_location)
+{
+    int next_head = (g_module_location_head + 1) % (TAI_MAX_MODULES+1);
+
+    printf("module_event: module %s is %s\n", 
+           module_location, present ? "present" : "absent");
+    if (present && (next_head != g_module_location_tail)) {
+        strcpy(g_module_locations[g_module_location_head], module_location);
+        g_module_location_head = next_head;
+    }
+    return;
+}
+
+tai_service_method_table_t g_service_table = {
+    .module_presence = module_event
+};
+
 int main() {
-    sai_status_t status;
+    tai_status_t status;
     int i;
-    status = tai_api_initialize(0, NULL);
-    if ( status != SAI_STATUS_SUCCESS ) {
+    status = tai_api_initialize(0, &g_service_table);
+    if ( status != TAI_STATUS_SUCCESS ) {
         printf("failed to initialize TAI\n");
         return 1;
     }
-    tai_log_set(TAI_API_DEVICE, TAI_LOG_LEVEL_INFO);
-    tai_log_set(TAI_API_OPTICAL_MODULE, TAI_LOG_LEVEL_INFO);
+    tai_log_set(TAI_API_MODULE, TAI_LOG_LEVEL_INFO);
+    tai_log_set(TAI_API_HOSTIF, TAI_LOG_LEVEL_INFO);
+    tai_log_set(TAI_API_NETWORKIF, TAI_LOG_LEVEL_INFO);
 
-    status = tai_api_query(TAI_API_DEVICE, (void**)&device_api);
-    if ( status != SAI_STATUS_SUCCESS ) {
-        printf("no api for TAI_API_DEVICE\n");
+    status = tai_api_query(TAI_API_MODULE, (void**)&module_api);
+    if ( status != TAI_STATUS_SUCCESS ) {
+        printf("no api for TAI_API_MODULE\n");
         return 1;
     }
 
-    printf("device_api: %p\n", device_api);
+    printf("module_api: %p\n", module_api);
 
-    status = tai_api_query(TAI_API_OPTICAL_MODULE, (void**)&optical_module_api);
-    if ( status != SAI_STATUS_SUCCESS ) {
-        printf("no api for TAI_API_DEVICE\n");
+    status = tai_api_query(TAI_API_NETWORKIF, (void**)&network_interface_api);
+    if ( status != TAI_STATUS_SUCCESS ) {
+        printf("no api for TAI_API_NETWORKIF\n");
         return 1;
     }
 
-    printf("optical_module_api: %p\n", optical_module_api);
+    printf("network_interface_api: %p\n", network_interface_api);
 
-    status = tai_api_query(TAI_API_OPTICAL_CHANNEL, (void**)&optical_channel_api);
-    if ( status != SAI_STATUS_SUCCESS ) {
-        printf("no api for TAI_API_CHANNEL\n");
+    status = tai_api_query(TAI_API_HOSTIF, (void**)&host_interface_api);
+    if ( status != TAI_STATUS_SUCCESS ) {
+        printf("no api for TAI_API_HOSTIF\n");
         return 1;
     }
 
-    printf("optical_channel_api: %p\n", optical_channel_api);
+    printf("host_interface_api: %p\n", host_interface_api);
 
-    create_device();
-    for ( i = 0; i < 8; i++ ) {
-        create_port(i);
-    }
+    sleep(1);
+    create_modules();
 
     status = tai_api_uninitialize();
-    if ( status != SAI_STATUS_SUCCESS ) {
+    if ( status != TAI_STATUS_SUCCESS ) {
         printf("failed to uninitialize TAI\n");
         return 1;
     }
