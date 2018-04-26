@@ -130,7 +130,7 @@ status of the module.
 
 The attr_list supplied on the `create_module()` function call must contain a 
 `TAI_MODULE_ATTR_LOCATION` attribute. This attribute defines which module is 
-being created. This is typically set the to value of the module_location 
+being created. This is typically set to the value of the module_location 
 parameter from the `module_presence()` function.
 
 An adapter host will typically call `create_module()` once for each module 
