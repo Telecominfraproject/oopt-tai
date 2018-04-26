@@ -1,5 +1,5 @@
 all:
-	gcc -pthread -I ../inc -o test test.c -L ../stub -L ../../../../dev/optics/ac400/src/.libs -ltai
+	gcc -I ../inc -I ../sai/inc -o test test.c -L ../stub -ltai
 
 clean:
 	rm test
