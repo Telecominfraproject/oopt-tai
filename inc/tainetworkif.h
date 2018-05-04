@@ -67,8 +67,25 @@ typedef enum _tai_network_interface_tx_grid_spacing_t
     TAI_NETWORK_INTERFACE_TX_GRID_SPACING_25_GHZ,
     TAI_NETWORK_INTERFACE_TX_GRID_SPACING_12_5_GHZ,
     TAI_NETWORK_INTERFACE_TX_GRID_SPACING_6_25_GHZ,
-    TAI_NETWORK_INTERFACE_TX_GRID_SPACING_MAX,
+    TAI_NETWORK_INTERFACE_TX_GRID_SPACING_MAX
 } tai_network_interface_tx_grid_spacing_t;
+
+/** @brief The modulation formats */
+typedef enum _tai_network_interface_modulation_format_t
+{
+    TAI_NETWORK_INTERFACE_MODULATION_FORMAT_UNKNOWN,
+    TAI_NETWORK_INTERFACE_MODULATION_FORMAT_BPSK,
+    TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_BPSK,
+    TAI_NETWORK_INTERFACE_MODULATION_FORMAT_QPSK,
+    TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_QPSK,
+    TAI_NETWORK_INTERFACE_MODULATION_FORMAT_8_QAM,
+    TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_8_QAM,
+    TAI_NETWORK_INTERFACE_MODULATION_FORMAT_16_QAM,
+    TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_16_QAM,
+    TAI_NETWORK_INTERFACE_MODULATION_FORMAT_64_QAM,
+    TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_64_QAM,
+    TAI_NETWORK_INTERFACE_MODULATION_FORMAT_MAX
+} tai_network_interface_modulation_format_t;
 
 /**
  * @brief Network interface attribute IDs
@@ -145,19 +162,26 @@ typedef enum _tai_network_interface_attr_t
     TAI_NETWORK_INTERFACE_ATTR_CURRENT_OUTPUT_POWER,
 
     /**
-    * @brief The TX laser frequency in Hz
-    *
-    * @type #tai_uint64_t
-    * @flags READ_ONLY
-    */
-   TAI_NETWORK_INTERFACE_ATTR_TX_LASER_FREQ,
+     * @brief The TX laser frequency in Hz
+     *
+     * @type #tai_uint64_t
+     * @flags READ_ONLY
+     */
+    TAI_NETWORK_INTERFACE_ATTR_TX_LASER_FREQ,
 
     /**
-    * @brief The TX laser fine tune frequency in Hz
-    *
-    * @type #tai_uint64_t
-    */
-   TAI_NETWORK_INTERFACE_ATTR_TX_FINE_TUNE_LASER_FREQ,
+     * @brief The TX laser fine tune frequency in Hz
+     *
+     * @type #tai_uint64_t
+     */
+    TAI_NETWORK_INTERFACE_ATTR_TX_FINE_TUNE_LASER_FREQ,
+
+    /**
+     * @brief The modulation format
+     *
+     * @type #tai_network_interface_modulation_format_t
+     */
+    TAI_NETWORK_INTERFACE_ATTR_MODULATION_FORMAT,
 
     /**
      * @brief End of attributes
