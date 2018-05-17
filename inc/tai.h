@@ -56,8 +56,8 @@ typedef enum _tai_api_t
 {
     TAI_API_UNSPECIFIED,        /**< unspecified API */
     TAI_API_MODULE,             /**< #tai_module_api_t */
-    TAI_API_HOSTIF,             /**< #tai_hostif_api_t */
-    TAI_API_NETWORKIF,          /**< #tai_networkif_api_t */
+    TAI_API_HOSTIF,             /**< #tai_host_interface_api_t */
+    TAI_API_NETWORKIF,          /**< #tai_network_interface_api_t */
     TAI_API_MAX                 /**< total number of APIs */
 } tai_api_t;
 
