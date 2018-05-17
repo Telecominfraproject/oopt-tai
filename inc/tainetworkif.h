@@ -186,6 +186,23 @@ typedef enum _tai_network_interface_attr_t
     TAI_NETWORK_INTERFACE_ATTR_MODULATION_FORMAT,
 
     /**
+     * @brief The current pre-FEC bit error rate
+     *
+     * @type #tai_float_t
+     * @flags READ_ONLY
+     */
+    TAI_NETWORK_INTERFACE_ATTR_CURRENT_BER,
+
+    /**
+     * @brief The time period over which the current pre-FEC bit error rate was 
+     *        calculated, in microseconds.
+     *
+     * @type #tai_uint32_t
+     * @flags READ_ONLY
+     */
+    TAI_NETWORK_INTERFACE_ATTR_CURRENT_BER_PERIOD,
+
+    /**
      * @brief End of attributes
      */
     TAI_NETWORK_INTERFACE_ATTR_END,
