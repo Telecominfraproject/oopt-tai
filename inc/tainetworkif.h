@@ -203,6 +203,13 @@ typedef enum _tai_network_interface_attr_t
     TAI_NETWORK_INTERFACE_ATTR_CURRENT_BER_PERIOD,
 
     /**
+     * @brief Differential phase encoding
+     *
+     * @type bool
+     */
+    TAI_NETWORK_INTERFACE_ATTR_DIFFERENTIAL_ENCODING,
+
+    /**
      * @brief End of attributes
      */
     TAI_NETWORK_INTERFACE_ATTR_END,
