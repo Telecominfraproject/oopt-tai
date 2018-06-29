@@ -216,8 +216,8 @@ attributes of the module with the `get_host_interface_attribute()`,
 #### Network Interface Objects
 
 The network interface API allows network interface objects to be created. A 
-network interface object represents an interface between the optical module and 
-the optical line system. Creating a network interface object allows the 
+network interface object represents hardware components which transmit/receive
+one wavelength. Creating a network interface object allows the 
 attributes of that interface to be set and retrieved. The
 `create_network_interface()` function takes four parameters:
 
