@@ -37,6 +37,26 @@
  * @{
  */
 
+
+/**
+ * @brief Operational states of the network interface
+ */
+typedef enum _tai_network_interface_oper_status_t
+{
+    TAI_NETWORK_INTERFACE_OPER_STATUS_UNKNOWN,             /**< Unknown */
+    TAI_NETWORK_INTERFACE_OPER_STATUS_RESET,               /**< Reset */
+    TAI_NETWORK_INTERFACE_OPER_STATUS_INITIALIZE,          /**< Initialize */
+    TAI_NETWORK_INTERFACE_OPER_STATUS_LOW_POWER,           /**< Low Power */
+    TAI_NETWORK_INTERFACE_OPER_STATUS_HIGH_POWER_UP,       /**< High Power Up */
+    TAI_NETWORK_INTERFACE_OPER_STATUS_TX_OFF,              /**< TX Off */
+    TAI_NETWORK_INTERFACE_OPER_STATUS_TX_TURN_ON,          /**< TX Turn On */
+    TAI_NETWORK_INTERFACE_OPER_STATUS_READY,               /**< Ready */
+    TAI_NETWORK_INTERFACE_OPER_STATUS_TX_TURN_OFF,         /**< TX Turn Off */
+    TAI_NETWORK_INTERFACE_OPER_STATUS_HIGH_POWER_DOWN,     /**< High Power Down */
+    TAI_NETWORK_INTERFACE_OPER_STATUS_FAULT,               /**< Fault */
+    TAI_NETWORK_INTERFACE_OPER_STATUS_MAX,                 /**< Number of states */
+} tai_network_interface_oper_status_t;
+
 /** @brief The transmit alignment status */
 typedef enum _tai_network_interface_tx_align_status_t
 {
@@ -56,6 +76,19 @@ typedef enum _tai_network_interface_rx_align_status_t
     TAI_NETWORK_INTERFACE_RX_ALIGN_OUT              = 0x08,
     TAI_NETWORK_INTERFACE_RX_ALIGN_TIMING           = 0x10
 } tai_network_interface_rx_align_status_t;
+
+/**
+ * @brief A bitmap of supported laser grid spacing
+ */
+typedef enum _tai_network_interface_laser_grid_spacing_t
+{
+    TAI_NETWORK_INTERFACE_LASER_GRID_SPACING_6_25_GHZ = 0x20,
+    TAI_NETWORK_INTERFACE_LASER_GRID_SPACING_12_5_GHZ = 0x10,
+    TAI_NETWORK_INTERFACE_LASER_GRID_SPACING_25_GHZ   = 0x08,
+    TAI_NETWORK_INTERFACE_LASER_GRID_SPACING_33_GHZ   = 0x04,
+    TAI_NETWORK_INTERFACE_LASER_GRID_SPACING_50_GHZ   = 0x02,
+    TAI_NETWORK_INTERFACE_LASER_GRID_SPACING_100_GHZ  = 0x01
+} tai_network_interface_laser_grid_spacing_t;
 
 /** @brief The transmit channel grid spacing */
 typedef enum _tai_network_interface_tx_grid_spacing_t
@@ -208,6 +241,38 @@ typedef enum _tai_network_interface_attr_t
      * @type bool
      */
     TAI_NETWORK_INTERFACE_ATTR_DIFFERENTIAL_ENCODING,
+
+    /**
+     * @brief The operational state of the network interface
+     *
+     * @type #tai_network_interface_oper_status_t
+     */
+    TAI_NETWORK_INTERFACE_ATTR_OPER_STATUS,
+
+    /**
+     * @brief The TX/RX minimum laser frequency in Hz
+     *
+     * @type #tai_uint64_t
+     * @flags READ_ONLY
+     */
+    TAI_NETWORK_INTERFACE_ATTR_MIN_LASER_FREQ,
+
+    /**
+     * @brief The TX/RX maximum laster frequency in Hz
+     *
+     * @type #tai_uint64_t
+     * @flags READ_ONLY
+     */
+    TAI_NETWORK_INTERFACE_ATTR_MAX_LASER_FREQ,
+
+    /**
+     * @brief The laser grid spacing support. A bitfield of the supported grid
+     *        spacing.
+     *
+     * @type #tai_network_interface_laser_grid_spacing_t
+     * @flags READ_ONLY
+     */
+    TAI_NETWORK_INTERFACE_ATTR_LASER_GRID_SUPPORT,
 
     /**
      * @brief End of attributes
