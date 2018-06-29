@@ -60,32 +60,10 @@
 typedef enum _tai_module_oper_status_t
 {
     TAI_MODULE_OPER_STATUS_UNKNOWN,             /**< Unknown */
-    TAI_MODULE_OPER_STATUS_RESET,               /**< Reset */
     TAI_MODULE_OPER_STATUS_INITIALIZE,          /**< Initialize */
-    TAI_MODULE_OPER_STATUS_LOW_POWER,           /**< Low Power */
-    TAI_MODULE_OPER_STATUS_HIGH_POWER_UP,       /**< High Power Up */
-    TAI_MODULE_OPER_STATUS_TX_OFF,              /**< TX Off */
-    TAI_MODULE_OPER_STATUS_TX_TURN_ON,          /**< TX Turn On */
     TAI_MODULE_OPER_STATUS_READY,               /**< Ready */
-    TAI_MODULE_OPER_STATUS_TX_TURN_OFF,         /**< TX Turn Off */
-    TAI_MODULE_OPER_STATUS_HIGH_POWER_DOWN,     /**< High Power Down */
-    TAI_MODULE_OPER_STATUS_FAULT,               /**< Fault */
     TAI_MODULE_OPER_STATUS_MAX,                 /**< Number of states */
-
 } tai_module_oper_status_t;
-
-/**
- * @brief A bitmap of supported laser grid spacing
- */
-typedef enum _tai_module_laser_grid_spacing_t
-{
-    TAI_MODULE_LASER_GRID_SPACING_6_25_GHZ = 0x20,
-    TAI_MODULE_LASER_GRID_SPACING_12_5_GHZ = 0x10,
-    TAI_MODULE_LASER_GRID_SPACING_25_GHZ   = 0x08,
-    TAI_MODULE_LASER_GRID_SPACING_33_GHZ   = 0x04,
-    TAI_MODULE_LASER_GRID_SPACING_50_GHZ   = 0x02,
-    TAI_MODULE_LASER_GRID_SPACING_100_GHZ  = 0x01
-} tai_module_laser_grid_spacing_t;
 
 /**
  * @brief Attribute Id in tai_set_module_attribute() and
@@ -142,47 +120,6 @@ typedef enum _tai_module_attr_t
      * @flags READ_ONLY
      */
     TAI_MODULE_ATTR_FIRMWARE_VERSIONS,
-
-    /**
-     * @brief The TX/RX minimum laser frequency in Hz
-     *
-     * @type #tai_uint64_t
-     * @flags READ_ONLY
-     */
-    TAI_MODULE_ATTR_MIN_LASER_FREQ,
-
-    /**
-     * @brief The TX/RX maximum laster frequency in Hz
-     *
-     * @type #tai_uint64_t
-     * @flags READ_ONLY
-     */
-    TAI_MODULE_ATTR_MAX_LASER_FREQ,
-
-    /**
-     * @brief The TX laser fine tune frequency range in Hz
-     *
-     * @type #tai_uint64_t
-     * @flags READ_ONLY
-     */
-    TAI_MODULE_ATTR_FINE_TUNE_LASER_FREQ,
-
-    /**
-     * @brief The laser grid spacing support. A bitfield of the supported grid
-     *        spacing.
-     *
-     * @type #tai_module_laser_grid_spacing_t
-     * @flags READ_ONLY
-     */
-    TAI_MODULE_ATTR_LASER_GRID_SUPPORT,
-
-    /**
-     * @brief The maximum number of laser tuning channels
-     *
-     * @type #tai_uint32_t
-     * @flags READ_ONLY
-     */
-    TAI_MODULE_ATTR_MAX_LASER_CHANNELS,
 
     /**
      * @brief The operational state of the module
