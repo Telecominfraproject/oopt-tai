@@ -108,8 +108,8 @@ tai_status_t create_modules() {
             }
         }
 
-        attr[0].id = TAI_MODULE_ATTR_OPER_STATUS;
-        attr[0].value.u32 = TAI_MODULE_OPER_STATUS_READY;
+        attr[0].id = TAI_MODULE_ATTR_ADMIN_STATUS;
+        attr[0].value.u32 = TAI_MODULE_ADMIN_STATUS_UP;
 
         status = module_api->set_module_attribute(
            g_module_ids[g_module_location_tail], &attr[0]); 
