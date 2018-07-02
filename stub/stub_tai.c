@@ -552,6 +552,7 @@ static tai_status_t stub_get_module_attribute(
         case TAI_MODULE_ATTR_VENDOR_SERIAL_NUMBER:
         case TAI_MODULE_ATTR_FIRMWARE_VERSIONS:
         case TAI_MODULE_ATTR_OPER_STATUS:
+        case TAI_MODULE_ATTR_ADMIN_STATUS:
         case TAI_MODULE_ATTR_TEMP:
         case TAI_MODULE_ATTR_POWER:
         case TAI_MODULE_ATTR_NUM_HOST_INTERFACES:
@@ -611,8 +612,9 @@ static tai_status_t stub_set_module_attribute(
         case TAI_MODULE_ATTR_POWER:
         case TAI_MODULE_ATTR_NUM_HOST_INTERFACES:
         case TAI_MODULE_ATTR_NUM_NETWORK_INTERFACES:
-            return TAI_STATUS_INVALID_ATTRIBUTE_0;
         case TAI_MODULE_ATTR_OPER_STATUS:
+            return TAI_STATUS_INVALID_ATTRIBUTE_0;
+        case TAI_MODULE_ATTR_ADMIN_STATUS:
             return TAI_STATUS_SUCCESS;
     }
     return TAI_STATUS_ATTR_NOT_SUPPORTED_0;

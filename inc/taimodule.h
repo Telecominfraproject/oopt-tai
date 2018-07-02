@@ -66,6 +66,17 @@ typedef enum _tai_module_oper_status_t
 } tai_module_oper_status_t;
 
 /**
+ * @brief Admin states of the module
+ */
+typedef enum _tai_module_admin_status_t
+{
+    TAI_MODULE_ADMIN_STATUS_UNKNOWN,             /**< Unknown */
+    TAI_MODULE_ADMIN_STATUS_DOWN,                /**< Down */
+    TAI_MODULE_ADMIN_STATUS_UP,                  /**< Up */
+    TAI_MODULE_ADMIN_STATUS_MAX,                 /**< Number of states */
+} tai_module_admin_status_t;
+
+/**
  * @brief Attribute Id in tai_set_module_attribute() and
  *        tai_get_module_attribute() calls.
  */
@@ -125,6 +136,7 @@ typedef enum _tai_module_attr_t
      * @brief The operational state of the module
      *
      * @type #tai_module_oper_status_t
+     * @flags READ_ONLY
      */
     TAI_MODULE_ATTR_OPER_STATUS,
 
@@ -159,6 +171,13 @@ typedef enum _tai_module_attr_t
      * @flags READ_ONLY
      */
     TAI_MODULE_ATTR_NUM_NETWORK_INTERFACES,
+
+    /**
+     * @brief The admin state of the module
+     *
+     * @type #tai_module_admin_status_t
+     */
+    TAI_MODULE_ATTR_ADMIN_STATUS,
 
     /**
      * @brief End of attributes
