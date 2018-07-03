@@ -53,6 +53,14 @@ typedef enum _tai_host_interface_tx_align_status_t
     TAI_HOST_INTERFACE_TX_ALIGN_DESKEW_LOCK    = 0x08
 } tai_host_interface_tx_align_status_t;
 
+/** @brief The host interface FEC type */
+typedef enum _tai_host_interface_fec_type_t
+{
+    TAI_HOST_INTERFACE_FEC_TYPE_NONE,   /**< No FEC */
+    TAI_HOST_INTERFACE_FEC_TYPE_RS,     /**< RS-FEC */
+    TAI_HOST_INTERFACE_FEC_TYPE_FC,     /**< FC-FEC */
+} tai_host_interface_fec_type_t;
+
 /**
  * @brief Host interface Attribute Ids
  */
@@ -91,6 +99,13 @@ typedef enum _tai_host_interface_attr_t
      * @flags READ_ONLY
      */
     TAI_HOST_INTERFACE_ATTR_TX_ALIGN_STATUS,
+
+    /**
+     * @brief FEC type
+     *
+     * @type #tai_host_interface_fec_type_t
+     */
+    TAI_HOST_INTERFACE_ATTR_FEC_TYPE,
 
     /**
      * @brief End of attributes
