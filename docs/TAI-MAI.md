@@ -1,8 +1,10 @@
-TAI-MAI : An Enhanced Generic Interface 
+TAI-MAI : An Enhanced Interface 
 =======================================
 TAI (Transponder Abstraction Interface)
 MAI (Module Abstraction Interface)
 
+This provides the "enhanced interface" with TAI-MAI.
+The previous version provides a "simple interface" with TAI only.
 
 TAI (Transponder Abstraction Interface)
 =======================================
@@ -27,24 +29,14 @@ provides a uniform access interface.
 Components
 -----------
 
-TAI is an interface specification implemented as a collection of C-language 
-header files. TAI adopts the use of many terms from SAI, including "Adapter" and 
-"Adapter Host".
-
-An Adapter Host is platform independent software which uses the TAI interface
-to provide optical transponder functionality for north-bound interface of the system. 
-The Adapter Host loads the platform dependent software, the Platform Adapter.
-
-Platform Adapter is similar to a user mode driver. It translates from the platform
-independent interface to a hardware specific implementation via TAI. This API
-are implemented as a library, and will typically be provided by the Platform
-Vendor. This library is called libPlatformAdaptor.so.
+Transport Adapter information can be obtained from the earlier "simple interface".
 
 Module Adapter provides drivers to specific module. Their implementation are
 hardware specific drivers, and they provide a uniform interface via
 Module Abstract Interface (MAI) for Platform Adapter. They are typically provided
 either by platform vendor or by module vendor working closely with platform
 vendor. 
+
 Examples of modules are Analog Coherent Optics (ACO) module and 
 Digital Coherent Optics (DCO) modules. The modules support different transceivers
 and those drivers are all part of Module Adapter.
