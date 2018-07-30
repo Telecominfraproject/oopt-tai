@@ -6,6 +6,12 @@ vendor-independent way of controlling transponders from various vendors and
 implementations in a uniform manner. It is based upon and quite common to the
 Switch Abstraction Interface, or SAI.
 
+First version introduces the "simple interface" via TAI only.
+With the addition of Module Abstraction Interface (MAI), 
+termed as "enhanced interface" is an optional interface. Details of this are in
+the document section (docs/TAI-MAI.md).
+
+
 Components
 -----------
 
