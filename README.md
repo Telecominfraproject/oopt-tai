@@ -17,6 +17,8 @@ An Adapter is similar to a user mode driver. It translates the hardware
 independent TAI interface to a specific hardware implementation. This is 
 implemented as a shared library, and will typically be provided by the 
 transponder module vendor. This shared library is called libtai.so.
+If the transponder supports multiple types of module hardware vendors, then each of the driver will provide a similar interface to libtai.so.
+The details of this are in [docs/TAI-MAI.md](https://github.com/Telecominfraproject/oopt-tai/blob/master/docs/TAI-MAI.md).
 
 An Adapter Host is hardware independent software which uses the TAI interface
 to provide optical transponder functionality to other parts of the system. An 
