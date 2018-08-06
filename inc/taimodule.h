@@ -180,6 +180,17 @@ typedef enum _tai_module_attr_t
     TAI_MODULE_ATTR_ADMIN_STATUS,
 
     /**
+     * @brief Tributary mapping of netif and hostif
+     *
+     * The key is netif oid and the value is a list of hostif oids
+     * corresponds to the netif. This attribute can be changed automatically
+     * by setting some netif attributes (e.g TAI_NETWORK_INTERFACE_ATTR_MODULATION_FORMAT )
+     *
+     * @type #tai_object_map_list_t
+     */
+    TAI_MODULE_ATTR_TRIBUTARY_MAPPING,
+
+    /**
      * @brief End of attributes
      */
     TAI_MODULE_ATTR_END,
