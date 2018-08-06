@@ -93,6 +93,12 @@ typedef struct _tai_object_list_t
     tai_object_id_t *list;
 } tai_object_list_t;
 
+typedef struct _tai_object_map_item_t
+{
+    tai_object_id_t key;
+    tai_object_list_t value;
+} tai_object_map_t;
+
 /**
  * @brief TAI common API type
  */
@@ -181,6 +187,15 @@ typedef struct _tai_s32_range_t
     int32_t max;
 } tai_s32_range_t;
 
+typedef struct _tai_object_map_list_t
+{
+    /** Number of entries in the map */
+    uint32_t count;
+
+    /** Map list */
+    tai_object_map_t *list;
+} tai_object_map_list_t;
+
 /**
  * @brief Data Type
  *
@@ -212,6 +227,7 @@ typedef union _tai_attribute_value_t
     tai_float_list_t floatlist;
     tai_u32_range_t u32range;
     tai_s32_range_t s32range;
+    tai_object_map_list_t objmaplist;
 
 } tai_attribute_value_t;
 
