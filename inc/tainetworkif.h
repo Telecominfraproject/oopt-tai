@@ -210,7 +210,7 @@ typedef enum _tai_network_interface_attr_t
      * @type #tai_float_t
      * @flags READ_ONLY
      */
-    TAI_NETWORK_INTERFACE_ATTR_CURRENT_POST-VOA_TOTAL_POWER,
+    TAI_NETWORK_INTERFACE_ATTR_CURRENT_POST_VOA_TOTAL_POWER,
 
     /**
      * @brief The current RX input power in the provisioned channel in dBm
