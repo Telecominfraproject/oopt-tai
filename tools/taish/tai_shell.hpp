@@ -1,5 +1,5 @@
 /**
- *  @file       tai_shell.cpp
+ *  @file       tai_shell.hpp
  *  @brief      The shell to execute the TAI APIs
  *  @author     Yuji Hata <yuji.hata@ipinfusion.com>
  *              Tetsuya Murakami <tetsuya.murakami@ipinfusion.com>
@@ -11,11 +11,7 @@
  */
 
 #ifndef __TAI_SHELL_H__
-#define  __TAI_SHELL_H__
-
-#define TAI_CLI_DEFAULT_IP "0.0.0.0"
-#define TAI_CLI_DEFAULT_PORT 3000
-
+#define __TAI_SHELL_H__
 
 typedef int (*tai_command_fn)(
         _In_ std::ostream *ostr,
@@ -55,27 +51,27 @@ int tai_command_init (std::ostream *ostr, std::vector <std::string> *args);
 int tai_command_quit (std::ostream *ostr, std::vector <std::string> *args);
 int tai_command_help (std::ostream *ostr, std::vector <std::string> *args);
 int tai_command_logset (std::ostream *ostr, std::vector <std::string> *args);
+int tai_command_set_netif_attr (std::ostream *ostr, std::vector <std::string> *args);
 
 class tai_cli_shell {
 public:
   int cmd_parse(std::istream *istr, std::ostream *ostr);
   static std::map<std::string, tai_command_fn> cmd2handler;
-  std::vector <std::string> *make_args (std::string cmd);
 };
 
 class tai_cli_server: public tai_cli_shell {
 public:
-  tai_cli_server(struct sockaddr_in addr);
+  tai_cli_server(sockaddr_in addr);
   int start();
   int restart();
-  int accept_();
+  int accept();
   void disconnect();
   int recv();
 private:
   int m_listen_fd;
   int m_client_fd;
-  struct sockaddr_in m_sv_addr;
-  struct sockaddr_in m_cl_addr;
+  sockaddr_in m_sv_addr;
+  sockaddr_in m_cl_addr;
   __gnu_cxx::stdio_filebuf<char> *m_ifilebuf;
   __gnu_cxx::stdio_filebuf<char> *m_ofilebuf;
   std::istream *m_istr;

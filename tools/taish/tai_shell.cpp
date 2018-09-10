@@ -13,6 +13,7 @@
 #include <thread>
 #include <chrono>
 #include <iostream>
+#include <sstream>
 #include <map>
 #include <vector>
 #include <thread>
@@ -39,6 +40,9 @@
 #include "tai.h"
 #include "tai_shell.hpp"
 
+static const char * TAI_CLI_DEFAULT_IP = "0.0.0.0";
+static const uint16_t TAI_CLI_DEFAULT_PORT = 4501;
+
 tai_api *p_tai_api;
 
 std::map<std::string, tai_command_fn> tai_cli_shell::cmd2handler = {
@@ -48,17 +52,19 @@ std::map<std::string, tai_command_fn> tai_cli_shell::cmd2handler = {
    {"init", tai_command_init},
    {"quit", tai_command_quit},
    {"exit", tai_command_quit},
-   {"logset", tai_command_logset}
+   {"logset", tai_command_logset},
+   {"set_netif_attr", tai_command_set_netif_attr}
 };
 
 std::vector <std::string> help_msgs = {
-  {"?: show help messages for all commands\n"},
-  {"help: show help messages for all commands\n"},
-  {"load: load a TAI librarary: Usage: load <TAI librabry file name> \n"},
-  {"init: Initialize TAI API.: Usage: init\n"},
-  {"quit: Quit this telnet session.\n"},
-  {"exit: Exit this telnet session.\n"},
-  {"logset: Set log level.: Usage: logset <debug|info|notice|warn:error|critical> \n"},
+  {"?     : show help messages for all commands\n"},
+  {"help  : show help messages for all commands\n"},
+  {"load  : load a TAI librarary: Usage: load <TAI librabry file name> \n"},
+  {"init  : Initialize TAI API.: Usage: init\n"},
+  {"quit  : Quit this session.\n"},
+  {"exit  : Exit this session.\n"},
+  {"logset: Set log level.: Usage: logset [debug|info|notice|warn|error|critical] \n"},
+  {"set_netif_attr: Set netif attribute. : Usage: set_netif_attr <module-id> <attr-id> <attr-val> \n"},
 };
 
 tai_module_api_t *module_api;
@@ -87,6 +93,7 @@ class module {
             create_hostif(list[0].value.u32);
             create_netif(list[1].value.u32);
         }
+        int set_netif_attribute(tai_attr_id_t id, tai_attribute_value_t val);
     private:
         tai_object_id_t m_id;
         std::vector<tai_object_id_t> netifs;
@@ -101,38 +108,17 @@ int module::create_netif(uint32_t num) {
         tai_object_id_t id;
         std::vector<tai_attribute_t> list;
         tai_attribute_t attr;
+
         attr.id = TAI_NETWORK_INTERFACE_ATTR_INDEX;
         attr.value.u32 = i;
         list.push_back(attr);
+
         auto status = netif_api->create_network_interface(&id, m_id, list.size(), list.data());
         if ( status != TAI_STATUS_SUCCESS ) {
             throw std::runtime_error("failed to create network interface");
         }
         std::cout << "netif: " << id << std::endl;
         netifs.push_back(id);
-
-        list.clear();
-
-        attr.id = TAI_NETWORK_INTERFACE_ATTR_TX_ENABLE;
-        attr.value.booldata = true;
-        list.push_back(attr);
-
-        attr.id = TAI_NETWORK_INTERFACE_ATTR_TX_CHANNEL;
-        attr.value.u16 = 10;
-        list.push_back(attr);
-
-        attr.id = TAI_NETWORK_INTERFACE_ATTR_TX_GRID_SPACING;
-        attr.value.u32 = TAI_NETWORK_INTERFACE_TX_GRID_SPACING_100_GHZ;
-        list.push_back(attr);
-
-        attr.id = TAI_NETWORK_INTERFACE_ATTR_MODULATION_FORMAT;
-        attr.value.u32 = TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_16_QAM;
-        list.push_back(attr);
-
-        status = netif_api->set_network_interface_attributes(id, list.size(), list.data());
-        if ( status != TAI_STATUS_SUCCESS ) {
-            throw std::runtime_error("failed to set netif attribute");
-        }
     }
     return 0;
 }
@@ -151,6 +137,23 @@ int module::create_hostif(uint32_t num) {
         }
         std::cout << "hostif: " << id << std::endl;
         hostifs.push_back(id);
+    }
+    return 0;
+}
+
+int module::set_netif_attribute(tai_attr_id_t attr_id, tai_attribute_value_t attr_val) {
+    for (tai_object_id_t id : netifs) {
+        std::vector<tai_attribute_t> list;
+        tai_attribute_t attr;
+
+        attr.id = attr_id;
+        attr.value = attr_val; 
+        list.push_back(attr);
+
+        auto status = netif_api->set_network_interface_attributes (id, list.size(), list.data());
+        if (status != TAI_STATUS_SUCCESS) {
+            throw std::runtime_error("failed to set netif attribute");
+        }
     }
     return 0;
 }
@@ -186,7 +189,7 @@ int main(int argc, char *argv[]) {
     uint16_t port;
     int num_of_fds = 0;
     int timeout = 10 * 1000;
-    struct sockaddr_in addr;
+    sockaddr_in addr;
     int c;
 
     fd = eventfd(0, 0);
@@ -259,7 +262,7 @@ int main(int argc, char *argv[]) {
         }
 
         if (fds[1].revents == POLLIN) {
-            int tmp_fd = cli_server->accept_();
+            int tmp_fd = cli_server->accept();
             if (tmp_fd > 0) {
                 fds[2].fd = tmp_fd;
                 nfds = 3;
@@ -310,7 +313,7 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-tai_cli_server::tai_cli_server(struct sockaddr_in addr) {
+tai_cli_server::tai_cli_server(sockaddr_in addr) {
   m_sv_addr = addr;
 }
 
@@ -332,7 +335,7 @@ int tai_cli_server::start() {
   }
 
   rc = bind(m_listen_fd,
-            (struct sockaddr *)&m_sv_addr, sizeof(m_sv_addr));
+            (sockaddr *)&m_sv_addr, sizeof(m_sv_addr));
   if (rc < 0)
   {
     close(m_listen_fd);
@@ -357,7 +360,7 @@ int tai_cli_server::restart() {
   return start();
 }
 
-int tai_cli_server::accept_() {
+int tai_cli_server::accept() {
   int val;
   int ret;
   socklen_t length;
@@ -367,7 +370,7 @@ int tai_cli_server::accept_() {
   }
 
   length = sizeof(m_cl_addr);
-  m_client_fd = accept(m_listen_fd, (sockaddr *)&m_cl_addr, &length);
+  m_client_fd = ::accept(m_listen_fd, (sockaddr *)&m_cl_addr, &length);
   if (m_client_fd < 0) {
     if ((errno == EWOULDBLOCK) ||
         (errno == EINTR)) {
@@ -396,6 +399,16 @@ int tai_cli_server::recv() {
   return cmd_parse (m_istr, m_ostr);
 }
 
+static void make_args (const std::string& s, std::vector <std::string> *args) {
+  char delimiter = 0x20;
+  std::string token;
+  std::istringstream iss(s);
+
+  while (std::getline(iss, token, delimiter)) {
+    args->push_back(token);
+  }
+}
+
 int tai_cli_shell::cmd_parse(std::istream *istr, std::ostream *ostr) {
   int ret = 0;
   std::string buf;
@@ -410,42 +423,24 @@ int tai_cli_shell::cmd_parse(std::istream *istr, std::ostream *ostr) {
     buf.resize(buf.size()-1);
   }
 
-  args = make_args (buf);
-  if (args != nullptr && args->size() != 0) {
-    cmd = cmd2handler.find((*args)[0]);
-    if (cmd != cmd2handler.end()) {
-      ret = cmd->second(ostr, args);
-    } else {
-      *ostr << "unknown command(" << (*args)[0] << ") was speified!!\n";
-    }
-  }
-
+  args = new std::vector <std::string>;
   if (args != nullptr) {
+    make_args (buf, args);
+    if (args->size() != 0) {
+      cmd = cmd2handler.find((*args)[0]);
+      if (cmd != cmd2handler.end()) {
+        ret = cmd->second(ostr, args);
+      } else {
+        *ostr << "unknown command(" << (*args)[0] << ") was speified!!" << std::endl;
+      }
+    }
+
     delete args;
   }
 
   *ostr << "> ";
   ostr->flush();
   return ret;
-}
-
-std::vector <std::string> *tai_cli_shell::make_args (std::string cmd) {
-  int length;
-  char *arg;
-  std::vector <std::string> *args;
-  char *saveptr = nullptr;
-
-  args = new std::vector <std::string>;
-  if (args == nullptr) {
-    return nullptr;
-  }
-  arg = strtok_r ((char *)cmd.c_str(), " ", &saveptr);
-  while (arg != nullptr) {
-    args->push_back (std::string(arg, strlen(arg)));
-    arg = strtok_r (NULL, " ", &saveptr);
-  }
-
-  return args;
 }
 
 tai_api::tai_api (void *lib_handle) {
@@ -470,20 +465,20 @@ int tai_command_load (std::ostream *ostr, std::vector <std::string> *args) {
   void *lib_handle;
 
   if (args->size() != 2) {
-    *ostr << "Invalid parameters were specified!!\n";
+    *ostr << "%% Need to specify the path to TAI library" << std::endl;
     return -1;
   }
 
   if (p_tai_api != nullptr) {
-    *ostr << "TAI library is already loaded!!\n";
+    *ostr << "%% TAI library is already loaded!!" << std::endl;
     return -1;
   }
 
   lib_handle = dlopen ((*args)[1].c_str(), RTLD_NOW | RTLD_GLOBAL);
 
   if (lib_handle == nullptr) {
-    *ostr << "Loading " << (*args)[1] << " failed!!\n";
-    *ostr << dlerror();
+    *ostr << "%% Loading " << (*args)[1] << " failed!!" << std::endl;
+    *ostr << dlerror() << std::endl;
     return -1;
   }
   
@@ -496,12 +491,12 @@ int tai_command_init (std::ostream *ostr, std::vector <std::string> *args) {
   tai_service_method_table_t services;
 
   if (args->size() != 1) {
-    *ostr << "Invalid parameters were specified!!\n";
+    *ostr << "%% Invalid parameters" << std::endl;
     return -1;
   }
 
   if (p_tai_api == nullptr) {
-    *ostr << "TAI library has not been loaded yet!!\n";
+    *ostr << "%% Need to load TAI library at first" << std::endl;
     return -1;
   }
 
@@ -514,6 +509,7 @@ int tai_command_init (std::ostream *ostr, std::vector <std::string> *args) {
   if (p_tai_api->initialize) {
     auto status = p_tai_api->initialize(0, &services);
     if ( status != TAI_STATUS_SUCCESS ) {
+      *ostr << "%% Failed to initialize" << std::endl;
       return -1;
     }
   }
@@ -521,16 +517,19 @@ int tai_command_init (std::ostream *ostr, std::vector <std::string> *args) {
   if (p_tai_api->query) {
     auto status = p_tai_api->query(TAI_API_MODULE, (void **)(&module_api));
     if ( status != TAI_STATUS_SUCCESS ) {
+      *ostr << "%% Failed to load API for module" << std::endl;
       return -1;
     }
 
     status = p_tai_api->query(TAI_API_NETWORKIF, (void **)(&netif_api));
     if ( status != TAI_STATUS_SUCCESS ) {
+      *ostr << "%% Failed to load API for Network IF" << std::endl;
       return -1;
     }
 
     status = p_tai_api->query(TAI_API_HOSTIF, (void **)(&hostif_api));
     if ( status != TAI_STATUS_SUCCESS ) {
+      *ostr << "%% Failed to load API for Host IF" << std::endl;
       return -1;
     }
   }
@@ -539,10 +538,8 @@ int tai_command_init (std::ostream *ostr, std::vector <std::string> *args) {
 }
 
 int tai_command_help (std::ostream *ostr, std::vector <std::string> *args) {
-  for (std::vector <std::string>::iterator it = help_msgs.begin();
-       it != help_msgs.end(); it++) {
-    *ostr << *it;
-  }
+  for (auto &m : help_msgs)
+    *ostr << m;
 
   return 0;
 }
@@ -553,35 +550,36 @@ int tai_command_quit (std::ostream *ostr, std::vector <std::string> *args) {
 
 int tai_command_logset (std::ostream *ostr, std::vector <std::string> *args) {
   if (args->size() != 2) {
-    *ostr << "Invalid parameters were specified!!\n";
+    *ostr << "%% Invalid parameters" << std::endl;
     return -1;
   }
 
   if (p_tai_api == nullptr) {
-    *ostr << "TAI library has not been loaded yet!!\n";
+    *ostr << "%% Need to load TAI library at first" << std::endl;
     return -1;
   }
 
-  if ((*args)[1].compare("debug") == 0) {
+  auto level = (*args)[1];
+  if (level == "debug") {
     p_tai_api->log_level = TAI_LOG_LEVEL_DEBUG;
 
-  } else if ((*args)[1].compare("info") == 0) {
+  } else if (level == "info") {
     p_tai_api->log_level = TAI_LOG_LEVEL_INFO;
 
-  } else if ((*args)[1].compare("notice") == 0) {
+  } else if (level == "notice") {
     p_tai_api->log_level = TAI_LOG_LEVEL_NOTICE;
 
-  } else if ((*args)[1].compare("warn") == 0) {
+  } else if (level == "warn") {
     p_tai_api->log_level = TAI_LOG_LEVEL_WARN;
 
-  } else if ((*args)[1].compare("error") == 0) {
+  } else if (level == "error") {
     p_tai_api->log_level = TAI_LOG_LEVEL_ERROR;
 
-  } else if ((*args)[1].compare("critical") == 0) {
+  } else if (level == "critical") {
     p_tai_api->log_level = TAI_LOG_LEVEL_CRITICAL;
 
   } else {
-    *ostr << "Invalid log-level(" << (*args)[1] << ") was specified!!\n";
+    *ostr << "Invalid log-level(" << (*args)[1] << ") was specified!!" << std::endl;
     return -1;
   }
 
@@ -589,5 +587,146 @@ int tai_command_logset (std::ostream *ostr, std::vector <std::string> *args) {
     p_tai_api->log_set(tai_api_t(0), p_tai_api->log_level);
   }
 
+  return 0;
+}
+
+int tai_command_set_netif_attr (std::ostream *ostr, std::vector <std::string> *args) {
+  tai_object_id_t id;  
+  tai_attr_id_t attr;
+  tai_attribute_value_t attr_val;
+
+  if (args->size() == 1) {
+    *ostr << "Usage: set_netif_attr <module-id> <attr-id> <attr-val>" << std::endl;
+    *ostr << "    <module-id>: integer." << std::endl;
+    *ostr << "    <attr-id> : tx-enable, tx-grid, tx-channel, output-power, tx-laser-freq, modulation or differential-encoding." << std::endl;
+    *ostr << "    <attr-val> :  tx-enable: true or false" << std::endl;
+    *ostr << "                  tx-grid: 100, 50, 33, 25, 12.5 or 6.25" << std::endl;
+    *ostr << "                  tx-channel: integer" << std::endl;
+    *ostr << "                  output-power: float" << std::endl;
+    *ostr << "                  tx-laser-freq: integer" << std::endl;
+    *ostr << "                  modulation: bpsk, dp-bpsk, qpsk, dp-qpsk, 8qam, dp-8qam, 16qam, dp-16qam, 32qam, dp-32qam, 64qam or dp-64qam" << std::endl;
+    *ostr << "                  differential-encoding: true or false" << std::endl;
+    return -1;
+  }
+
+  if (args->size() != 4) {
+    *ostr << "%% Invalid parameters" << std::endl;
+    return -1;
+  }
+
+  if (p_tai_api == nullptr) {
+    *ostr << "%% Need to load TAI library at first" << std::endl;
+    return -1;
+  }
+
+  id = std::stoull((*args)[1], nullptr, 10);
+  if (modules[id] == nullptr) {
+    *ostr << "%% Invalid module ID" << std::endl;
+    return -1;
+  }
+
+  auto com = (*args)[2];
+  if (com == "tx-enable") {
+    attr = TAI_NETWORK_INTERFACE_ATTR_TX_ENABLE;
+  } else if (com == "tx-grid") {
+    attr = TAI_NETWORK_INTERFACE_ATTR_TX_GRID_SPACING;
+  } else if (com == "tx-channel") {
+    attr = TAI_NETWORK_INTERFACE_ATTR_TX_CHANNEL;
+  } else if (com == "output-power") {
+    attr = TAI_NETWORK_INTERFACE_ATTR_OUTPUT_POWER;
+  } else if (com == "tx-laser-freq") {
+    attr = TAI_NETWORK_INTERFACE_ATTR_TX_FINE_TUNE_LASER_FREQ;
+  } else if (com == "modulation") {
+    attr = TAI_NETWORK_INTERFACE_ATTR_MODULATION_FORMAT;
+  } else if (com == "differential-encoding") { 
+    attr = TAI_NETWORK_INTERFACE_ATTR_DIFFERENTIAL_ENCODING;
+  } else {
+    *ostr << "Invalid attribute (tx-enable, tx-grid, tx-channel, output-power, tx-laser-freq, modulation or differential-encoding)" << std::endl;
+    return -1;
+  }
+
+  if (attr == TAI_NETWORK_INTERFACE_ATTR_TX_ENABLE) {
+    auto val = (*args)[3];
+    if (val == "true") {
+      attr_val.booldata = true;
+    } else if (val == "false") {
+      attr_val.booldata = false;
+    } else {
+      *ostr << "%% Invalid argument (true or false)" << std::endl;
+      return -1;
+    }
+  } else if (attr == TAI_NETWORK_INTERFACE_ATTR_TX_GRID_SPACING) {
+    auto val = (*args)[3];
+    if (val == "100") {
+      attr_val.u32 = TAI_NETWORK_INTERFACE_TX_GRID_SPACING_100_GHZ;
+    } else if (val == "50") {
+      attr_val.u32 = TAI_NETWORK_INTERFACE_TX_GRID_SPACING_50_GHZ;
+    } else if (val == "33") {
+      attr_val.u32 = TAI_NETWORK_INTERFACE_TX_GRID_SPACING_33_GHZ;
+    } else if (val == "25") {
+      attr_val.u32 = TAI_NETWORK_INTERFACE_TX_GRID_SPACING_25_GHZ;
+    } else if (val == "12.5") {
+      attr_val.u32 = TAI_NETWORK_INTERFACE_TX_GRID_SPACING_12_5_GHZ;
+    } else if (val == "6.25") {
+      attr_val.u32 = TAI_NETWORK_INTERFACE_TX_GRID_SPACING_6_25_GHZ;
+    } else {
+      *ostr << "%% Invalid argument (100, 50, 33, 25, 12.5 or 6.25" << std::endl;
+      return -1;
+    }
+  } else if (attr == TAI_NETWORK_INTERFACE_ATTR_TX_CHANNEL) {
+    auto val = std::stoi((*args)[3], nullptr, 10);
+    attr_val.u16 = val;
+  } else if (attr == TAI_NETWORK_INTERFACE_ATTR_OUTPUT_POWER) {
+    auto val = std::stof((*args)[3], nullptr);
+    attr_val.flt = val;
+  } else if (attr == TAI_NETWORK_INTERFACE_ATTR_TX_FINE_TUNE_LASER_FREQ) {
+    auto val = std::stoull((*args)[3], nullptr, 10);
+    attr_val.u64 = val;
+  } else if (attr == TAI_NETWORK_INTERFACE_ATTR_MODULATION_FORMAT) {
+    auto val = (*args)[3];
+    if (val == "bpsk") {
+      attr_val.u32 = TAI_NETWORK_INTERFACE_MODULATION_FORMAT_BPSK;
+    } else if (val == "dp-bpsk") {
+      attr_val.u32 = TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_BPSK;
+    } else if (val == "qpsk") {
+      attr_val.u32 = TAI_NETWORK_INTERFACE_MODULATION_FORMAT_QPSK;
+    } else if (val == "dp-qpsk") {
+      attr_val.u32 = TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_QPSK;
+    } else if (val == "8qam") {
+      attr_val.u32 = TAI_NETWORK_INTERFACE_MODULATION_FORMAT_8_QAM;
+    } else if (val == "dp-8qam") {
+      attr_val.u32 = TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_8_QAM;
+    } else if (val == "16qam") {
+      attr_val.u32 = TAI_NETWORK_INTERFACE_MODULATION_FORMAT_16_QAM;
+    } else if (val == "dp-16qam") {
+      attr_val.u32 = TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_16_QAM;
+    } else if (val == "32qam") {
+      attr_val.u32 = TAI_NETWORK_INTERFACE_MODULATION_FORMAT_32_QAM;
+    } else if (val == "dp-32qam") {
+      attr_val.u32 = TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_32_QAM;
+    } else if (val == "64qam") {
+      attr_val.u32 = TAI_NETWORK_INTERFACE_MODULATION_FORMAT_64_QAM;
+    } else if (val == "dp-64qam") {
+      attr_val.u32 = TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_64_QAM;
+    } else {
+      *ostr << "%% Invalid argument (bpsk, dp-bpsk, qpsk, dp-qpsk, 8qam, dp-8qam, 16qam, dp-16qam, 32qam, dp-32qam, 64qam or dp-64qam)" << std::endl;
+      return -1;
+    }
+  } else if (attr == TAI_NETWORK_INTERFACE_ATTR_DIFFERENTIAL_ENCODING) {
+    auto val = (*args)[3];
+    if (val == "true") {
+      attr_val.booldata = true;
+    } else if (val == "false") {
+      attr_val.booldata = false;
+    } else {
+      *ostr << "%% Invalid argument (true or false)" << std::endl;
+      return -1;
+    }
+  } else {
+    *ostr << "%% Invalid Attribute ID" << std::endl;
+    return -1;
+  }
+
+  modules[id]->set_netif_attribute (attr, attr_val);
   return 0;
 }
