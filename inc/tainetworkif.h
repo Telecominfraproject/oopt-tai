@@ -197,30 +197,6 @@ typedef enum _tai_network_interface_attr_t
     TAI_NETWORK_INTERFACE_ATTR_CURRENT_OUTPUT_POWER,
 
     /**
-     * @brief The total current RX input power in dBm
-     *
-     * @type #tai_float_t
-     * @flags READ_ONLY
-     */
-    TAI_NETWORK_INTERFACE_ATTR_CURRENT_INPUT_POWER,
-
-    /**
-     * @brief The total current post-VOA RX input power in dBm
-     *
-     * @type #tai_float_t
-     * @flags READ_ONLY
-     */
-    TAI_NETWORK_INTERFACE_ATTR_CURRENT_POST_VOA_TOTAL_POWER,
-
-    /**
-     * @brief The current RX input power in the provisioned channel in dBm
-     *
-     * @type #tai_float_t
-     * @flags READ_ONLY
-     */
-    TAI_NETWORK_INTERFACE_ATTR_CURRENT_PROVISIONED_CHANNEL_POWER,
-
-    /**
      * @brief The TX laser frequency in Hz
      *
      * @type #tai_uint64_t
@@ -297,6 +273,30 @@ typedef enum _tai_network_interface_attr_t
      * @flags READ_ONLY
      */
     TAI_NETWORK_INTERFACE_ATTR_LASER_GRID_SUPPORT,
+
+    /**
+     * @brief The total current RX input power in dBm
+     *
+     * @type #tai_float_t
+     * @flags READ_ONLY
+     */
+    TAI_NETWORK_INTERFACE_ATTR_CURRENT_INPUT_POWER,
+
+    /**
+     * @brief The total current post-VOA RX input power in dBm
+     *
+     * @type #tai_float_t
+     * @flags READ_ONLY
+     */
+    TAI_NETWORK_INTERFACE_ATTR_CURRENT_POST_VOA_TOTAL_POWER,
+
+    /**
+     * @brief The current RX input power in the provisioned channel in dBm
+     *
+     * @type #tai_float_t
+     * @flags READ_ONLY
+     */
+    TAI_NETWORK_INTERFACE_ATTR_CURRENT_PROVISIONED_CHANNEL_POWER,
 
     /**
      * @brief End of attributes
