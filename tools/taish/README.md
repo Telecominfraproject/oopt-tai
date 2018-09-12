@@ -38,7 +38,7 @@ tai shell
     init: The taish applcation initiate the initialization of the optical modules via TAI library. The TAI library msut
           be loaded in advance.
     
-    logset [debug|info|notice|warn|error|critical]: Set the logging level.
+    logset [module|hostif|networkif] [debug|info|notice|warn|error|critical]: Set the logging level.
     
     set_netif_attr <module_id> <attribute_id> <attribute_value> : Set the network interface attribute.
         <module_id> : Numnber of the target module
