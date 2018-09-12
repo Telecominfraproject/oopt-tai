@@ -63,7 +63,7 @@ std::vector <std::string> help_msgs = {
   {"init  : Initialize TAI API.: Usage: init\n"},
   {"quit  : Quit this session.\n"},
   {"exit  : Exit this session.\n"},
-  {"logset: Set log level.: Usage: logset [debug|info|notice|warn|error|critical] \n"},
+  {"logset: Set log level.: Usage: logset [module|hostif|networkif] [debug|info|notice|warn|error|critical] \n"},
   {"set_netif_attr: Set netif attribute. : Usage: set_netif_attr <module-id> <attr-id> <attr-val> \n"},
 };
 
@@ -458,7 +458,9 @@ tai_api::tai_api (void *lib_handle) {
                          dlsym(lib_handle, "tai_module_id_query");
   dbg_generate_dump = (tai_status_t (*)(_In_ const char *))
                          dlsym(lib_handle, "tai_dbg_generate_dump");
-  log_level = TAI_LOG_LEVEL_INFO;
+  for (auto  i = 0; i < TAI_API_MAX; i++) {
+    log_level[i] = TAI_LOG_LEVEL_INFO;
+  }
 }
 
 int tai_command_load (std::ostream *ostr, std::vector <std::string> *args) {
@@ -503,7 +505,9 @@ int tai_command_init (std::ostream *ostr, std::vector <std::string> *args) {
   services.module_presence = module_presence;
 
   if (p_tai_api->log_set) {
-    p_tai_api->log_set(tai_api_t(0), p_tai_api->log_level);
+    for (auto i = 0; i < TAI_API_MAX; i++) {
+      p_tai_api->log_set(tai_api_t(i), p_tai_api->log_level[i]);
+    }
   }
 
   if (p_tai_api->initialize) {
@@ -549,7 +553,8 @@ int tai_command_quit (std::ostream *ostr, std::vector <std::string> *args) {
 }
 
 int tai_command_logset (std::ostream *ostr, std::vector <std::string> *args) {
-  if (args->size() != 2) {
+  tai_api_t id;
+  if (args->size() != 3) {
     *ostr << "%% Invalid parameters" << std::endl;
     return -1;
   }
@@ -559,24 +564,38 @@ int tai_command_logset (std::ostream *ostr, std::vector <std::string> *args) {
     return -1;
   }
 
-  auto level = (*args)[1];
+  auto val = (*args)[1];
+  if (val == "unspecified") {
+    id = TAI_API_UNSPECIFIED;
+  } else if (val == "module") {
+    id = TAI_API_MODULE;
+  } else if (val == "hostif") {
+    id = TAI_API_HOSTIF;
+  } else if (val == "networkif") {
+    id = TAI_API_NETWORKIF;
+  } else {
+    *ostr << "%% Invalid argument (unspecified, hostif or networkif)" << std::endl;
+    return -1;
+  }
+
+  auto level = (*args)[2];
   if (level == "debug") {
-    p_tai_api->log_level = TAI_LOG_LEVEL_DEBUG;
+    p_tai_api->log_level[id] = TAI_LOG_LEVEL_DEBUG;
 
   } else if (level == "info") {
-    p_tai_api->log_level = TAI_LOG_LEVEL_INFO;
+    p_tai_api->log_level[id] = TAI_LOG_LEVEL_INFO;
 
   } else if (level == "notice") {
-    p_tai_api->log_level = TAI_LOG_LEVEL_NOTICE;
+    p_tai_api->log_level[id] = TAI_LOG_LEVEL_NOTICE;
 
   } else if (level == "warn") {
-    p_tai_api->log_level = TAI_LOG_LEVEL_WARN;
+    p_tai_api->log_level[id] = TAI_LOG_LEVEL_WARN;
 
   } else if (level == "error") {
-    p_tai_api->log_level = TAI_LOG_LEVEL_ERROR;
+    p_tai_api->log_level[id] = TAI_LOG_LEVEL_ERROR;
 
   } else if (level == "critical") {
-    p_tai_api->log_level = TAI_LOG_LEVEL_CRITICAL;
+    p_tai_api->log_level[id] = TAI_LOG_LEVEL_CRITICAL;
 
   } else {
     *ostr << "Invalid log-level(" << (*args)[1] << ") was specified!!" << std::endl;
@@ -584,7 +603,7 @@ int tai_command_logset (std::ostream *ostr, std::vector <std::string> *args) {
   }
 
   if (p_tai_api->log_set) {
-    p_tai_api->log_set(tai_api_t(0), p_tai_api->log_level);
+    p_tai_api->log_set(id, p_tai_api->log_level[id]);
   }
 
   return 0;

@@ -43,7 +43,7 @@ public:
   tai_status_t (*dbg_generate_dump)(
         _In_ const char *dump_file_name);
 
-  tai_log_level_t log_level;
+  tai_log_level_t log_level[TAI_API_MAX];
 };
 
 int tai_command_load (std::ostream *ostr, std::vector <std::string> *args);
