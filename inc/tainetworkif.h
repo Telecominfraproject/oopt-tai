@@ -299,6 +299,55 @@ typedef enum _tai_network_interface_attr_t
     TAI_NETWORK_INTERFACE_ATTR_CURRENT_PROVISIONED_CHANNEL_POWER,
 
     /**
+     * @brief Pulse shaping enabled on TX
+     *
+     * @type bool
+     */
+    TAI_NETWORK_INTERFACE_ATTR_PULSE_SHAPING_TX
+
+    /**
+     * @brief Pulse shaping enabled on RX
+     *
+     * @type bool
+     */
+    TAI_NETWORK_INTERFACE_ATTR_PULSE_SHAPING_RX
+
+    /**
+     * @brief Pulse shaping beta on TX
+     *
+     * @type #tai_float_t
+     */
+    TAI_NETWORK_INTERFACE_ATTR_PULSE_SHAPING_TX_BETA
+
+    /**
+     * @brief Pulse shaping beta on RX
+     *
+     * @type #tai_float_t
+     */
+    TAI_NETWORK_INTERFACE_ATTR_PULSE_SHAPING_RX_BETA
+
+    /**
+     * @brief RX VOA attenuation in dB
+     *
+     * @type #tai_float_t
+     */
+    TAI_NETWORK_INTERFACE_ATTR_VOA_RX
+
+    /**
+     * @brief Channel by frequency in THz
+     *
+     * @type #tai_float_t
+     */
+    TAI_NETWORK_INTERFACE_ATTR_CHANNEL_FREQ
+
+    /**
+     * @brief Channel by lambda by nm
+     *
+     * @type #tai_float_t
+     */
+    TAI_NETWORK_INTERFACE_ATTR_CHANNEL_LAMBDA
+
+    /**
      * @brief End of attributes
      */
     TAI_NETWORK_INTERFACE_ATTR_END,
