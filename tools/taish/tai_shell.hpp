@@ -10,8 +10,8 @@
  *              in the LICENSE file in the root directory of this source tree.
  */
 
-#ifndef __TAI_SHELL_H__
-#define __TAI_SHELL_H__
+#ifndef __TAI_SHELL_HPP__
+#define __TAI_SHELL_HPP__
 
 typedef int (*tai_command_fn)(
         _In_ std::ostream *ostr,
@@ -78,4 +78,4 @@ private:
   std::ostream *m_ostr;
 };
 
-#endif /*  __TAI_SHELL_H__ */
+#endif /*  __TAI_SHELL_HPP__ */
