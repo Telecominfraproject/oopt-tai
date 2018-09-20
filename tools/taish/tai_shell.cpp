@@ -39,11 +39,14 @@
 
 #include "tai.h"
 #include "tai_shell.hpp"
+#include "tai_shell.h"
 
 static const char * TAI_CLI_DEFAULT_IP = "0.0.0.0";
 static const uint16_t TAI_CLI_DEFAULT_PORT = 4501;
 
 tai_api *p_tai_api;
+
+pthread_mutex_t tai_shell_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 std::map<std::string, tai_command_fn> tai_cli_shell::cmd2handler = {
    {"?", tai_command_help},
@@ -181,7 +184,12 @@ tai_status_t create_module(const std::string& location, tai_object_id_t& m_id) {
     return module_api->create_module(&m_id, list.size(), list.data(), nullptr);
 }
 
-int main(int argc, char *argv[]) {
+#if defined(TAISH_API_MODE)
+int tai_shell_main(int argc, char *argv[])
+#else
+int main(int argc, char *argv[])
+#endif
+{
     tai_cli_server *cli_server;
     struct pollfd fds[3];
     nfds_t nfds;
@@ -240,6 +248,7 @@ int main(int argc, char *argv[]) {
         }
         if (fds[0].revents == POLLIN) {
             uint64_t v;
+            pthread_mutex_lock (&tai_shell_mutex);
             read(fds[0].fd, &v, sizeof(uint64_t));
             {
                 std::lock_guard<std::mutex> g(m);
@@ -259,6 +268,7 @@ int main(int argc, char *argv[]) {
                     q.pop();
                 }
             }
+            pthread_mutex_unlock (&tai_shell_mutex);
         }
 
         if (fds[1].revents == POLLIN) {
@@ -429,7 +439,9 @@ int tai_cli_shell::cmd_parse(std::istream *istr, std::ostream *ostr) {
     if (args->size() != 0) {
       cmd = cmd2handler.find((*args)[0]);
       if (cmd != cmd2handler.end()) {
+        pthread_mutex_lock (&tai_shell_mutex);
         ret = cmd->second(ostr, args);
+        pthread_mutex_unlock (&tai_shell_mutex);
       } else {
         *ostr << "unknown command(" << (*args)[0] << ") was speified!!" << std::endl;
       }
@@ -749,3 +761,86 @@ int tai_command_set_netif_attr (std::ostream *ostr, std::vector <std::string> *a
   modules[id]->set_netif_attribute (attr, attr_val);
   return 0;
 }
+
+#if defined(TAISH_API_MODE)
+
+int tai_shell_thread (std::vector <std::string> args) {
+  int argc = 0;
+  char *argv[5];
+
+  for (argc = 0; argc < args.size(); argc++) {
+    argv[argc] = (char *)args[argc].c_str();
+  }
+
+  return tai_shell_main (argc, argv);
+}
+
+int tai_shell_start (uint16_t port, char *ip_addr)
+{
+  std::vector <std::string> args;
+
+  args.push_back("taish");
+
+  if (ip_addr != nullptr) {
+    args.push_back("-i");
+    args.push_back(ip_addr);
+  } else {
+    args.push_back("-i");
+    args.push_back(TAI_CLI_DEFAULT_IP);
+  }
+
+  if (port != 0) {
+    args.push_back("-p");
+    args.push_back(std::to_string(port));
+  } else {
+    args.push_back("-p");
+    args.push_back(std::to_string(TAI_CLI_DEFAULT_PORT));
+  }
+
+  std::thread th(&tai_shell_thread, args);
+  th.detach();
+  return 0;
+}
+
+int tai_shell_cmd_init (void)
+{
+  int ret;
+  std::vector <std::string> args;
+
+  args.push_back("init");
+  pthread_mutex_lock (&tai_shell_mutex);
+  ret = tai_command_init (&std::cout, &args);
+  pthread_mutex_unlock (&tai_shell_mutex);
+  return ret;
+}
+
+int tai_shell_cmd_load (char *library_fiLe_name, tai_sh_api_t *tai_api)
+{
+  int ret;
+  std::vector <std::string> args;
+
+  args.push_back("load");
+  args.push_back(library_fiLe_name);
+
+  pthread_mutex_lock (&tai_shell_mutex);
+  ret = tai_command_load (&std::cout, &args);
+  pthread_mutex_unlock (&tai_shell_mutex);
+
+  if (ret < 0) {
+    return ret;
+  }
+
+  tai_api->initialize =        p_tai_api->initialize;
+  tai_api->query =             p_tai_api->query;
+  tai_api->uninitialize =      p_tai_api->uninitialize;
+  tai_api->log_set =           p_tai_api->log_set;
+  tai_api->object_type_query = p_tai_api->object_type_query;
+  tai_api->module_id_query =   p_tai_api->module_id_query;
+  tai_api->dbg_generate_dump = p_tai_api->dbg_generate_dump;
+  tai_api->lock =              &tai_shell_mutex;
+
+  return 0;
+}
+
+#endif /* defined(TAISH_API_MODE) */
+
