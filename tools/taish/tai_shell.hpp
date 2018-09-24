@@ -52,6 +52,7 @@ int tai_command_quit (std::ostream *ostr, std::vector <std::string> *args);
 int tai_command_help (std::ostream *ostr, std::vector <std::string> *args);
 int tai_command_logset (std::ostream *ostr, std::vector <std::string> *args);
 int tai_command_set_netif_attr (std::ostream *ostr, std::vector <std::string> *args);
+int tai_command_module_list (std::ostream *ostr, std::vector <std::string> *args);
 
 class tai_cli_shell {
 public:

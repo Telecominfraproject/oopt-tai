@@ -56,7 +56,8 @@ std::map<std::string, tai_command_fn> tai_cli_shell::cmd2handler = {
    {"quit", tai_command_quit},
    {"exit", tai_command_quit},
    {"logset", tai_command_logset},
-   {"set_netif_attr", tai_command_set_netif_attr}
+   {"set_netif_attr", tai_command_set_netif_attr},
+   {"module_list", tai_command_module_list}
 };
 
 std::vector <std::string> help_msgs = {
@@ -68,6 +69,7 @@ std::vector <std::string> help_msgs = {
   {"exit  : Exit this session.\n"},
   {"logset: Set log level.: Usage: logset [module|hostif|networkif] [debug|info|notice|warn|error|critical] \n"},
   {"set_netif_attr: Set netif attribute. : Usage: set_netif_attr <module-id> <attr-id> <attr-val> \n"},
+  {"module_list: Show the module ID.\n"},
 };
 
 tai_module_api_t *module_api;
@@ -77,6 +79,8 @@ tai_host_interface_api_t *hostif_api;
 int fd;
 std::queue<std::pair<bool, std::string>> q;
 std::mutex m;
+
+std::vector<tai_object_id_t> module_list;
 
 class module {
     public:
@@ -263,6 +267,8 @@ int main(int argc, char *argv[])
                             return 1;
                         }
                         std::cout << "module id: " << m_id << std::endl;
+
+                        module_list.push_back(m_id);
                         modules[m_id] = new module(m_id);
                     }
                     q.pop();
@@ -759,6 +765,19 @@ int tai_command_set_netif_attr (std::ostream *ostr, std::vector <std::string> *a
   }
 
   modules[id]->set_netif_attribute (attr, attr_val);
+  return 0;
+}
+
+int tai_command_module_list (std::ostream *ostr, std::vector <std::string> *args) {
+  if (args->size() == 1) {
+    *ostr << "Usage: module_list" << std::endl;
+    return -1;
+  }
+
+  *ostr << "Module List" << std::endl;
+  for (auto id : module_list)
+    *ostr << "  module ID: " << id << std::endl;
+
   return 0;
 }
 

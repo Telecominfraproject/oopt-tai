@@ -5,6 +5,7 @@
 extern "C" {
 #endif
 
+/* TAI API */
 typedef struct tai_sh_api_s {
   tai_status_t (*initialize)(
         _In_ uint64_t flags,
@@ -33,11 +34,12 @@ typedef struct tai_sh_api_s {
 } tai_sh_api_t;
 
 
+/* TAI Shell API */
 int tai_shell_start (uint16_t port, char *ip_addr);
 
-int tai_shell_cmd_init (void);
-
 int tai_shell_cmd_load (char *library_fiLe_name, tai_sh_api_t *tai_api);
+
+int tai_shell_cmd_init (void);
 
 #ifdef __cplusplus 
 }
