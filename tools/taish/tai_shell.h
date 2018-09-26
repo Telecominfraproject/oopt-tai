@@ -34,11 +34,11 @@ typedef struct tai_sh_api_s {
   pthread_mutex_t *lock;
 
   /* TAI Shell Specific APIs */
-  int (*vendor_init) (int m_max);
+  int (*taish_init) (int m_max);
 
-  int (*vendor_set_netif_attr) (tai_object_id_t m_id, tai_attr_id_t attr_id,  tai_attribute_value_t attr_val);
+  int (*taish_set_netif_attr) (tai_object_id_t m_id, tai_attr_id_t attr_id,  tai_attribute_value_t attr_val);
 
-  int (*vendor_get_module_id) (char *location, tai_object_id_t *m_id);
+  int (*taish_get_module_id) (char *location, tai_object_id_t *m_id);
 
 } tai_sh_api_t;
 

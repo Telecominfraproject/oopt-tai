@@ -859,9 +859,9 @@ int tai_shell_cmd_load (char *library_fiLe_name, tai_sh_api_t *tai_api)
   tai_api->lock =              &tai_shell_mutex;
 
   /* TAI Shell Specific APIs */
-  tai_api->vendor_init =           tai_shell_cmd_init;
-  tai_api->vendor_set_netif_attr = tai_shell_cmd_set_netif_attr;
-  tai_api->vendor_get_module_id =  tai_shell_get_module_id;
+  tai_api->taish_init =           tai_shell_cmd_init;
+  tai_api->taish_set_netif_attr = tai_shell_cmd_set_netif_attr;
+  tai_api->taish_get_module_id =  tai_shell_get_module_id;
 
   return 0;
 }
