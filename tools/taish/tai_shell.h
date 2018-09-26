@@ -5,8 +5,9 @@
 extern "C" {
 #endif
 
-/* TAI API */
 typedef struct tai_sh_api_s {
+
+  /* TAI API */
   tai_status_t (*initialize)(
         _In_ uint64_t flags,
         _In_ const tai_service_method_table_t *services);
@@ -31,6 +32,14 @@ typedef struct tai_sh_api_s {
         _In_ const char *dump_file_name);
 
   pthread_mutex_t *lock;
+
+  /* TAI Shell Specific APIs */
+  int (*vendor_init) (int m_max);
+
+  int (*vendor_set_netif_attr) (tai_object_id_t m_id, tai_attr_id_t attr_id,  tai_attribute_value_t attr_val);
+
+  int (*vendor_get_module_id) (char *location, tai_object_id_t *m_id);
+
 } tai_sh_api_t;
 
 
@@ -38,8 +47,6 @@ typedef struct tai_sh_api_s {
 int tai_shell_start (uint16_t port, char *ip_addr);
 
 int tai_shell_cmd_load (char *library_fiLe_name, tai_sh_api_t *tai_api);
-
-int tai_shell_cmd_init (void);
 
 #ifdef __cplusplus 
 }

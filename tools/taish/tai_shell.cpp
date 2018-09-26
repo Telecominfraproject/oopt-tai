@@ -46,7 +46,19 @@ static const uint16_t TAI_CLI_DEFAULT_PORT = 4501;
 
 tai_api *p_tai_api;
 
+static int no_of_mods = 0;
+
 pthread_mutex_t tai_shell_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+#if defined(TAISH_API_MODE)
+extern "C" {
+int tai_shell_cmd_init (int m_max);
+int tai_shell_cmd_set_netif_attr (tai_object_id_t m_id, tai_attr_id_t attr_id, tai_attribute_value_t attr_val);
+int tai_shell_get_module_id (char *loc_str, tai_object_id_t *m_id);
+}
+#endif /* defined(TAISH_API_MODE) */
+
+std::map<std::string, tai_object_id_t> location2module_id;
 
 std::map<std::string, tai_command_fn> tai_cli_shell::cmd2handler = {
    {"?", tai_command_help},
@@ -79,8 +91,6 @@ tai_host_interface_api_t *hostif_api;
 int fd;
 std::queue<std::pair<bool, std::string>> q;
 std::mutex m;
-
-std::vector<tai_object_id_t> module_list;
 
 class module {
     public:
@@ -268,9 +278,10 @@ int main(int argc, char *argv[])
                         }
                         std::cout << "module id: " << m_id << std::endl;
 
-                        module_list.push_back(m_id);
                         modules[m_id] = new module(m_id);
+                        location2module_id.insert(std::pair<std::string, tai_object_id_t>(p.second, m_id));
                     }
+                    no_of_mods++;
                     q.pop();
                 }
             }
@@ -769,15 +780,14 @@ int tai_command_set_netif_attr (std::ostream *ostr, std::vector <std::string> *a
 }
 
 int tai_command_module_list (std::ostream *ostr, std::vector <std::string> *args) {
-  if (args->size() == 1) {
+  if (args->size() != 1) {
     *ostr << "Usage: module_list" << std::endl;
     return -1;
   }
 
   *ostr << "Module List" << std::endl;
-  for (auto id : module_list)
-    *ostr << "  module ID: " << id << std::endl;
-
+  for (auto loc2mod : location2module_id)
+    *ostr << "loacation: " << loc2mod.first << "  module ID: " << loc2mod.second << std::endl;
   return 0;
 }
 
@@ -818,19 +828,8 @@ int tai_shell_start (uint16_t port, char *ip_addr)
 
   std::thread th(&tai_shell_thread, args);
   th.detach();
+
   return 0;
-}
-
-int tai_shell_cmd_init (void)
-{
-  int ret;
-  std::vector <std::string> args;
-
-  args.push_back("init");
-  pthread_mutex_lock (&tai_shell_mutex);
-  ret = tai_command_init (&std::cout, &args);
-  pthread_mutex_unlock (&tai_shell_mutex);
-  return ret;
 }
 
 int tai_shell_cmd_load (char *library_fiLe_name, tai_sh_api_t *tai_api)
@@ -849,6 +848,7 @@ int tai_shell_cmd_load (char *library_fiLe_name, tai_sh_api_t *tai_api)
     return ret;
   }
 
+  /* TAI API */
   tai_api->initialize =        p_tai_api->initialize;
   tai_api->query =             p_tai_api->query;
   tai_api->uninitialize =      p_tai_api->uninitialize;
@@ -858,7 +858,65 @@ int tai_shell_cmd_load (char *library_fiLe_name, tai_sh_api_t *tai_api)
   tai_api->dbg_generate_dump = p_tai_api->dbg_generate_dump;
   tai_api->lock =              &tai_shell_mutex;
 
+  /* TAI Shell Specific APIs */
+  tai_api->vendor_init =           tai_shell_cmd_init;
+  tai_api->vendor_set_netif_attr = tai_shell_cmd_set_netif_attr;
+  tai_api->vendor_get_module_id =  tai_shell_get_module_id;
+
   return 0;
+}
+
+/*
+ * TAI Shell Spcific APIs
+ */
+
+int tai_shell_cmd_init (int m_max)
+{
+  int ret;
+  std::vector <std::string> args;
+
+  args.push_back("init");
+  pthread_mutex_lock (&tai_shell_mutex);
+  ret = tai_command_init (&std::cout, &args);
+  pthread_mutex_unlock (&tai_shell_mutex);
+
+  while (no_of_mods <  m_max) {
+    usleep (1000);
+  }
+
+  return ret;
+}
+
+int tai_shell_cmd_set_netif_attr (tai_object_id_t m_id, tai_attr_id_t attr_id, tai_attribute_value_t attr_val)
+{
+  if (p_tai_api == nullptr) {
+    std::cout << "%% Need to load TAI library at first" << std::endl;
+    return -1;
+  }
+
+  if (modules[m_id] == nullptr) {
+    std::cout << "%% Invalid module ID" << std::endl;
+    return -1;
+  }
+
+  pthread_mutex_lock (&tai_shell_mutex);
+  modules[m_id]->set_netif_attribute (attr_id, attr_val);
+  pthread_mutex_unlock (&tai_shell_mutex);
+
+  return 0;
+}
+
+int tai_shell_get_module_id (char *loc_str, tai_object_id_t *m_id)
+{
+  std::string loc(loc_str);
+  std::map<std::string, tai_object_id_t>::iterator loc2modResult;
+
+  loc2modResult = location2module_id.find(loc);
+  if (loc2modResult != location2module_id.end()) {
+    *m_id = loc2modResult->second;
+    return 0;
+  }
+  return -1;
 }
 
 #endif /* defined(TAISH_API_MODE) */
