@@ -60,35 +60,22 @@ typedef enum _tai_network_interface_oper_status_t
 /** @brief The transmit alignment status */
 typedef enum _tai_network_interface_tx_align_status_t
 {
-    TAI_NETWORK_INTERFACE_TX_ALIGN_LOSS             = 0x01,
-    TAI_NETWORK_INTERFACE_TX_ALIGN_OUT              = 0x02,
-    TAI_NETWORK_INTERFACE_TX_ALIGN_CMU_LOCK         = 0x04,
-    TAI_NETWORK_INTERFACE_TX_ALIGN_REF_CLOCK        = 0x08,
-    TAI_NETWORK_INTERFACE_TX_ALIGN_TIMING           = 0x10
+    TAI_NETWORK_INTERFACE_TX_ALIGN_LOSS,
+    TAI_NETWORK_INTERFACE_TX_ALIGN_OUT,
+    TAI_NETWORK_INTERFACE_TX_ALIGN_CMU_LOCK,
+    TAI_NETWORK_INTERFACE_TX_ALIGN_REF_CLOCK,
+    TAI_NETWORK_INTERFACE_TX_ALIGN_TIMING
 } tai_network_interface_tx_align_status_t;
 
 /** @brief The receive alignment status  */
 typedef enum _tai_network_interface_rx_align_status_t
 {
-    TAI_NETWORK_INTERFACE_RX_ALIGN_MODEM_SYNC       = 0x01,
-    TAI_NETWORK_INTERFACE_RX_ALIGN_MODEM_LOCK       = 0x02,
-    TAI_NETWORK_INTERFACE_RX_ALIGN_LOSS             = 0x04,
-    TAI_NETWORK_INTERFACE_RX_ALIGN_OUT              = 0x08,
-    TAI_NETWORK_INTERFACE_RX_ALIGN_TIMING           = 0x10
+    TAI_NETWORK_INTERFACE_RX_ALIGN_MODEM_SYNC,
+    TAI_NETWORK_INTERFACE_RX_ALIGN_MODEM_LOCK,
+    TAI_NETWORK_INTERFACE_RX_ALIGN_LOSS,
+    TAI_NETWORK_INTERFACE_RX_ALIGN_OUT,
+    TAI_NETWORK_INTERFACE_RX_ALIGN_TIMING
 } tai_network_interface_rx_align_status_t;
-
-/**
- * @brief A bitmap of supported laser grid spacing
- */
-typedef enum _tai_network_interface_laser_grid_spacing_t
-{
-    TAI_NETWORK_INTERFACE_LASER_GRID_SPACING_6_25_GHZ = 0x20,
-    TAI_NETWORK_INTERFACE_LASER_GRID_SPACING_12_5_GHZ = 0x10,
-    TAI_NETWORK_INTERFACE_LASER_GRID_SPACING_25_GHZ   = 0x08,
-    TAI_NETWORK_INTERFACE_LASER_GRID_SPACING_33_GHZ   = 0x04,
-    TAI_NETWORK_INTERFACE_LASER_GRID_SPACING_50_GHZ   = 0x02,
-    TAI_NETWORK_INTERFACE_LASER_GRID_SPACING_100_GHZ  = 0x01
-} tai_network_interface_laser_grid_spacing_t;
 
 /** @brief The transmit channel grid spacing */
 typedef enum _tai_network_interface_tx_grid_spacing_t
@@ -147,7 +134,7 @@ typedef enum _tai_network_interface_attr_t
     /**
      * @brief The transmit alignment status
      *
-     * @type #tai_network_interface_tx_align_status_t
+     * @type #tai_s32_list_t #tai_network_interface_tx_align_status_t
      * @flags READ_ONLY
      */
     TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS,
@@ -155,7 +142,7 @@ typedef enum _tai_network_interface_attr_t
     /**
      * @brief The receive alignment status
      *
-     * @type #tai_network_interface_rx_align_status_t
+     * @type #tai_s32_list_t #tai_network_interface_rx_align_status_t
      * @flags READ_ONLY
      */
     TAI_NETWORK_INTERFACE_ATTR_RX_ALIGN_STATUS,
@@ -271,7 +258,7 @@ typedef enum _tai_network_interface_attr_t
      * @brief The laser grid spacing support. A bitfield of the supported grid
      *        spacing.
      *
-     * @type #tai_network_interface_laser_grid_spacing_t
+     * @type #tai_s32_list_t #tai_network_interface_tx_grid_spacing_t
      * @flags READ_ONLY
      */
     TAI_NETWORK_INTERFACE_ATTR_LASER_GRID_SUPPORT,
