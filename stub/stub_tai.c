@@ -175,7 +175,7 @@ static tai_status_t stub_get_host_interface_attribute(
     TAI_SYSLOG_DEBUG("Retrieving host interface attribute: %d", attr->id);
     switch (attr->id) {
         case TAI_HOST_INTERFACE_ATTR_INDEX:
-        case TAI_HOST_INTERFACE_ATTR_LANE_FAULTS:
+        case TAI_HOST_INTERFACE_ATTR_LANE_FAULT:
         case TAI_HOST_INTERFACE_ATTR_TX_ALIGN_STATUS:
         case TAI_HOST_INTERFACE_ATTR_FEC_TYPE:
             return TAI_STATUS_SUCCESS;
@@ -226,7 +226,7 @@ static tai_status_t stub_set_host_interface_attribute(
         case TAI_HOST_INTERFACE_ATTR_INDEX:
         case TAI_HOST_INTERFACE_ATTR_FEC_TYPE:
             return TAI_STATUS_SUCCESS;
-        case TAI_HOST_INTERFACE_ATTR_LANE_FAULTS:
+        case TAI_HOST_INTERFACE_ATTR_LANE_FAULT:
         case TAI_HOST_INTERFACE_ATTR_TX_ALIGN_STATUS:
             return TAI_STATUS_INVALID_ATTRIBUTE_0;
     }
