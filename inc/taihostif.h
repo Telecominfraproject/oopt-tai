@@ -40,17 +40,17 @@
 /** @brief A bitmap of lane faults */
 typedef enum _tai_host_interface_lane_faults_t
 {
-    TAI_HOST_INTERFACE_LANE_FAULT_LOSS_OF_LOCK = 0x01,
-    TAI_HOST_INTERFACE_LANE_FAULT_TX_FIFIO_ERR = 0x02
+    TAI_HOST_INTERFACE_LANE_FAULT_LOSS_OF_LOCK,
+    TAI_HOST_INTERFACE_LANE_FAULT_TX_FIFIO_ERR
 } tai_host_interface_lane_faults_t;
 
 /** @brief The transmit alignment status */
 typedef enum _tai_host_interface_tx_align_status_t
 {
-    TAI_HOST_INTERFACE_TX_ALIGN_CDR_LOCK_FAULT = 0x01,
-    TAI_HOST_INTERFACE_TX_ALIGN_LOSS           = 0x02,
-    TAI_HOST_INTERFACE_TX_ALIGN_OUT            = 0x04,
-    TAI_HOST_INTERFACE_TX_ALIGN_DESKEW_LOCK    = 0x08
+    TAI_HOST_INTERFACE_TX_ALIGN_CDR_LOCK_FAULT,
+    TAI_HOST_INTERFACE_TX_ALIGN_LOSS,
+    TAI_HOST_INTERFACE_TX_ALIGN_OUT,
+    TAI_HOST_INTERFACE_TX_ALIGN_DESKEW_LOCK
 } tai_host_interface_tx_align_status_t;
 
 /** @brief The host interface FEC type */
@@ -87,7 +87,7 @@ typedef enum _tai_host_interface_attr_t
      *
      * A list of lane fault status
      *
-     * @type #tai_u32_list_t of #tai_host_interface_lane_faults_t
+     * @type #tai_u32_list_t #tai_host_interface_lane_faults_t
      * @flags READ_ONLY
      */
     TAI_HOST_INTERFACE_ATTR_LANE_FAULTS,
@@ -95,7 +95,7 @@ typedef enum _tai_host_interface_attr_t
     /**
      * @brief TX Alignment Status
      *
-     * @type #tai_host_interface_tx_align_status_t
+     * @type #tai_u32_list_t #tai_host_interface_tx_align_status_t
      * @flags READ_ONLY
      */
     TAI_HOST_INTERFACE_ATTR_TX_ALIGN_STATUS,
