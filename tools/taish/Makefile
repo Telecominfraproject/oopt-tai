@@ -1,7 +1,7 @@
 CC := g++
 CFLAGS := -g -std=c++11
-INCLUDES := -I ../../inc
-LDFLAGS :=  -ldl -pthread
+INCLUDES := -I ../../inc -I ../../meta
+LDFLAGS :=  -ldl -pthread -L ../../meta -lmetatai
 SRCDIR := .
 SRCEXT := cpp
 SOURCES := $(shell ls $(SRCDIR)/*.cpp)

@@ -39,6 +39,7 @@
 
 #include "tai.h"
 #include "tai_shell.hpp"
+#include "taimetadata.h"
 
 static const char * TAI_CLI_DEFAULT_IP = "0.0.0.0";
 static const uint16_t TAI_CLI_DEFAULT_PORT = 4501;
@@ -617,13 +618,13 @@ int tai_command_set_netif_attr (std::ostream *ostr, std::vector <std::string> *a
   if (args->size() == 1) {
     *ostr << "Usage: set_netif_attr <module-id> <attr-id> <attr-val>" << std::endl;
     *ostr << "    <module-id>: integer." << std::endl;
-    *ostr << "    <attr-id> : tx-enable, tx-grid, tx-channel, output-power, tx-laser-freq, modulation or differential-encoding." << std::endl;
+    *ostr << "    <attr-id> : tx-enable, tx-grid-spacing, tx-channel, output-power, tx-laser-freq, modulation-format or differential-encoding." << std::endl;
     *ostr << "    <attr-val> :  tx-enable: true or false" << std::endl;
-    *ostr << "                  tx-grid: 100, 50, 33, 25, 12.5 or 6.25" << std::endl;
+    *ostr << "                  tx-grid-spacing: 100-ghz, 50-ghz, 33-ghz, 25-ghz, 12-5-ghz or 6-25-ghz" << std::endl;
     *ostr << "                  tx-channel: integer" << std::endl;
     *ostr << "                  output-power: float" << std::endl;
     *ostr << "                  tx-laser-freq: integer" << std::endl;
-    *ostr << "                  modulation: bpsk, dp-bpsk, qpsk, dp-qpsk, 8qam, dp-8qam, 16qam, dp-16qam, 32qam, dp-32qam, 64qam or dp-64qam" << std::endl;
+    *ostr << "                  modulation-format: bpsk, dp-bpsk, qpsk, dp-qpsk, 8-qam, dp-8-qam, 16-qam, dp-16-qam, 32-qam, dp-32-qam, 64-qam or dp-64-qam" << std::endl;
     *ostr << "                  differential-encoding: true or false" << std::endl;
     return -1;
   }
@@ -645,107 +646,25 @@ int tai_command_set_netif_attr (std::ostream *ostr, std::vector <std::string> *a
   }
 
   auto com = (*args)[2];
-  if (com == "tx-enable") {
-    attr = TAI_NETWORK_INTERFACE_ATTR_TX_ENABLE;
-  } else if (com == "tx-grid") {
-    attr = TAI_NETWORK_INTERFACE_ATTR_TX_GRID_SPACING;
-  } else if (com == "tx-channel") {
-    attr = TAI_NETWORK_INTERFACE_ATTR_TX_CHANNEL;
-  } else if (com == "output-power") {
-    attr = TAI_NETWORK_INTERFACE_ATTR_OUTPUT_POWER;
-  } else if (com == "tx-laser-freq") {
-    attr = TAI_NETWORK_INTERFACE_ATTR_TX_FINE_TUNE_LASER_FREQ;
-  } else if (com == "modulation") {
-    attr = TAI_NETWORK_INTERFACE_ATTR_MODULATION_FORMAT;
-  } else if (com == "differential-encoding") { 
-    attr = TAI_NETWORK_INTERFACE_ATTR_DIFFERENTIAL_ENCODING;
-  } else {
-    *ostr << "Invalid attribute (tx-enable, tx-grid, tx-channel, output-power, tx-laser-freq, modulation or differential-encoding)" << std::endl;
+  tai_serialize_option_t option = {
+      .human = true,
+  };
+  if ( tai_deserialize_network_interface_attr(com.c_str(), (int32_t*)(&attr), &option) < 0) {
+      *ostr << "Invalid attribute (tx-enable, tx-grid-spacing, tx-channel, output-power, tx-laser-freq, modulation-format or differential-encoding)" << std::endl;
     return -1;
   }
 
-  if (attr == TAI_NETWORK_INTERFACE_ATTR_TX_ENABLE) {
-    auto val = (*args)[3];
-    if (val == "true") {
-      attr_val.booldata = true;
-    } else if (val == "false") {
-      attr_val.booldata = false;
-    } else {
-      *ostr << "%% Invalid argument (true or false)" << std::endl;
+  auto meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORKIF, attr);
+  auto val = (*args)[3];
+
+  if ( tai_deserialize_attribute_value(val.c_str(), meta, &attr_val, &option) < 0 ) {
+      *ostr << "Invalid argument" << std::endl;
       return -1;
-    }
-  } else if (attr == TAI_NETWORK_INTERFACE_ATTR_TX_GRID_SPACING) {
-    auto val = (*args)[3];
-    if (val == "100") {
-      attr_val.u32 = TAI_NETWORK_INTERFACE_TX_GRID_SPACING_100_GHZ;
-    } else if (val == "50") {
-      attr_val.u32 = TAI_NETWORK_INTERFACE_TX_GRID_SPACING_50_GHZ;
-    } else if (val == "33") {
-      attr_val.u32 = TAI_NETWORK_INTERFACE_TX_GRID_SPACING_33_GHZ;
-    } else if (val == "25") {
-      attr_val.u32 = TAI_NETWORK_INTERFACE_TX_GRID_SPACING_25_GHZ;
-    } else if (val == "12.5") {
-      attr_val.u32 = TAI_NETWORK_INTERFACE_TX_GRID_SPACING_12_5_GHZ;
-    } else if (val == "6.25") {
-      attr_val.u32 = TAI_NETWORK_INTERFACE_TX_GRID_SPACING_6_25_GHZ;
-    } else {
-      *ostr << "%% Invalid argument (100, 50, 33, 25, 12.5 or 6.25" << std::endl;
-      return -1;
-    }
-  } else if (attr == TAI_NETWORK_INTERFACE_ATTR_TX_CHANNEL) {
-    auto val = std::stoi((*args)[3], nullptr, 10);
-    attr_val.u16 = val;
-  } else if (attr == TAI_NETWORK_INTERFACE_ATTR_OUTPUT_POWER) {
-    auto val = std::stof((*args)[3], nullptr);
-    attr_val.flt = val;
-  } else if (attr == TAI_NETWORK_INTERFACE_ATTR_TX_FINE_TUNE_LASER_FREQ) {
-    auto val = std::stoull((*args)[3], nullptr, 10);
-    attr_val.u64 = val;
-  } else if (attr == TAI_NETWORK_INTERFACE_ATTR_MODULATION_FORMAT) {
-    auto val = (*args)[3];
-    if (val == "bpsk") {
-      attr_val.u32 = TAI_NETWORK_INTERFACE_MODULATION_FORMAT_BPSK;
-    } else if (val == "dp-bpsk") {
-      attr_val.u32 = TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_BPSK;
-    } else if (val == "qpsk") {
-      attr_val.u32 = TAI_NETWORK_INTERFACE_MODULATION_FORMAT_QPSK;
-    } else if (val == "dp-qpsk") {
-      attr_val.u32 = TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_QPSK;
-    } else if (val == "8qam") {
-      attr_val.u32 = TAI_NETWORK_INTERFACE_MODULATION_FORMAT_8_QAM;
-    } else if (val == "dp-8qam") {
-      attr_val.u32 = TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_8_QAM;
-    } else if (val == "16qam") {
-      attr_val.u32 = TAI_NETWORK_INTERFACE_MODULATION_FORMAT_16_QAM;
-    } else if (val == "dp-16qam") {
-      attr_val.u32 = TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_16_QAM;
-    } else if (val == "32qam") {
-      attr_val.u32 = TAI_NETWORK_INTERFACE_MODULATION_FORMAT_32_QAM;
-    } else if (val == "dp-32qam") {
-      attr_val.u32 = TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_32_QAM;
-    } else if (val == "64qam") {
-      attr_val.u32 = TAI_NETWORK_INTERFACE_MODULATION_FORMAT_64_QAM;
-    } else if (val == "dp-64qam") {
-      attr_val.u32 = TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_64_QAM;
-    } else {
-      *ostr << "%% Invalid argument (bpsk, dp-bpsk, qpsk, dp-qpsk, 8qam, dp-8qam, 16qam, dp-16qam, 32qam, dp-32qam, 64qam or dp-64qam)" << std::endl;
-      return -1;
-    }
-  } else if (attr == TAI_NETWORK_INTERFACE_ATTR_DIFFERENTIAL_ENCODING) {
-    auto val = (*args)[3];
-    if (val == "true") {
-      attr_val.booldata = true;
-    } else if (val == "false") {
-      attr_val.booldata = false;
-    } else {
-      *ostr << "%% Invalid argument (true or false)" << std::endl;
-      return -1;
-    }
-  } else {
-    *ostr << "%% Invalid Attribute ID" << std::endl;
-    return -1;
   }
 
-  modules[id]->set_netif_attribute (attr, attr_val);
+  if ( modules[id]->set_netif_attribute (attr, attr_val) < 0 ) {
+      *ostr << "set netif attribute failed" << std::endl;
+      return -1;
+  }
   return 0;
 }
