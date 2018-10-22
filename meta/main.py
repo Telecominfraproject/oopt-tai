@@ -25,10 +25,13 @@ from jinja2 import Environment
 
 
 class TAIAttributeFlag(Enum):
-    READ_ONLY = 0
-    IS_FLAG = 1
-    CREATE_ONLY = 2
-    MANDATORY_ON_CREATE = 3
+    MANDATORY_ON_CREATE = 0
+    CREATE_ONLY         = 1
+    CREATE_AND_SET      = 2
+    READ_ONLY           = 3
+    KEY                 = 4
+    DYNAMIC             = 5
+    SPECIAL             = 6
 
 
 class TAIEnum(object):
