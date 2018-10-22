@@ -30,11 +30,6 @@ void module_state_change(tai_object_id_t module_id, tai_module_oper_status_t sta
            module_id, status);
 }
 
-tai_module_notification_t g_module_notifications = {
-    .shutdown_request   = module_shutdown,
-    .state_change       = module_state_change
-};
-
 tai_status_t create_modules() {
     tai_status_t status;
     tai_attribute_t attr[5];
@@ -46,8 +41,11 @@ tai_status_t create_modules() {
         attr[0].id = TAI_MODULE_ATTR_LOCATION;
         attr[0].value.charlist.count = strlen(g_module_locations[g_module_location_tail]);
         attr[0].value.charlist.list = g_module_locations[g_module_location_tail];
-        status = module_api->create_module(&g_module_ids[g_module_location_tail],
-                                           1, &attr[0], &g_module_notifications); 
+        attr[1].id = TAI_MODULE_ATTR_MODULE_SHUTDOWN_REQUEST_NOTIFY;
+        attr[1].value.ptr = module_shutdown;
+        attr[2].id = TAI_MODULE_ATTR_MODULE_STATE_CHANGE_NOTIFY;
+        attr[2].value.ptr = module_state_change;
+        status = module_api->create_module(&g_module_ids[g_module_location_tail], 3, attr);
         if ( status != TAI_STATUS_SUCCESS ) {
             return status;
         }

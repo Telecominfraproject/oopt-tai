@@ -655,23 +655,16 @@ static tai_status_t stub_set_module_attributes(
  * @param [out] module_id Handle which identifies the module
  * @param [in] attr_count A count of the number of elements in the attr_list
  * @param [in] attr_list A list of attributes to set during initialization
- * @param [in] notifications Function pointers for adapter host notifications
  *
  * @return TAI_STATUS_SUCCESS on success, failure status code on error
  */
 static tai_status_t stub_create_module(
     _Out_ tai_object_id_t          *module_id,
     _In_ uint32_t                   attr_count,
-    _In_ const tai_attribute_t     *attr_list,
-    _In_ tai_module_notification_t *notifications)
+    _In_ const tai_attribute_t     *attr_list)
 {
     tai_status_t ret;
     const tai_attribute_value_t * mod_addr;
-
-    if (NULL == notifications) {
-        TAI_SYSLOG_ERROR("NULL module notifications passed to TAI switch initialize");
-        return TAI_STATUS_INVALID_PARAMETER;
-    }
 
     mod_addr = find_attribute_in_list(TAI_MODULE_ATTR_LOCATION, attr_count, attr_list);
     if (NULL == mod_addr) {

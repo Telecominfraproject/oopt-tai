@@ -77,6 +77,27 @@ typedef enum _tai_module_admin_status_t
 } tai_module_admin_status_t;
 
 /**
+ * @brief Module shutdown request callback.
+ *
+ * Adapter DLL may request a shutdown due to an unrecoverable failure
+ * or a maintenance operation
+ *
+ * @param[in] module_id Module Id
+ */
+typedef void (*tai_module_shutdown_request_notification_fn)(
+        _In_ tai_object_id_t module_id);
+
+/**
+ * @brief Module operational state change notification
+ *
+ * @param[in] module_id Module Id
+ * @param[in] module_oper_status New module operational state
+ */
+typedef void (*tai_module_state_change_notification_fn)(
+        _In_ tai_object_id_t module_id,
+        _In_ tai_module_oper_status_t module_oper_status);
+
+/**
  * @brief Attribute Id in tai_set_module_attribute() and
  *        tai_get_module_attribute() calls.
  */
@@ -191,6 +212,22 @@ typedef enum _tai_module_attr_t
     TAI_MODULE_ATTR_TRIBUTARY_MAPPING,
 
     /**
+     * @brief Module shutdown request callback.
+     *
+     * @type tai_pointer_t tai_module_shutdown_request_notification_fn
+     * @flags CREATE_AND_SET
+     */
+    TAI_MODULE_ATTR_MODULE_SHUTDOWN_REQUEST_NOTIFY,
+
+    /**
+     * @brief Module operational state change notification
+     *
+     * @type tai_pointer_t tai_module_state_change_notification_fn
+     * @flags CREATE_AND_SET
+     */
+    TAI_MODULE_ATTR_MODULE_STATE_CHANGE_NOTIFY,
+
+    /**
      * @brief End of attributes
      */
     TAI_MODULE_ATTR_END,
@@ -202,37 +239,6 @@ typedef enum _tai_module_attr_t
     TAI_MODULE_ATTR_CUSTOM_RANGE_END
 
 } tai_module_attr_t;
-
-/**
- * @brief Module shutdown request callback.
- *
- * Adapter DLL may request a shutdown due to an unrecoverable failure
- * or a maintenance operation
- *
- * @param[in] module_id Module Id
- */
-typedef void (*tai_module_shutdown_request_notification_fn)(
-        _In_ tai_object_id_t module_id);
-
-/**
- * @brief Module operational state change notification
- *
- * @param[in] module_id Module Id
- * @param[in] module_oper_status New module operational state
- */
-typedef void (*tai_module_state_change_notification_fn)(
-        _In_ tai_object_id_t module_id,
-        _In_ tai_module_oper_status_t module_oper_status);
-
-/**
- *  @brief Module notification table. Functions are provided by adapter host to
- *         adapter in create_module function.
- */
-typedef struct _tai_module_notification_t
-{
-    tai_module_shutdown_request_notification_fn shutdown_request;
-    tai_module_state_change_notification_fn     state_change;
-} tai_module_notification_t;
 
 /**
  * @brief Create module
@@ -251,8 +257,7 @@ typedef struct _tai_module_notification_t
 typedef tai_status_t (*tai_create_module_fn)(
         _Out_ tai_object_id_t *module_id,
         _In_ uint32_t attr_count,
-        _In_ const tai_attribute_t *attr_list,
-        _In_ tai_module_notification_t *notifications);
+        _In_ const tai_attribute_t *attr_list);
 
 /**
  * @brief Remove/disconnect Module

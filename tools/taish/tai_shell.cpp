@@ -178,7 +178,7 @@ tai_status_t create_module(const std::string& location, tai_object_id_t& m_id) {
     attr.value.charlist.count = location.size();
     attr.value.charlist.list = (char*)location.c_str();
     list.push_back(attr);
-    return module_api->create_module(&m_id, list.size(), list.data(), nullptr);
+    return module_api->create_module(&m_id, list.size(), list.data());
 }
 
 int main(int argc, char *argv[]) {
