@@ -118,7 +118,7 @@ an optical module. Calling the `create_module()` function causes the optical
 module to be initialized, which typically involves resetting the module and 
 bringing it into a default state. This function must be called prior to creating 
 host interface or network interface objects on a module. The `create_module()` 
-function takes four parameters:
+function takes three parameters:
 
 * A pointer to a tai_object_id_t. The adapter will return a pointer to the newly 
 allocated module ID object. The adapter host should treat this object as opaque. 
@@ -126,9 +126,6 @@ It will be used in subsequent TAI function calls.
 * attr_count and attr_list. A list of attributes which will be set upon the 
 module object when it is created. This can be used to override the default 
 attribute values for a module.
-* notification functions. A pointer to a list of function pointers in the 
-adapter host which the adapter can call to notify the adapter host of changes in 
-status of the module.
 
 The attr_list supplied on the `create_module()` function call must contain a 
 `TAI_MODULE_ATTR_LOCATION` attribute. This attribute defines which module is 
