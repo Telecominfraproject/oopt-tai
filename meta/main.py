@@ -66,9 +66,14 @@ class TAIAttribute(object):
         self.enum_type = None
         if len(ts) == 1:
             self.type = ts[0]
-        elif len(ts) == 2 and ts[0] == 'tai_s32_list_t':
-            self.type = ts[0]
-            self.enum_type = ts[1]
+        elif len(ts) == 2:
+            if ts[0] == 'tai_s32_list_t':
+                self.type = ts[0]
+                self.enum_type = ts[1]
+            elif ts[0] == 'tai_pointer_t':
+                self.type = ts[0]
+            else:
+                raise Exception("unsupported type format: {}".format(t))
         else:
             raise Exception("unsupported type format: {}".format(t))
 
