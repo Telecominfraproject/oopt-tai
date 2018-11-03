@@ -1,2 +1,14 @@
+sudo: required
+
 language: c
-script: make test
+
+services:
+  - docker
+
+before_install:
+  - make -C meta docker-image
+
+script:
+  - make test
+  - make -C meta docker
+  - make -C meta test
