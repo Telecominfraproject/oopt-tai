@@ -61,6 +61,15 @@ typedef enum _tai_host_interface_fec_type_t
     TAI_HOST_INTERFACE_FEC_TYPE_FC,     /**< FC-FEC */
 } tai_host_interface_fec_type_t;
 
+/** @brief The loopback types */
+typedef enum _tai_host_interface_loopback_type_t
+{
+    TAI_HOST_INTERFACE_LOOPBACK_TYPE_NONE,
+    TAI_HOST_INTERFACE_LOOPBACK_TYPE_SHALLOW,
+    TAI_HOST_INTERFACE_LOOPBACK_TYPE_DEEP,
+    TAI_HOST_INTERFACE_LOOPBACK_TYPE_MAX
+} tai_host_interface_loopback_type_t;
+
 /**
  * @brief Host interface Attribute Ids
  */
@@ -106,6 +115,13 @@ typedef enum _tai_host_interface_attr_t
      * @type #tai_host_interface_fec_type_t
      */
     TAI_HOST_INTERFACE_ATTR_FEC_TYPE,
+
+    /**
+     * @brief Loopback type
+     *
+     * @type #tai_host_interface_loopback_type_t
+     */
+    TAI_HOST_INTERFACE_ATTR_LOOPBACK_TYPE,
 
     /**
      * @brief End of attributes

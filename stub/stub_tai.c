@@ -178,6 +178,7 @@ static tai_status_t stub_get_host_interface_attribute(
         case TAI_HOST_INTERFACE_ATTR_LANE_FAULT:
         case TAI_HOST_INTERFACE_ATTR_TX_ALIGN_STATUS:
         case TAI_HOST_INTERFACE_ATTR_FEC_TYPE:
+        case TAI_HOST_INTERFACE_ATTR_LOOPBACK_TYPE:
             return TAI_STATUS_SUCCESS;
     }
     return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
@@ -225,6 +226,7 @@ static tai_status_t stub_set_host_interface_attribute(
     switch (attr->id) {
         case TAI_HOST_INTERFACE_ATTR_INDEX:
         case TAI_HOST_INTERFACE_ATTR_FEC_TYPE:
+        case TAI_HOST_INTERFACE_ATTR_LOOPBACK_TYPE:
             return TAI_STATUS_SUCCESS;
         case TAI_HOST_INTERFACE_ATTR_LANE_FAULT:
         case TAI_HOST_INTERFACE_ATTR_TX_ALIGN_STATUS:
@@ -364,6 +366,7 @@ static tai_status_t stub_get_network_interface_attribute(
         case TAI_NETWORK_INTERFACE_ATTR_MIN_LASER_FREQ:
         case TAI_NETWORK_INTERFACE_ATTR_MAX_LASER_FREQ:
         case TAI_NETWORK_INTERFACE_ATTR_LASER_GRID_SUPPORT:
+        case TAI_NETWORK_INTERFACE_ATTR_LOOPBACK_TYPE:
             return TAI_STATUS_SUCCESS;
     }
     return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
@@ -429,6 +432,7 @@ static tai_status_t stub_set_network_interface_attribute(
         case TAI_NETWORK_INTERFACE_ATTR_TX_FINE_TUNE_LASER_FREQ:
         case TAI_NETWORK_INTERFACE_ATTR_MODULATION_FORMAT:
         case TAI_NETWORK_INTERFACE_ATTR_DIFFERENTIAL_ENCODING:
+        case TAI_NETWORK_INTERFACE_ATTR_LOOPBACK_TYPE:
             return TAI_STATUS_SUCCESS;
     }
     return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
