@@ -115,6 +115,10 @@ typedef enum _tai_host_interface_attr_t
     /** Custom range base value */
     TAI_HOST_INTERFACE_ATTR_CUSTOM_RANGE_START = 0x10000000,
 
+    /** Custom range for the AC400 adapter */
+    TAI_HOST_INTERFACE_ATTR_CUSTOM_AC400_START = TAI_HOST_INTERFACE_ATTR_CUSTOM_RANGE_START,
+    TAI_HOST_INTERFACE_ATTR_CUSTOM_AC400_END   = TAI_HOST_INTERFACE_ATTR_CUSTOM_AC400_START + 0xFFFF,
+
     /** End of custom range base */
     TAI_HOST_INTERFACE_ATTR_CUSTOM_RANGE_END
 
