@@ -109,6 +109,15 @@ typedef enum _tai_network_interface_modulation_format_t
     TAI_NETWORK_INTERFACE_MODULATION_FORMAT_MAX
 } tai_network_interface_modulation_format_t;
 
+/** @brief The loopback types */
+typedef enum _tai_network_interface_loopback_type_t
+{
+    TAI_NETWORK_INTERFACE_LOOPBACK_TYPE_NONE,
+    TAI_NETWORK_INTERFACE_LOOPBACK_TYPE_SHALLOW,
+    TAI_NETWORK_INTERFACE_LOOPBACK_TYPE_DEEP,
+    TAI_NETWORK_INTERFACE_LOOPBACK_TYPE_MAX
+} tai_network_interface_loopback_type_t;
+
 /**
  * @brief Network interface attribute IDs
  */
@@ -335,6 +344,13 @@ typedef enum _tai_network_interface_attr_t
      * @type #tai_float_t
      */
     TAI_NETWORK_INTERFACE_ATTR_CHANNEL_LAMBDA,
+
+    /**
+     * @brief Loopback type
+     *
+     * @type #tai_network_interface_loopback_type_t
+     */
+    TAI_NETWORK_INTERFACE_ATTR_LOOPBACK_TYPE,
 
     /**
      * @brief End of attributes
