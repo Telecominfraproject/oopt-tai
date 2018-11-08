@@ -118,6 +118,20 @@ typedef enum _tai_network_interface_loopback_type_t
     TAI_NETWORK_INTERFACE_LOOPBACK_TYPE_MAX
 } tai_network_interface_loopback_type_t;
 
+/** @brief The PRBS types */
+typedef enum _tai_network_interface_prbs_type_t
+{
+    TAI_NETWORK_INTERFACE_PRBS_TYPE_NONE,
+    TAI_NETWORK_INTERFACE_PRBS_TYPE_PRBS7,
+    TAI_NETWORK_INTERFACE_PRBS_TYPE_PRBS9,
+    TAI_NETWORK_INTERFACE_PRBS_TYPE_PRBS11,
+    TAI_NETWORK_INTERFACE_PRBS_TYPE_PRBS15,
+    TAI_NETWORK_INTERFACE_PRBS_TYPE_PRBS20,
+    TAI_NETWORK_INTERFACE_PRBS_TYPE_PRBS23,
+    TAI_NETWORK_INTERFACE_PRBS_TYPE_PRBS31,
+    TAI_NETWORK_INTERFACE_PRBS_TYPE_MAX,
+} tai_network_interface_prbs_type_t;
+
 /**
  * @brief Network interface attribute IDs
  */
@@ -351,6 +365,13 @@ typedef enum _tai_network_interface_attr_t
      * @type #tai_network_interface_loopback_type_t
      */
     TAI_NETWORK_INTERFACE_ATTR_LOOPBACK_TYPE,
+
+    /**
+     * @brief PRBS type
+     *
+     * @type #tai_network_interface_prbs_type_t
+     */
+    TAI_NETWORK_INTERFACE_ATTR_PRBS_TYPE,
 
     /**
      * @brief End of attributes
