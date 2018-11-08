@@ -367,6 +367,7 @@ static tai_status_t stub_get_network_interface_attribute(
         case TAI_NETWORK_INTERFACE_ATTR_MAX_LASER_FREQ:
         case TAI_NETWORK_INTERFACE_ATTR_LASER_GRID_SUPPORT:
         case TAI_NETWORK_INTERFACE_ATTR_LOOPBACK_TYPE:
+        case TAI_NETWORK_INTERFACE_ATTR_PRBS_TYPE:
             return TAI_STATUS_SUCCESS;
     }
     return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
@@ -433,6 +434,7 @@ static tai_status_t stub_set_network_interface_attribute(
         case TAI_NETWORK_INTERFACE_ATTR_MODULATION_FORMAT:
         case TAI_NETWORK_INTERFACE_ATTR_DIFFERENTIAL_ENCODING:
         case TAI_NETWORK_INTERFACE_ATTR_LOOPBACK_TYPE:
+        case TAI_NETWORK_INTERFACE_ATTR_PRBS_TYPE:
             return TAI_STATUS_SUCCESS;
     }
     return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
