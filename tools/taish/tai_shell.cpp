@@ -72,7 +72,7 @@ tai_module_api_t *module_api;
 tai_network_interface_api_t *netif_api;
 tai_host_interface_api_t *hostif_api;
 
-int fd;
+int event_fd;
 std::queue<std::pair<bool, std::string>> q;
 std::mutex m;
 
@@ -166,10 +166,10 @@ int module::loop() {
 std::map<tai_object_id_t, module*> modules;
 
 void module_presence(bool present, char* location) {
-    uint64_t v;
+    uint64_t v = 1;
     std::lock_guard<std::mutex> g(m);
     q.push(std::pair<bool, std::string>(present, std::string(location)));
-    write(fd, &v, sizeof(uint64_t));
+    write(event_fd, &v, sizeof(uint64_t));
 }
 
 tai_status_t create_module(const std::string& location, tai_object_id_t& m_id) {
@@ -193,7 +193,7 @@ int main(int argc, char *argv[]) {
     sockaddr_in addr;
     int c;
 
-    fd = eventfd(0, 0);
+    event_fd = eventfd(0, 0);
 
     ip_str = std::string(TAI_CLI_DEFAULT_IP);
     port = TAI_CLI_DEFAULT_PORT;
@@ -224,7 +224,7 @@ int main(int argc, char *argv[]) {
       return -1;
     }
 
-    fds[0].fd = fd;
+    fds[0].fd = event_fd;
     fds[0].events = POLLIN;
     fds[1].fd = cli_server->start();
     fds[1].events = POLLIN;
