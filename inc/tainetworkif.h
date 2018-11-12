@@ -219,7 +219,7 @@ typedef enum _tai_network_interface_attr_t
     /**
      * @brief The TX laser fine tune frequency in Hz
      *
-     * @type #tai_uint64_t
+     * @type #tai_int64_t
      */
     TAI_NETWORK_INTERFACE_ATTR_TX_FINE_TUNE_LASER_FREQ,
 
