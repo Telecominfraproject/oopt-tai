@@ -183,15 +183,9 @@ typedef enum _tai_network_interface_attr_t
      * @brief TX Grid Spacing
      *
      * @type #tai_network_interface_tx_grid_spacing_t
+     * @flags READ_ONLY
      */
     TAI_NETWORK_INTERFACE_ATTR_TX_GRID_SPACING,
-
-    /**
-     * @brief TX Channel Number
-     *
-     * @type #tai_uint16_t
-     */
-    TAI_NETWORK_INTERFACE_ATTR_TX_CHANNEL,
 
     /**
      * @brief The TX output power in dBm
@@ -212,7 +206,6 @@ typedef enum _tai_network_interface_attr_t
      * @brief The TX laser frequency in Hz
      *
      * @type #tai_uint64_t
-     * @flags READ_ONLY
      */
     TAI_NETWORK_INTERFACE_ATTR_TX_LASER_FREQ,
 
@@ -346,20 +339,6 @@ typedef enum _tai_network_interface_attr_t
     TAI_NETWORK_INTERFACE_ATTR_VOA_RX,
 
     /**
-     * @brief Channel by frequency in THz
-     *
-     * @type #tai_float_t
-     */
-    TAI_NETWORK_INTERFACE_ATTR_CHANNEL_FREQ,
-
-    /**
-     * @brief Channel by lambda by nm
-     *
-     * @type #tai_float_t
-     */
-    TAI_NETWORK_INTERFACE_ATTR_CHANNEL_LAMBDA,
-
-    /**
      * @brief Loopback type
      *
      * @type #tai_network_interface_loopback_type_t
@@ -372,6 +351,23 @@ typedef enum _tai_network_interface_attr_t
      * @type #tai_network_interface_prbs_type_t
      */
     TAI_NETWORK_INTERFACE_ATTR_PRBS_TYPE,
+
+    /**
+     * @brief The current TX laser frequency in Hz
+     *
+     * @type #tai_uint64_t
+     * @flags READ_ONLY
+     */
+    TAI_NETWORK_INTERFACE_ATTR_CURRENT_TX_LASER_FREQ,
+
+    /**
+     * @brief Channel 1 frequency in Hz
+     *
+     * Set to 0 to use NVR value
+     *
+     * @type #tai_uint64_t
+     */
+    TAI_NETWORK_INTERFACE_ATTR_CH1_FREQ,
 
     /**
      * @brief End of attributes

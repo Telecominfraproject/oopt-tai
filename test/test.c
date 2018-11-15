@@ -32,7 +32,7 @@ void module_state_change(tai_object_id_t module_id, tai_module_oper_status_t sta
 
 tai_status_t create_modules() {
     tai_status_t status;
-    tai_attribute_t attr[5];
+    tai_attribute_t attr[4];
     int network_ifs;
     int host_ifs;
     int i;
@@ -67,14 +67,11 @@ tai_status_t create_modules() {
             attr[1].id = TAI_NETWORK_INTERFACE_ATTR_TX_ENABLE;
             attr[1].value.booldata = true;
 
-            attr[2].id = TAI_NETWORK_INTERFACE_ATTR_TX_GRID_SPACING;
-            attr[2].value.u32 = TAI_NETWORK_INTERFACE_TX_GRID_SPACING_50_GHZ;
+            attr[2].id = TAI_NETWORK_INTERFACE_ATTR_TX_LASER_FREQ;
+            attr[2].value.u64 = 191300000000000;
 
-            attr[3].id = TAI_NETWORK_INTERFACE_ATTR_TX_CHANNEL;
-            attr[3].value.u16 = 52;
-
-            attr[4].id = TAI_NETWORK_INTERFACE_ATTR_OUTPUT_POWER;
-            attr[4].value.flt = 1.0;
+            attr[3].id = TAI_NETWORK_INTERFACE_ATTR_OUTPUT_POWER;
+            attr[3].value.flt = 1.0;
 
             status = network_interface_api->create_network_interface(
                &g_netif_ids[g_module_location_tail][i],
