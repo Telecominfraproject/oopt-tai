@@ -1,0 +1,93 @@
+syntax = "proto3";
+
+package tai;
+
+service TAI {
+    rpc ListModule(ListModuleRequest) returns (stream ListModuleResponse);
+    rpc ListAttributeMetadata(ListAttributeMetadataRequest) returns (stream ListAttributeMetadataResponse);
+    rpc GetAttributeMetadata(GetAttributeMetadataRequest) returns (GetAttributeMetadataResponse);
+    rpc GetAttribute(GetAttributeRequest) returns (GetAttributeResponse);
+    rpc SetAttribute(SetAttributeRequest) returns (SetAttributeResponse);
+}
+
+enum TAIObjectType {
+    UNKNOWN = 0;
+    MODULE = 1;
+    HOSTIF = 2;
+    NETIF = 3;
+}
+
+message ListModuleRequest {
+}
+
+message ListModuleResponse {
+    Module module = 1;
+}
+
+message ListAttributeMetadataRequest {
+    TAIObjectType object_type = 1;
+}
+
+message ListAttributeMetadataResponse {
+    AttributeMetadata metadata = 1;
+}
+
+message GetAttributeMetadataRequest {
+    TAIObjectType object_type = 1;
+    oneof attr {
+        uint64 attr_id = 2;
+        string attr_name = 3;
+    }
+}
+
+message GetAttributeMetadataResponse {
+    AttributeMetadata metadata = 1;
+}
+
+message GetAttributeRequest {
+    uint64 oid = 1;
+    uint64 attr_id = 2;
+}
+
+message GetAttributeResponse {
+    Attribute attribute = 1;
+}
+
+message SetAttributeRequest {
+    uint64 oid = 1;
+    Attribute attribute = 2;
+}
+
+message SetAttributeResponse {
+}
+
+message Attribute {
+    uint64 attr_id = 1;
+    string value = 2;
+}
+
+message AttributeMetadata {
+    uint64 attr_id = 1;
+    string name = 2;
+    string short_name = 3;
+    TAIObjectType object_type = 4;
+    string usage = 5;
+    bool is_readonly = 6;
+}
+
+message HostInterface {
+    uint64 oid = 1;
+    uint32 index = 2;
+}
+
+message NetworkInterface {
+    uint64 oid = 1;
+    uint32 index = 2;
+}
+
+message Module {
+    uint64 oid = 1;
+    string location = 2;
+    repeated HostInterface hostifs = 3;
+    repeated NetworkInterface netifs = 4;
+}
