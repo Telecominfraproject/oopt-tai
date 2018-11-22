@@ -176,6 +176,8 @@ typedef enum _tai_network_interface_attr_t
      * Interpreted as complement of MSA defined TX_DIS signal
      *
      * @type bool
+     * @flags CREATE_AND_SET
+     * @default true
      */
     TAI_NETWORK_INTERFACE_ATTR_TX_ENABLE,
 
@@ -191,6 +193,8 @@ typedef enum _tai_network_interface_attr_t
      * @brief The TX output power in dBm
      *
      * @type #tai_float_t
+     * @flags CREATE_AND_SET
+     * @default vendor-specific
      */
     TAI_NETWORK_INTERFACE_ATTR_OUTPUT_POWER,
 
@@ -206,6 +210,8 @@ typedef enum _tai_network_interface_attr_t
      * @brief The TX laser frequency in Hz
      *
      * @type #tai_uint64_t
+     * @flags CREATE_AND_SET
+     * @default vendor-specific
      */
     TAI_NETWORK_INTERFACE_ATTR_TX_LASER_FREQ,
 
@@ -213,6 +219,8 @@ typedef enum _tai_network_interface_attr_t
      * @brief The TX laser fine tune frequency in Hz
      *
      * @type #tai_int64_t
+     * @flags CREATE_AND_SET
+     * @default vendor-specific
      */
     TAI_NETWORK_INTERFACE_ATTR_TX_FINE_TUNE_LASER_FREQ,
 
@@ -220,6 +228,8 @@ typedef enum _tai_network_interface_attr_t
      * @brief The modulation format
      *
      * @type #tai_network_interface_modulation_format_t
+     * @flags CREATE_AND_SET
+     * @default vendor-specific
      */
     TAI_NETWORK_INTERFACE_ATTR_MODULATION_FORMAT,
 
@@ -244,6 +254,8 @@ typedef enum _tai_network_interface_attr_t
      * @brief Differential phase encoding
      *
      * @type bool
+     * @flags CREATE_AND_SET
+     * @default vendor-specific
      */
     TAI_NETWORK_INTERFACE_ATTR_DIFFERENTIAL_ENCODING,
 
@@ -251,6 +263,7 @@ typedef enum _tai_network_interface_attr_t
      * @brief The operational state of the network interface
      *
      * @type #tai_network_interface_oper_status_t
+     * @flags READ_ONLY
      */
     TAI_NETWORK_INTERFACE_ATTR_OPER_STATUS,
 
@@ -307,6 +320,8 @@ typedef enum _tai_network_interface_attr_t
      * @brief Pulse shaping enabled on TX
      *
      * @type bool
+     * @flags CREATE_AND_SET
+     * @default vendor-specific
      */
     TAI_NETWORK_INTERFACE_ATTR_PULSE_SHAPING_TX,
 
@@ -314,6 +329,8 @@ typedef enum _tai_network_interface_attr_t
      * @brief Pulse shaping enabled on RX
      *
      * @type bool
+     * @flags CREATE_AND_SET
+     * @default vendor-specific
      */
     TAI_NETWORK_INTERFACE_ATTR_PULSE_SHAPING_RX,
 
@@ -321,6 +338,8 @@ typedef enum _tai_network_interface_attr_t
      * @brief Pulse shaping beta on TX
      *
      * @type #tai_float_t
+     * @flags CREATE_AND_SET
+     * @default vendor-specific
      */
     TAI_NETWORK_INTERFACE_ATTR_PULSE_SHAPING_TX_BETA,
 
@@ -328,6 +347,8 @@ typedef enum _tai_network_interface_attr_t
      * @brief Pulse shaping beta on RX
      *
      * @type #tai_float_t
+     * @flags CREATE_AND_SET
+     * @default vendor-specific
      */
     TAI_NETWORK_INTERFACE_ATTR_PULSE_SHAPING_RX_BETA,
 
@@ -335,6 +356,8 @@ typedef enum _tai_network_interface_attr_t
      * @brief RX VOA attenuation in dB
      *
      * @type #tai_float_t
+     * @flags CREATE_AND_SET
+     * @default vendor-specific
      */
     TAI_NETWORK_INTERFACE_ATTR_VOA_RX,
 
@@ -342,6 +365,8 @@ typedef enum _tai_network_interface_attr_t
      * @brief Loopback type
      *
      * @type #tai_network_interface_loopback_type_t
+     * @flags CREATE_AND_SET
+     * @default TAI_NETWORK_INTERFACE_LOOPBACK_TYPE_NONE
      */
     TAI_NETWORK_INTERFACE_ATTR_LOOPBACK_TYPE,
 
@@ -349,6 +374,8 @@ typedef enum _tai_network_interface_attr_t
      * @brief PRBS type
      *
      * @type #tai_network_interface_prbs_type_t
+     * @flags CREATE_AND_SET
+     * @default TAI_NETWORK_INTERFACE_PRBS_TYPE_NONE
      */
     TAI_NETWORK_INTERFACE_ATTR_PRBS_TYPE,
 
@@ -366,6 +393,8 @@ typedef enum _tai_network_interface_attr_t
      * Set to 0 to use NVR value
      *
      * @type #tai_uint64_t
+     * @flags CREATE_AND_SET
+     * @default vendor-specific
      */
     TAI_NETWORK_INTERFACE_ATTR_CH1_FREQ,
 
