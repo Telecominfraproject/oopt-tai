@@ -113,6 +113,8 @@ typedef enum _tai_host_interface_attr_t
      * @brief FEC type
      *
      * @type #tai_host_interface_fec_type_t
+     * @flags CREATE_AND_SET
+     * @default TAI_HOST_INTERFACE_FEC_TYPE_NONE
      */
     TAI_HOST_INTERFACE_ATTR_FEC_TYPE,
 
@@ -120,6 +122,8 @@ typedef enum _tai_host_interface_attr_t
      * @brief Loopback type
      *
      * @type #tai_host_interface_loopback_type_t
+     * @flags CREATE_AND_SET
+     * @default TAI_HOST_INTERFACE_LOOPBACK_TYPE_NONE
      */
     TAI_HOST_INTERFACE_ATTR_LOOPBACK_TYPE,
 

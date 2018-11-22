@@ -197,6 +197,8 @@ typedef enum _tai_module_attr_t
      * @brief The admin state of the module
      *
      * @type #tai_module_admin_status_t
+     * @flags CREATE_AND_SET
+     * @default TAI_MODULE_ADMIN_STATUS_UP
      */
     TAI_MODULE_ATTR_ADMIN_STATUS,
 
@@ -208,6 +210,8 @@ typedef enum _tai_module_attr_t
      * by setting some netif attributes (e.g TAI_NETWORK_INTERFACE_ATTR_MODULATION_FORMAT )
      *
      * @type #tai_object_map_list_t
+     * @flags CREATE_AND_SET
+     * @defaults empty-list
      */
     TAI_MODULE_ATTR_TRIBUTARY_MAPPING,
 
@@ -216,6 +220,7 @@ typedef enum _tai_module_attr_t
      *
      * @type tai_pointer_t tai_module_shutdown_request_notification_fn
      * @flags CREATE_AND_SET
+     * @default NULL
      */
     TAI_MODULE_ATTR_MODULE_SHUTDOWN_REQUEST_NOTIFY,
 
@@ -224,6 +229,7 @@ typedef enum _tai_module_attr_t
      *
      * @type tai_pointer_t tai_module_state_change_notification_fn
      * @flags CREATE_AND_SET
+     * @default NULL
      */
     TAI_MODULE_ATTR_MODULE_STATE_CHANGE_NOTIFY,
 
