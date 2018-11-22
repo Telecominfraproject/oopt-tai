@@ -35,16 +35,18 @@ class TAIAttributeFlag(Enum):
 
 
 class TAIEnum(object):
-    def __init__(self, node):
+    def __init__(self, node, exclude_range_indicator=True):
         self.name_node = node
         value_nodes = list(node.get_children())
         value_nodes.sort(key = lambda l : l.enum_value)
         self.value_nodes = value_nodes
+        if exclude_range_indicator:
+            self.value_nodes = [v for v in self.value_nodes if not v.displayname.endswith('_START') and not v.displayname.endswith('_END')]
         # displayname starts with '_'. remove it
         self.typename = self.name_node.displayname[1:]
 
     def value_names(self):
-        return [v.displayname for v in self.value_nodes if not v.displayname.endswith('_START') and not v.displayname.endswith('_END')]
+        return [v.displayname for v in self.value_nodes]
 
 
 class TAIAttribute(object):
@@ -82,6 +84,17 @@ class TAIAttribute(object):
                 raise Exception("unsupported type format: {}".format(t))
         else:
             raise Exception("unsupported type format: {}".format(t))
+
+        field = self.taiobject.taiheader.attr_value_map.get(self.type, None)
+        if field:
+            self.value_field = field
+        else:
+            self.enum_type = self.type
+            self.value_field = 's32'
+
+        if self.enum_type and not self.taiobject.taiheader.get_enum(self.enum_type):
+            raise Exception("{} not found".format(self.enum_type))
+
         # handle default command
         self.default = self.cmt.get('default', '')
 
@@ -99,12 +112,25 @@ class TAIObject(object):
         'network_interface': 'TAI_OBJECT_TYPE_NETWORKIF',
     }
 
-    def __init__(self, name, header):
+    def __init__(self, name, taiheader):
         self.name = name
+        self.taiheader = taiheader
+        self.object_type = self.OBJECT_MAP.get(name, None)
+        a = self.taiheader.get_enum('tai_{}_attr_t'.format(self.name))
+        self.attrs = [ TAIAttribute(e, self) for e in a.value_nodes ]
+
+    def get_attributes(self):
+        return self.attrs
+
+    def get_enums(self):
+        return [self.taiheader.enum_map[a.enum_type] for a in self.attrs if a.enum_type]
+
+
+class TAIHeader(object):
+    def __init__(self, header):
         index = Index.create()
         tu = index.parse(header)
         self.tu = tu
-        self.object_type = self.OBJECT_MAP.get(name, None)
 
         self.enum_map = {}
         for v in self.kinds('ENUM_DECL'):
@@ -112,36 +138,13 @@ class TAIObject(object):
             self.enum_map[e.typename] = e
 
         v = self.get_name('_tai_attribute_value_t')
-        m = {}
+        self.attr_value_map = {}
         for f in v.get_children():
-            # bool needs special handling since its type.spelling appear as 'int'
+            # bool needs special handling since its type.spelling appears as 'int'
             key = 'bool' if f.displayname == 'booldata' else f.type.spelling
-            m[key] = f.displayname
+            self.attr_value_map[key] = f.displayname
 
-        enums = set()
-
-        a = self.get_enum('tai_{}_attr_t'.format(self.name))
-        attrs = [ TAIAttribute(e, self) for e in a.value_nodes if not e.displayname.endswith('_START') and not e.displayname.endswith('_END') ]
-
-        for attr in attrs:
-            field = m.get(attr.type, None)
-            if field:
-                if getattr(attr, 'enum_type', None):
-                    enum = self.get_enum(attr.enum_type)
-                    if not enum:
-                        raise Exception("{} not found".format(attr.enum_type))
-                    enums.add(attr.enum_type)
-                attr.value_field = field
-            else:
-                enum = self.get_enum(attr.type)
-                enums.add(attr.type)
-                if not enum:
-                    raise Exception("{} not found".format(attr.type))
-                attr.value_field = 's32'
-                attr.enum_type = attr.type
-
-        self.enum_names = enums
-        self.attrs = attrs
+        self.objects = [TAIObject(name, self) for name in TAIObject.OBJECT_MAP.keys()]
 
     def kinds(self, kind):
         node = self.tu.cursor
@@ -171,12 +174,6 @@ class TAIObject(object):
 
     def get_enum(self, name):
         return self.enum_map.get(name, None)
-
-    def get_enums(self):
-        return [self.enum_map[n] for n in self.enum_names]
-
-    def get_attributes(self):
-        return self.attrs
 
 
 class Generator(object):
@@ -423,10 +420,10 @@ const size_t tai_metadata_attr_sorted_by_id_name_count = {{ attrs | count }};
 
 '''
 
-    def __init__(self, objects):
+    def __init__(self, header):
         generators = []
         all_attrs = []
-        for obj in objects:
+        for obj in h.objects:
             attrs = obj.get_attributes()
             enums = obj.get_enums()
 
@@ -438,7 +435,7 @@ const size_t tai_metadata_attr_sorted_by_id_name_count = {{ attrs | count }};
                 g = AttrMetadataGenerator(a)
                 generators.append(g)
 
-            e = obj.get_enum('tai_{}_attr_t'.format(obj.name))
+            e = header.get_enum('tai_{}_attr_t'.format(obj.name))
             g = EnumMetadataGenerator(e)
             generators.append(g)
 
@@ -449,7 +446,7 @@ const size_t tai_metadata_attr_sorted_by_id_name_count = {{ attrs | count }};
 
         self.data = {'impls': [g.implementation() for g in generators],
                      'headers': [x for x in [g.header() for g in generators] if len(x) > 0],
-                     'object_names': [o.name for o in objects],
+                     'object_names': [o.name for o in h.objects],
                      'attrs': sorted(all_attrs)}
 
 
@@ -460,9 +457,9 @@ if __name__ == '__main__':
 
     Config.set_library_file(options.clang_lib)
 
-    objects = [TAIObject(t, args[0]) for t in TAIObject.OBJECT_MAP.keys()]
+    h = TAIHeader(args[0])
 
-    g = TAIMetadataGenerator(objects)
+    g = TAIMetadataGenerator(h)
     with open('taimetadata.h', 'w') as f:
         f.write(g.header())
 
