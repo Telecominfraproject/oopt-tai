@@ -232,7 +232,11 @@ static void convert_metadata(const tai_attr_metadata_t* const src, ::tai::Attrib
     dst->set_object_type(static_cast<tai::TAIObjectType>(src->objecttype));
     auto u = dst->mutable_usage();
     usage(src, u);
-    dst->set_is_readonly((src->flags & TAI_ATTR_FLAGS_READ_ONLY) > 0);
+    dst->set_is_readonly(src->isreadonly);
+    dst->set_is_mandatoryoncreate(src->ismandatoryoncreate);
+    dst->set_is_createonly(src->iscreateonly);
+    dst->set_is_createandset(src->iscreateandset);
+    dst->set_is_key(src->iskey);
 }
 
 ::grpc::Status TAIServiceImpl::ListAttributeMetadata(::grpc::ServerContext* context, const ::tai::ListAttributeMetadataRequest* request, ::grpc::ServerWriter< ::tai::ListAttributeMetadataResponse>* writer) {
