@@ -33,6 +33,63 @@ class TAIAttributeFlag(Enum):
     DYNAMIC             = 5
     SPECIAL             = 6
 
+class TAIDefaultValueType(Enum):
+    NONE = 0
+    CONST = 1
+    RANGE = 2
+    VALUE = 3
+    EMPTY_LIST = 4
+    VENDOR_SPECIFIC = 5
+
+
+def process_type(header, type_):
+    ts = [v.strip('#') for v in type_.split(' ')]
+    t = e = v = None
+    if len(ts) == 1:
+        t = ts[0]
+    elif len(ts) == 2:
+        if ts[0] == 'tai_s32_list_t':
+            t = ts[0]
+            e = ts[1]
+        elif ts[0] == 'tai_pointer_t':
+            t = ts[0]
+        else:
+            raise Exception("unsupported type format: {}".format(type_))
+    else:
+        raise Exception("unsupported type format: {}".format(type_))
+
+    field = header.attr_value_map.get(t, None)
+    # if we can't find type name in attr_value_map, the type should be enum type
+    if field:
+        v = field
+    else:
+        e = t
+        v = 's32'
+
+    if e and not header.get_enum(e):
+        raise Exception("{} not found".format(e))
+
+    return t, e, v
+
+
+def process_default_value_type(default):
+    if default == '':
+        return TAIDefaultValueType.NONE
+
+    if default in ['NULL', 'true', 'false'] or default.isdigit():
+        return TAIDefaultValueType.CONST
+
+    try:
+        default = default.upper().replace('-', '_').strip()
+        return TAIDefaultValueType[default]
+    except KeyError:
+        pass
+
+    if default.startswith('TAI_'):
+        return TAIDefaultValueType.CONST
+
+    raise Exception('invalid default value: {}'.format(default))
+
 
 class TAIEnum(object):
     def __init__(self, node, exclude_range_indicator=True):
@@ -48,7 +105,6 @@ class TAIEnum(object):
     def value_names(self):
         return [v.displayname for v in self.value_nodes]
 
-
 class TAIAttribute(object):
     def __init__(self, node, taiobject):
         self.node = node
@@ -62,41 +118,19 @@ class TAIAttribute(object):
         cmt = [l.strip(rm).split(' ') for l in node.raw_comment.split('\n') if l.strip(rm).startswith('@')] # this omits long description from the comment
         s = { l[0][1:]: ' '.join(l[1:]) for l in cmt }
         self.cmt = s
-        # handle flags command
+        # process flags command
         flags = self.cmt.get('flags', '').split('|')
         if flags[0] != '':
             self.flags = set(TAIAttributeFlag[e.strip()] for e in flags)
         else:
-            self.flags = None
-        # handle type command
+            self.flags = set()
+        # process type command
         t = self.cmt['type']
-        ts = [v.strip('#') for v in t.split(' ')]
-        self.enum_type = None
-        if len(ts) == 1:
-            self.type = ts[0]
-        elif len(ts) == 2:
-            if ts[0] == 'tai_s32_list_t':
-                self.type = ts[0]
-                self.enum_type = ts[1]
-            elif ts[0] == 'tai_pointer_t':
-                self.type = ts[0]
-            else:
-                raise Exception("unsupported type format: {}".format(t))
-        else:
-            raise Exception("unsupported type format: {}".format(t))
+        self.type, self.enum_type, self.value_field = process_type(self.taiobject.taiheader, t)
 
-        field = self.taiobject.taiheader.attr_value_map.get(self.type, None)
-        if field:
-            self.value_field = field
-        else:
-            self.enum_type = self.type
-            self.value_field = 's32'
-
-        if self.enum_type and not self.taiobject.taiheader.get_enum(self.enum_type):
-            raise Exception("{} not found".format(self.enum_type))
-
-        # handle default command
+        # process default command
         self.default = self.cmt.get('default', '')
+        self.default_type = process_default_value_type(self.default)
 
     def __str__(self):
         return self.name
@@ -123,7 +157,7 @@ class TAIObject(object):
         return self.attrs
 
     def get_enums(self):
-        return [self.taiheader.enum_map[a.enum_type] for a in self.attrs if a.enum_type]
+        return set(self.taiheader.enum_map[a.enum_type] for a in self.attrs if a.enum_type)
 
 
 class TAIHeader(object):
@@ -223,22 +257,34 @@ const tai_object_type_info_t tai_metadata_object_type_info_{{ name }} = {
 
 class AttrMetadataGenerator(Generator):
     IMPL_TEMPLATE = '''
-const tai_attr_metadata_t tai_metadata_attr_{{ typename }} = {
-    .objecttype      = {{ object }},
-    .attrid          = {{ typename }},
-    .attridname      = "{{ typename }}",
-    .attridshortname = "{{ shorttypename }}",
-    .attrvaluetype   = {{ attr_type }},
-{%- if attr_flags %}
-    .flags           = {{ attr_flags }},
-{%- else %}
-    .flags           = 0,
+{%- if defaultvalue %}
+const tai_attribute_value_t tai_metadata_{{ typename }}_default_value = { .{{ value_field }} = {{ defaultvalue }} };
 {%- endif %}
-    .isenum          = {{ is_enum }},
-{%- if enum_meta_data %}
-    .enummetadata    = &{{ enum_meta_data }},
+const tai_attr_metadata_t tai_metadata_attr_{{ typename }} = {
+    .objecttype          = {{ object }},
+    .attrid              = {{ typename }},
+    .attridname          = "{{ typename }}",
+    .attridshortname     = "{{ shorttypename }}",
+    .attrvaluetype       = {{ attr_type }},
+{%- if attr_flags %}
+    .flags               = {{ attr_flags }},
 {%- else %}
-    .enummetadata    = NULL,
+    .flags               = 0,
+{%- endif %}
+    .isenum              = {{ is_enum }},
+{%- if enum_meta_data %}
+    .enummetadata        = &{{ enum_meta_data }},
+{%- else %}
+    .enummetadata        = NULL,
+{%- endif %}
+    .ismandatoryoncreate = {{ ismandatoryoncreate }},
+    .iscreateonly        = {{ iscreateonly }},
+    .iscreateandset      = {{ iscreateandset }},
+    .isreadonly          = {{ isreadonly }},
+    .iskey               = {{ iskey }},
+    .defaultvaluetype    = {{ defaultvaluetype }},
+{%- if defaultvalue %}
+    .defaultvalue        = &tai_metadata_{{ typename }}_default_value,
 {%- endif %}
 };
 '''
@@ -261,13 +307,26 @@ const tai_attr_metadata_t tai_metadata_attr_{{ typename }} = {
         if attr.flags:
             attr_flags = '|'.join('TAI_ATTR_FLAGS_{}'.format(e.name) for e in list(attr.flags))
 
+        default_value = None
+        if attr.default_type == TAIDefaultValueType.CONST:
+            default_value = attr.default
+
         self.data = {'object': obj,
                      'typename': typename,
                      'shorttypename': shorttypename,
                      'attr_type': attr_type,
                      'attr_flags': attr_flags,
+                     'value_field': attr.value_field,
                      'is_enum': is_enum,
-                     'enum_meta_data': enum_meta_data}
+                     'enum_meta_data': enum_meta_data,
+                     'ismandatoryoncreate': 'true' if TAIAttributeFlag.MANDATORY_ON_CREATE in attr.flags else 'false',
+                     'iscreateonly': 'true' if TAIAttributeFlag.CREATE_ONLY in attr.flags else 'false',
+                     'iscreateandset': 'true' if TAIAttributeFlag.CREATE_AND_SET in attr.flags else 'false',
+                     'isreadonly': 'true' if TAIAttributeFlag.READ_ONLY in attr.flags else 'false',
+                     'iskey': 'true' if TAIAttributeFlag.KEY in attr.flags else 'false',
+                     'defaultvaluetype': 'TAI_DEFAULT_VALUE_TYPE_{}'.format(attr.default_type.name),
+                     'defaultvalue': default_value,
+                     }
 
 
 class EnumMetadataGenerator(Generator):
