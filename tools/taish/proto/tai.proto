@@ -73,6 +73,10 @@ message AttributeMetadata {
     TAIObjectType object_type = 4;
     string usage = 5;
     bool is_readonly = 6;
+    bool is_mandatoryoncreate = 7;
+    bool is_createonly = 8;
+    bool is_createandset = 9;
+    bool is_key = 10;
 }
 
 message HostInterface {
