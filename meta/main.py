@@ -35,8 +35,9 @@ class TAIAttributeFlag(Enum):
 
 
 class TAIEnum(object):
-    def __init__(self, name_node, value_nodes):
-        self.name_node = name_node
+    def __init__(self, node):
+        self.name_node = node
+        value_nodes = list(node.get_children())
         value_nodes.sort(key = lambda l : l.enum_value)
         self.value_nodes = value_nodes
         # displayname starts with '_'. remove it
@@ -59,11 +60,13 @@ class TAIAttribute(object):
         cmt = [l.strip(rm).split(' ') for l in node.raw_comment.split('\n') if l.strip(rm).startswith('@')] # this omits long description from the comment
         s = { l[0][1:]: ' '.join(l[1:]) for l in cmt }
         self.cmt = s
+        # handle flags command
         flags = self.cmt.get('flags', '').split('|')
         if flags[0] != '':
             self.flags = set(TAIAttributeFlag[e.strip()] for e in flags)
         else:
             self.flags = None
+        # handle type command
         t = self.cmt['type']
         ts = [v.strip('#') for v in t.split(' ')]
         self.enum_type = None
@@ -79,6 +82,8 @@ class TAIAttribute(object):
                 raise Exception("unsupported type format: {}".format(t))
         else:
             raise Exception("unsupported type format: {}".format(t))
+        # handle default command
+        self.default = self.cmt.get('default', '')
 
     def __str__(self):
         return self.name
@@ -102,14 +107,8 @@ class TAIObject(object):
         self.object_type = self.OBJECT_MAP.get(name, None)
 
         self.enum_map = {}
-
-        m = {n.displayname:n for n in self.kinds('ENUM_DECL')}
-        n = {n.displayname:n for n in self.kinds('ENUM_CONSTANT_DECL')}
-
-        for k, v in m.items():
-            prefix = k[1:-2].upper()
-            l = [vv for vv in n.values() if vv.displayname.startswith(prefix)]
-            e = TAIEnum(v, l)
+        for v in self.kinds('ENUM_DECL'):
+            e = TAIEnum(v)
             self.enum_map[e.typename] = e
 
         v = self.get_name('_tai_attribute_value_t')
