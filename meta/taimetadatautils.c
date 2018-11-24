@@ -27,6 +27,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <tai.h>
 #include "taimetadatautils.h"
 #include "taimetadata.h"
@@ -329,4 +330,241 @@ bool tai_metadata_is_condition_met(
     }
 
     return met;
+}
+
+#define DEFAULT_LIST_SIZE 16
+
+#define _TAI_META_ALLOC_LIST(valuename, type)\
+    attr->value.valuename.count = size;\
+    attr->value.valuename.list = calloc(size, sizeof(type));\
+    if ( attr->value.valuename.list == NULL ) {\
+        return TAI_STATUS_NO_MEMORY;\
+    }\
+
+#define _TAI_META_FREE_LIST(valuename)\
+    attr->value.valuename.count = 0;\
+    free(attr->value.valuename.list);
+
+#define _TAI_META_COPY_LIST(valuename, type)\
+    if( out->value.valuename.count < in->value.valuename.count ) {\
+        return TAI_STATUS_BUFFER_OVERFLOW;\
+    }\
+    out->value.valuename.count = in->value.valuename.count;\
+    memcpy(out->value.valuename.list, in->value.valuename.list, sizeof(type) * in->value.valuename.count);
+
+tai_status_t tai_metadata_alloc_attr_value(
+        _In_ const tai_attr_metadata_t *metadata,
+        _In_ tai_attribute_t* const attr,
+        _In_ const tai_alloc_info_t* const info) {
+    if ( metadata == NULL || attr == NULL ) {
+        return TAI_STATUS_FAILURE;
+    }
+    int size = DEFAULT_LIST_SIZE, i, j;
+    if ( info != NULL ) {
+        size = info->list_size;
+    }
+    switch( metadata->attrvaluetype ) {
+    case TAI_ATTR_VALUE_TYPE_BOOLDATA:
+    case TAI_ATTR_VALUE_TYPE_CHARDATA:
+    case TAI_ATTR_VALUE_TYPE_U8:
+    case TAI_ATTR_VALUE_TYPE_S8:
+    case TAI_ATTR_VALUE_TYPE_U16:
+    case TAI_ATTR_VALUE_TYPE_S16:
+    case TAI_ATTR_VALUE_TYPE_U32:
+    case TAI_ATTR_VALUE_TYPE_S32:
+    case TAI_ATTR_VALUE_TYPE_U64:
+    case TAI_ATTR_VALUE_TYPE_S64:
+    case TAI_ATTR_VALUE_TYPE_FLT:
+    case TAI_ATTR_VALUE_TYPE_PTR:
+    case TAI_ATTR_VALUE_TYPE_OID:
+    case TAI_ATTR_VALUE_TYPE_U32RANGE:
+    case TAI_ATTR_VALUE_TYPE_S32RANGE:
+        return TAI_STATUS_SUCCESS;
+    case TAI_ATTR_VALUE_TYPE_OBJLIST:
+        _TAI_META_ALLOC_LIST(objlist, tai_object_id_t);
+        break;
+    case TAI_ATTR_VALUE_TYPE_CHARLIST:
+        _TAI_META_ALLOC_LIST(charlist, char);
+        break;
+    case TAI_ATTR_VALUE_TYPE_U8LIST:
+        _TAI_META_ALLOC_LIST(u8list, uint8_t);
+        break;
+    case TAI_ATTR_VALUE_TYPE_S8LIST:
+        _TAI_META_ALLOC_LIST(s8list, int8_t);
+        break;
+    case TAI_ATTR_VALUE_TYPE_U16LIST:
+        _TAI_META_ALLOC_LIST(u16list, uint16_t);
+        break;
+    case TAI_ATTR_VALUE_TYPE_S16LIST:
+        _TAI_META_ALLOC_LIST(s16list, int16_t);
+        break;
+    case TAI_ATTR_VALUE_TYPE_U32LIST:
+        _TAI_META_ALLOC_LIST(u32list, uint32_t);
+        break;
+    case TAI_ATTR_VALUE_TYPE_S32LIST:
+        _TAI_META_ALLOC_LIST(s32list, int32_t);
+        break;
+    case TAI_ATTR_VALUE_TYPE_FLOATLIST:
+        _TAI_META_ALLOC_LIST(floatlist, int32_t);
+        break;
+    case TAI_ATTR_VALUE_TYPE_OBJMAPLIST:
+        _TAI_META_ALLOC_LIST(objmaplist, tai_object_map_list_t);
+        for ( i = 0; i < size; i++ ) {
+            attr->value.objmaplist.list[i].value.count = size;
+            attr->value.objmaplist.list[i].value.list = calloc(size, sizeof(tai_object_map_t));
+            if ( attr->value.objmaplist.list[i].value.list == NULL ) {
+                for ( j = 0; j < i; j++ ) {
+                    free(attr->value.objmaplist.list[i].value.list);
+                }
+                _TAI_META_FREE_LIST(objmaplist);
+                return TAI_STATUS_NO_MEMORY;
+            }
+        }
+        break;
+    default:
+        TAI_META_LOG_ERROR("unsupported value type: %d", metadata->attrvaluetype);
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    return TAI_STATUS_SUCCESS;
+}
+
+tai_status_t tai_metadata_free_attr_value(
+        _In_ const tai_attr_metadata_t *metadata,
+        _In_ tai_attribute_t* const attr,
+        _In_ const tai_alloc_info_t* const info) {
+    if ( metadata == NULL || attr == NULL ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    int size = DEFAULT_LIST_SIZE, i;
+    if ( info != NULL ) {
+        size = info->list_size;
+    }
+    switch( metadata->attrvaluetype ) {
+    case TAI_ATTR_VALUE_TYPE_BOOLDATA:
+    case TAI_ATTR_VALUE_TYPE_CHARDATA:
+    case TAI_ATTR_VALUE_TYPE_U8:
+    case TAI_ATTR_VALUE_TYPE_S8:
+    case TAI_ATTR_VALUE_TYPE_U16:
+    case TAI_ATTR_VALUE_TYPE_S16:
+    case TAI_ATTR_VALUE_TYPE_U32:
+    case TAI_ATTR_VALUE_TYPE_S32:
+    case TAI_ATTR_VALUE_TYPE_U64:
+    case TAI_ATTR_VALUE_TYPE_S64:
+    case TAI_ATTR_VALUE_TYPE_FLT:
+    case TAI_ATTR_VALUE_TYPE_PTR:
+    case TAI_ATTR_VALUE_TYPE_OID:
+    case TAI_ATTR_VALUE_TYPE_U32RANGE:
+    case TAI_ATTR_VALUE_TYPE_S32RANGE:
+        return TAI_STATUS_SUCCESS;
+    case TAI_ATTR_VALUE_TYPE_OBJLIST:
+        _TAI_META_FREE_LIST(objlist);
+        break;
+    case TAI_ATTR_VALUE_TYPE_CHARLIST:
+        _TAI_META_FREE_LIST(charlist);
+        break;
+    case TAI_ATTR_VALUE_TYPE_U8LIST:
+        _TAI_META_FREE_LIST(u8list);
+        break;
+    case TAI_ATTR_VALUE_TYPE_S8LIST:
+        _TAI_META_FREE_LIST(s8list);
+        break;
+    case TAI_ATTR_VALUE_TYPE_U16LIST:
+        _TAI_META_FREE_LIST(u16list);
+        break;
+    case TAI_ATTR_VALUE_TYPE_S16LIST:
+        _TAI_META_FREE_LIST(s16list);
+        break;
+    case TAI_ATTR_VALUE_TYPE_U32LIST:
+        _TAI_META_FREE_LIST(u32list);
+        break;
+    case TAI_ATTR_VALUE_TYPE_S32LIST:
+        _TAI_META_FREE_LIST(s32list);
+        break;
+    case TAI_ATTR_VALUE_TYPE_FLOATLIST:
+        _TAI_META_FREE_LIST(floatlist);
+        break;
+    case TAI_ATTR_VALUE_TYPE_OBJMAPLIST:
+        for ( i = 0; i < size; i++ ) {
+            attr->value.objmaplist.list[i].value.count = 0;
+            free(attr->value.objmaplist.list[i].value.list);
+        }
+        _TAI_META_FREE_LIST(objmaplist);
+        break;
+    default:
+        TAI_META_LOG_ERROR("unsupported value type: %d", metadata->attrvaluetype);
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    return TAI_STATUS_SUCCESS;
+}
+
+tai_status_t tai_metadata_deepcopy_attr_value(
+        _In_ const tai_attr_metadata_t *metadata,
+        _In_ const tai_attribute_t* const in,
+        _Out_ tai_attribute_t* const out) {
+    if ( metadata == NULL || in == NULL || out == NULL ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    int i;
+    out->id = in->id;
+    switch( metadata->attrvaluetype ) {
+    case TAI_ATTR_VALUE_TYPE_BOOLDATA:
+    case TAI_ATTR_VALUE_TYPE_CHARDATA:
+    case TAI_ATTR_VALUE_TYPE_U8:
+    case TAI_ATTR_VALUE_TYPE_S8:
+    case TAI_ATTR_VALUE_TYPE_U16:
+    case TAI_ATTR_VALUE_TYPE_S16:
+    case TAI_ATTR_VALUE_TYPE_U32:
+    case TAI_ATTR_VALUE_TYPE_S32:
+    case TAI_ATTR_VALUE_TYPE_U64:
+    case TAI_ATTR_VALUE_TYPE_S64:
+    case TAI_ATTR_VALUE_TYPE_FLT:
+    case TAI_ATTR_VALUE_TYPE_PTR:
+    case TAI_ATTR_VALUE_TYPE_OID:
+    case TAI_ATTR_VALUE_TYPE_U32RANGE:
+    case TAI_ATTR_VALUE_TYPE_S32RANGE:
+        memcpy(&out->value, &in->value, sizeof(tai_attribute_value_t));
+        break;
+    case TAI_ATTR_VALUE_TYPE_OBJLIST:
+        _TAI_META_COPY_LIST(objlist, tai_object_id_t);
+        break;
+    case TAI_ATTR_VALUE_TYPE_CHARLIST:
+        _TAI_META_COPY_LIST(charlist, char);
+        break;
+    case TAI_ATTR_VALUE_TYPE_U8LIST:
+        _TAI_META_COPY_LIST(u8list, uint8_t);
+        break;
+    case TAI_ATTR_VALUE_TYPE_S8LIST:
+        _TAI_META_COPY_LIST(s8list, int8_t);
+        break;
+    case TAI_ATTR_VALUE_TYPE_U16LIST:
+        _TAI_META_COPY_LIST(u16list, uint16_t);
+        break;
+    case TAI_ATTR_VALUE_TYPE_S16LIST:
+        _TAI_META_COPY_LIST(s16list, int16_t);
+        break;
+    case TAI_ATTR_VALUE_TYPE_U32LIST:
+        _TAI_META_COPY_LIST(u32list, uint32_t);
+        break;
+    case TAI_ATTR_VALUE_TYPE_S32LIST:
+        _TAI_META_COPY_LIST(s32list, int32_t);
+        break;
+    case TAI_ATTR_VALUE_TYPE_FLOATLIST:
+        _TAI_META_COPY_LIST(floatlist, int32_t);
+        break;
+    case TAI_ATTR_VALUE_TYPE_OBJMAPLIST:
+        _TAI_META_COPY_LIST(objmaplist, tai_object_map_list_t);
+        for ( i = 0; i < in->value.objmaplist.count ; i++ ) {
+            if ( out->value.objmaplist.list[i].value.count < in->value.objmaplist.list[i].value.count ) {
+                out->value.objmaplist.list[i].value.count = in->value.objmaplist.list[i].value.count;
+                return TAI_STATUS_BUFFER_OVERFLOW;
+            }
+            out->value.objmaplist.list[i].value.count = in->value.objmaplist.list[i].value.count;
+            memcpy(out->value.objmaplist.list[i].value.list, in->value.objmaplist.list[i].value.list, sizeof(tai_object_map_t) * in->value.objmaplist.list[i].value.count);
+        }
+        break;
+    default:
+        TAI_META_LOG_ERROR("unsupported value type: %d", metadata->attrvaluetype);
+        return -1;
+    }
+    return TAI_STATUS_SUCCESS;
 }

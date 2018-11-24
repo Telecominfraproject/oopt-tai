@@ -156,6 +156,64 @@ extern bool tai_metadata_is_condition_met(
         _In_ const tai_attribute_t *attr_list);
 
 /**
+ * @brief Allocation info
+ *
+ * Specify how much list items needs to be allocated
+ *
+ */
+typedef struct _tai_alloc_info_t {
+    uint32_t list_size;
+} tai_alloc_info_t;
+
+/**
+ * @brief Allocate tai_attribute_t value
+ *
+ * By passing info == NULL, it will use default list size for the list value
+ * allocation
+ *
+ * @param[in] metadata Attribute metadata
+ * @param[in] attr Attribute to allocate
+ * @param[in] info Allocation information
+ *
+ * @return TAI_STATUS_SUCCESS on success,
+ * TAI_STATUS_INVALID_PARAMETER/TAI_STATUS_NO_MEMORY on failure
+ */
+extern tai_status_t tai_metadata_alloc_attr_value(
+        _In_ const tai_attr_metadata_t *metadata,
+        _In_ tai_attribute_t* const attr,
+        _In_ const tai_alloc_info_t* const info);
+
+/**
+ * @brief Free tai_attribute_t value
+ *
+ * @param[in] metadata Attribute metadata
+ * @param[in] attr Attribute to free
+ * @param[in] info Allocation information
+ *
+ * @return TAI_STATUS_SUCCESS on success,
+ * TAI_STATUS_INVALID_PARAMETER on failure
+ */
+extern tai_status_t tai_metadata_free_attr_value(
+        _In_ const tai_attr_metadata_t *metadata,
+        _In_ tai_attribute_t* const attr,
+        _In_ const tai_alloc_info_t* const info);
+
+/**
+ * @brief Deep copy tai_attribute_t value
+ *
+ * @param[in] metadata Attribute metadata
+ * @param[in] in  original attribute for the copy
+ * @param[in] out destination for the copy
+ *
+ * @return TAI_STATUS_SUCCESS on success,
+ * TAI_STATUS_INVALID_PARAMETER on failure
+ */
+extern tai_status_t tai_metadata_deepcopy_attr_value(
+        _In_ const tai_attr_metadata_t *metadata,
+        _In_ const tai_attribute_t* const in,
+        _Out_ tai_attribute_t* const out);
+
+/**
  * @}
  */
 #endif /** __TAIMETADATAUTILS_H_ */

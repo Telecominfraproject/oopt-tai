@@ -27,42 +27,6 @@
 using grpc::Status;
 using grpc::StatusCode;
 
-static int alloc_value(const tai_attr_metadata_t* const meta, tai_attribute_t* const attr) {
-    switch (meta->attrvaluetype) {
-    case TAI_ATTR_VALUE_TYPE_CHARLIST:
-        attr->value.charlist.count = 128;
-        attr->value.charlist.list = new char[128];
-        break;
-    case TAI_ATTR_VALUE_TYPE_U32LIST:
-        attr->value.u32list.count = 128;
-        attr->value.u32list.list = new uint32_t[128];
-        break;
-    case TAI_ATTR_VALUE_TYPE_S32LIST:
-        attr->value.s32list.count = 128;
-        attr->value.s32list.list = new int32_t[128];
-        break;
-    }
-    return 0;
-}
-
-static int free_value(const tai_attr_metadata_t* const meta, tai_attribute_t* const attr) {
-    switch (meta->attrvaluetype) {
-    case TAI_ATTR_VALUE_TYPE_CHARLIST:
-        attr->value.charlist.count = 0;
-        delete[] attr->value.charlist.list;
-        break;
-    case TAI_ATTR_VALUE_TYPE_U32LIST:
-        attr->value.u32list.count = 0;
-        delete[] attr->value.u32list.list;
-        break;
-    case TAI_ATTR_VALUE_TYPE_S32LIST:
-        attr->value.s32list.count = 0;
-        delete[] attr->value.s32list.list;
-        break;
-    }
-    return 0;
-}
-
 TAIAPIModuleList::TAIAPIModuleList(uint32_t module_size, uint32_t hostif_size, uint32_t netif_size) : m_module_size(module_size), m_hostif_size(hostif_size), m_netif_size(netif_size) {
     m_list.count = module_size;
     m_list.list = new tai_api_module_t[module_size];
@@ -94,8 +58,7 @@ TAIAPIModuleList::~TAIAPIModuleList() {
     }
     auto meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_MODULE, TAI_MODULE_ATTR_LOCATION);
     tai_attribute_t attr = {0};
-
-    if( alloc_value(meta, &attr) < 0 ){
+    if( tai_metadata_alloc_attr_value(meta, &attr, nullptr) != TAI_STATUS_SUCCESS ) {
         return Status(StatusCode::UNKNOWN, "failed to alloc value");
     }
 
@@ -124,7 +87,9 @@ TAIAPIModuleList::~TAIAPIModuleList() {
     }
 
 err:
-    free_value(meta, &attr);
+    if ( tai_metadata_free_attr_value(meta, &attr, nullptr) != TAI_STATUS_SUCCESS ) {
+        return Status(StatusCode::UNKNOWN, "failed to free value");
+    }
     if ( ret == 0 ) {
         return Status::OK;
     }
@@ -309,7 +274,7 @@ static void convert_metadata(const tai_attr_metadata_t* const src, ::tai::Attrib
     char buf[128] = {0};
     auto a = response->mutable_attribute();
 
-    if( alloc_value(meta, &attr) < 0 ){
+    if( tai_metadata_alloc_attr_value(meta, &attr, nullptr) != TAI_STATUS_SUCESS ) {
         return Status(StatusCode::UNKNOWN, "failed to alloc value");
     }
 
@@ -338,7 +303,9 @@ static void convert_metadata(const tai_attr_metadata_t* const src, ::tai::Attrib
 
     a->set_value(buf);
 err:
-    free_value(meta, &attr);
+    if ( tai_metadata_free_attr_value(meta, &attr, nullptr) != TAI_STATUS_SUCESS ) {
+        return Status(StatusCode::UNKNOWN, "failed to free value");
+    }
     if ( ret < 0 ) {
         std::stringstream ss;
         ss << "failed to get attribute(" << id << "): ret:" << ret;
@@ -357,9 +324,10 @@ err:
     tai_attribute_t attr = {0};
     attr.id = id;
     tai_serialize_option_t option{true};
-    if( alloc_value(meta, &attr) < 0 ){
+    if( tai_metadata_alloc_attr_value(meta, &attr, nullptr) != TAI_STATUS_SUCCESS ) {
         return Status(StatusCode::UNKNOWN, "failed to alloc value");
     }
+
     auto ret = tai_deserialize_attribute_value(v.c_str(), meta, &attr.value, &option);
     if ( ret < 0 ) {
         goto err;
@@ -378,7 +346,9 @@ err:
         ret = TAI_STATUS_FAILURE;
     }
 err:
-    free_value(meta, &attr);
+    if ( tai_metadata_free_attr_value(meta, &attr, nullptr) != TAI_STATUS_SUCESS ) {
+        return Status(StatusCode::UNKNOWN, "failed to free value");
+    }
     if ( ret == 0 ) {
         return Status::OK;
     }
