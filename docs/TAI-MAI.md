@@ -264,7 +264,7 @@ host system, sometimes called client interfaces. Creating a host interface
 object allows the attributes of that interface to be set and retrieved. The 
 `create_host_interface()` function takes four parameters:
 
-* A pointer to a tai_object_id_t. The MA will return PA the allocated module object
+* A pointer to a tai_object_id_t. The MA will return PA the allocated host interface object
 ID. PA will convert this to unique ID for the adapter host.
 This ID will be used by host adapter in subsequent TAI function calls.
 * The module ID. Identifies the module ID upon which the host interface exists.  
