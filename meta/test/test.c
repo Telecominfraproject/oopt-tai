@@ -55,9 +55,9 @@ int test5() {
     tai_serialize_option_t option = {
         .human = true,
     };
-    ret = tai_deserialize_network_interface_attr("tx-channel", &value, &option);
+    ret = tai_deserialize_network_interface_attr("tx-laser-freq", &value, &option);
     printf("%d, %d\n", value, ret);
-    return 0;
+    return ret;
 }
 
 int main() {
@@ -79,7 +79,15 @@ int main() {
     ret = test3(buf);
     printf("%s, %d\n", buf, ret);
 
-    test4();
+    ret = test4();
+    if ( ret < 0 ) {
+        return ret;
+    }
 
-    test5();
+    ret = test5();
+    if ( ret < 0 ) {
+        return ret;
+    }
+
+    return 0;
 }
