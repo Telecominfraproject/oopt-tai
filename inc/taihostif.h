@@ -41,7 +41,7 @@
 typedef enum _tai_host_interface_lane_fault_t
 {
     TAI_HOST_INTERFACE_LANE_FAULT_LOSS_OF_LOCK,
-    TAI_HOST_INTERFACE_LANE_FAULT_TX_FIFIO_ERR
+    TAI_HOST_INTERFACE_LANE_FAULT_TX_FIFO_ERR
 } tai_host_interface_lane_fault_t;
 
 /** @brief The transmit alignment status */
@@ -96,7 +96,7 @@ typedef enum _tai_host_interface_attr_t
      *
      * A list of lane fault status
      *
-     * @type #tai_s32_list_t #tai_host_interface_lane_fault_t
+     * @type #tai_attr_value_list_t #tai_s32_list_t #tai_host_interface_lane_fault_t
      * @flags READ_ONLY
      */
     TAI_HOST_INTERFACE_ATTR_LANE_FAULT,

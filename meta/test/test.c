@@ -179,6 +179,43 @@ int testDeepcopyAttrValue() {
     return 0;
 }
 
+int testSerializeValueAttrList() {
+    char buf[128] = {0};
+    const tai_attr_metadata_t* meta;
+    tai_attribute_t attr = {0};
+    int ret;
+    int32_t value[] = {
+        TAI_HOST_INTERFACE_LANE_FAULT_LOSS_OF_LOCK,
+        TAI_HOST_INTERFACE_LANE_FAULT_TX_FIFO_ERR,
+    };
+    tai_serialize_option_t option = {
+        .human = true,
+    };
+    tai_attribute_value_t lane_fault;
+    lane_fault.s32list.count = 2;
+    lane_fault.s32list.list = value;
+    tai_attribute_value_t list[] = {
+        lane_fault,
+        lane_fault,
+    };
+    meta = tai_metadata_get_attr_metadata_by_attr_id_name("TAI_HOST_INTERFACE_ATTR_LANE_FAULT");
+    if ( meta == NULL ) {
+        return -1;
+    }
+    attr.id = TAI_HOST_INTERFACE_ATTR_LANE_FAULT;
+    attr.value.attrlist.count = 2;
+    attr.value.attrlist.list = (tai_attribute_value_t*)&list;
+    ret = tai_serialize_attribute(buf, meta, &attr, &option);
+    if ( ret < 0 ) {
+        return -1;
+    }
+    ret = strcmp(buf, "lane-fault | loss-of-lock|tx-fifo-err, loss-of-lock|tx-fifo-err");
+    if ( ret != 0 ) {
+        return -1;
+    }
+    return 0;
+}
+
 typedef int (*testF)();
 
 testF tests[] = {
@@ -190,6 +227,7 @@ testF tests[] = {
     testGetAttrMetadataByAttrIdName,
     testDeserializeNetworkInterfaceAttr,
     testDeepcopyAttrValue,
+    testSerializeValueAttrList,
     NULL,
 };
 
