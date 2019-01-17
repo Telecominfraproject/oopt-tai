@@ -7,8 +7,11 @@ services:
 
 before_install:
   - make -C meta docker-image
+  - make -C tools/taish docker-image
 
 script:
   - make test
   - make -C meta docker
   - make -C meta test
+  - cp ./stub/libtai.so ./tools/taish/
+  - make -C tools/taish docker

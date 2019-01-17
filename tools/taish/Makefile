@@ -28,13 +28,15 @@ proto: proto/tai.proto
 	protoc --grpc_out=./lib --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` -I proto tai.proto
 
 docker:
-	docker run -u `id -u`:`id -g` -w /data/tools/taish --rm -v `realpath ../../`:/data -it libtai-grpc-builder make
+	# realpath doesn't work on travis use cd and pwd instead
+	cd ../../ && docker run -u `id -u`:`id -g` -w /data/tools/taish --rm -v `pwd`:/data -it libtai-grpc-builder make
 
 docker-image:
 	docker build -t libtai-grpc-builder .
 
 bash:
-	docker run --net=host -it -v `realpath ../../`:/data -w /data/tools/taish libtai-grpc-builder bash
+	# realpath doesn't work on travis use cd and pwd instead
+	cd ../../ && docker run --net=host -it -v `pwd`:/data -w /data/tools/taish libtai-grpc-builder bash
 
 clean:
 	-rm -f ${OBJS} *.pb\.* ${PROG} ${LIB_PROG}
