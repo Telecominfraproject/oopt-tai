@@ -196,6 +196,19 @@ typedef struct _tai_object_map_list_t
     tai_object_map_t *list;
 } tai_object_map_list_t;
 
+// Forward declaration of tai_attribute_value_t for tai_attr_value_list_t
+union _tai_attribute_value_t;
+typedef union _tai_attribute_value_t tai_attribute_value_t;
+
+typedef struct _tai_attr_value_list_t
+{
+    /** Number of attribute values in the list */
+    uint32_t count;
+
+    /** Attribute value list */
+    tai_attribute_value_t *list;
+} tai_attr_value_list_t;
+
 /**
  * @brief Data Type
  *
@@ -228,6 +241,7 @@ typedef union _tai_attribute_value_t
     tai_u32_range_t u32range;
     tai_s32_range_t s32range;
     tai_object_map_list_t objmaplist;
+    tai_attr_value_list_t attrlist;
 
 } tai_attribute_value_t;
 

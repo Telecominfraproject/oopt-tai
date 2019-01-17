@@ -553,141 +553,167 @@ int tai_deserialize_enum(
     return tai_deserialize_int32(buffer, value);
 }
 
-int tai_serialize_attribute(
+int tai_serialize_attribute_value(
         _Out_ char *buffer,
         _In_ const tai_attr_metadata_t *meta,
-        _In_ const tai_attribute_t *attr,
+        _In_ const tai_attribute_value_t *value,
         _In_ const tai_serialize_option_t *option)
 {
     int i;
     char *ptr = buffer;
-    if ( option == NULL || !option->valueonly ) {
-        if ( option != NULL && option->human ) {
-            ptr += sprintf(ptr, "%s | ", meta->attridshortname);
-        } else {
-            ptr += sprintf(ptr, "%s | ", meta->attridname);
-        }
-    }
+
+    tai_attr_metadata_t m = *meta;
+    m.attrvaluetype = meta->attrlistvaluetype;
+    m.attrlistvaluetype = TAI_ATTR_VALUE_TYPE_UNSPECIFIED;
+
     switch ( meta->attrvaluetype ) {
     case TAI_ATTR_VALUE_TYPE_BOOLDATA:
-        return tai_serialize_bool(ptr, attr->value.booldata);
+        return tai_serialize_bool(ptr, value->booldata);
     case TAI_ATTR_VALUE_TYPE_CHARDATA:
-        return tai_serialize_chardata(ptr, attr->value.chardata);
+        return tai_serialize_chardata(ptr, value->chardata);
     case TAI_ATTR_VALUE_TYPE_U8:
-        return tai_serialize_uint8(ptr, attr->value.u8);
+        return tai_serialize_uint8(ptr, value->u8);
     case TAI_ATTR_VALUE_TYPE_S8:
-        return tai_serialize_int8(ptr, attr->value.s8);
+        return tai_serialize_int8(ptr, value->s8);
     case TAI_ATTR_VALUE_TYPE_U16:
-        return tai_serialize_uint16(ptr, attr->value.u16);
+        return tai_serialize_uint16(ptr, value->u16);
     case TAI_ATTR_VALUE_TYPE_S16:
-        return tai_serialize_int16(ptr, attr->value.s16);
+        return tai_serialize_int16(ptr, value->s16);
     case TAI_ATTR_VALUE_TYPE_U32:
-        return tai_serialize_uint32(ptr, attr->value.u32);
+        return tai_serialize_uint32(ptr, value->u32);
     case TAI_ATTR_VALUE_TYPE_S32:
         if ( meta->isenum ) {
-            return tai_serialize_enum(ptr, meta->enummetadata, attr->value.s32, option);
+            return tai_serialize_enum(ptr, meta->enummetadata, value->s32, option);
         }
-        return tai_serialize_int32(ptr, attr->value.s32);
+        return tai_serialize_int32(ptr, value->s32);
     case TAI_ATTR_VALUE_TYPE_U64:
-        return tai_serialize_uint64(ptr, attr->value.u64);
+        return tai_serialize_uint64(ptr, value->u64);
     case TAI_ATTR_VALUE_TYPE_S64:
-        return tai_serialize_int64(ptr, attr->value.s64);
+        return tai_serialize_int64(ptr, value->s64);
     case TAI_ATTR_VALUE_TYPE_FLT:
-        return tai_serialize_float(ptr, attr->value.flt);
+        return tai_serialize_float(ptr, value->flt);
     case TAI_ATTR_VALUE_TYPE_PTR:
         TAI_META_LOG_WARN("pointer serialization is not implemented");
         return TAI_SERIALIZE_ERROR;
     case TAI_ATTR_VALUE_TYPE_OID:
-        return tai_serialize_object_id(ptr, attr->value.oid);
+        return tai_serialize_object_id(ptr, value->oid);
     case TAI_ATTR_VALUE_TYPE_OBJLIST:
-        for ( i = 0; i < attr->value.objlist.count; i++ ) {
-            ptr += tai_serialize_object_id(ptr, attr->value.objlist.list[i]);
-            if ( i + 1 < attr->value.objlist.count ) {
+        for ( i = 0; i < value->objlist.count; i++ ) {
+            ptr += tai_serialize_object_id(ptr, value->objlist.list[i]);
+            if ( i + 1 < value->objlist.count ) {
                 ptr += sprintf(ptr, ",");
             }
         }
         return ptr - buffer;
     case TAI_ATTR_VALUE_TYPE_CHARLIST:
-        memcpy(ptr, attr->value.charlist.list, attr->value.charlist.count);
-        return ptr - buffer + attr->value.charlist.count;
+        memcpy(ptr, value->charlist.list, value->charlist.count);
+        return ptr - buffer + value->charlist.count;
     case TAI_ATTR_VALUE_TYPE_U8LIST:
-        for ( i = 0; i < attr->value.u8list.count; i++ ) {
-            ptr += tai_serialize_uint8(ptr, attr->value.u8list.list[i]);
-            if ( i + 1 < attr->value.u8list.count ) {
+        for ( i = 0; i < value->u8list.count; i++ ) {
+            ptr += tai_serialize_uint8(ptr, value->u8list.list[i]);
+            if ( i + 1 < value->u8list.count ) {
                 ptr += sprintf(ptr, ",");
             }
         }
         return ptr - buffer;
     case TAI_ATTR_VALUE_TYPE_S8LIST:
-        for ( i = 0; i < attr->value.s8list.count; i++ ) {
-            ptr += tai_serialize_int8(ptr, attr->value.s8list.list[i]);
-            if ( i + 1 < attr->value.s8list.count ) {
+        for ( i = 0; i < value->s8list.count; i++ ) {
+            ptr += tai_serialize_int8(ptr, value->s8list.list[i]);
+            if ( i + 1 < value->s8list.count ) {
                 ptr += sprintf(ptr, ",");
             }
         }
         return ptr - buffer;
     case TAI_ATTR_VALUE_TYPE_U16LIST:
-        for ( i = 0; i < attr->value.u16list.count; i++ ) {
-            ptr += tai_serialize_uint16(ptr, attr->value.u16list.list[i]);
-            if ( i + 1 < attr->value.u16list.count ) {
+        for ( i = 0; i < value->u16list.count; i++ ) {
+            ptr += tai_serialize_uint16(ptr, value->u16list.list[i]);
+            if ( i + 1 < value->u16list.count ) {
                 ptr += sprintf(ptr, ",");
             }
         }
         return ptr - buffer;
     case TAI_ATTR_VALUE_TYPE_S16LIST:
-        for ( i = 0; i < attr->value.s16list.count; i++ ) {
-            ptr += tai_serialize_int16(ptr, attr->value.s16list.list[i]);
-            if ( i + 1 < attr->value.s16list.count ) {
+        for ( i = 0; i < value->s16list.count; i++ ) {
+            ptr += tai_serialize_int16(ptr, value->s16list.list[i]);
+            if ( i + 1 < value->s16list.count ) {
                 ptr += sprintf(ptr, ",");
             }
         }
         return ptr - buffer;
     case TAI_ATTR_VALUE_TYPE_U32LIST:
-        for ( i = 0; i < attr->value.u32list.count; i++ ) {
-            ptr += tai_serialize_uint32(ptr, attr->value.u32list.list[i]);
-            if ( i + 1 < attr->value.u32list.count ) {
+        for ( i = 0; i < value->u32list.count; i++ ) {
+            ptr += tai_serialize_uint32(ptr, value->u32list.list[i]);
+            if ( i + 1 < value->u32list.count ) {
                 ptr += sprintf(ptr, ",");
             }
         }
         return ptr - buffer;
     case TAI_ATTR_VALUE_TYPE_S32LIST:
         if ( meta->isenum ) {
-            for ( i = 0; i < attr->value.s32list.count; i++ ) {
-                ptr += tai_serialize_enum(ptr, meta->enummetadata, attr->value.s32list.list[i], option);
-                if ( i + 1 < attr->value.s32list.count ) {
+            for ( i = 0; i < value->s32list.count; i++ ) {
+                ptr += tai_serialize_enum(ptr, meta->enummetadata, value->s32list.list[i], option);
+                if ( i + 1 < value->s32list.count ) {
                     ptr += sprintf(ptr, "|");
                 }
             }
             return ptr - buffer;
         }
-        for ( i = 0; i < attr->value.s32list.count; i++ ) {
-            ptr += tai_serialize_int32(ptr, attr->value.s32list.list[i]);
-            if ( i + 1 < attr->value.s32list.count ) {
+        for ( i = 0; i < value->s32list.count; i++ ) {
+            ptr += tai_serialize_int32(ptr, value->s32list.list[i]);
+            if ( i + 1 < value->s32list.count ) {
                 ptr += sprintf(ptr, ",");
             }
         }
         return ptr - buffer;
     case TAI_ATTR_VALUE_TYPE_FLOATLIST:
-        for ( i = 0; i < attr->value.floatlist.count; i++ ) {
-            ptr += tai_serialize_float(ptr, attr->value.floatlist.list[i]);
-            if ( i + 1 < attr->value.floatlist.count ) {
+        for ( i = 0; i < value->floatlist.count; i++ ) {
+            ptr += tai_serialize_float(ptr, value->floatlist.list[i]);
+            if ( i + 1 < value->floatlist.count ) {
                 ptr += sprintf(ptr, ",");
             }
         }
         return ptr - buffer;
     case TAI_ATTR_VALUE_TYPE_U32RANGE:
-        ptr += sprintf(ptr, "%u..%u", attr->value.u32range.min, attr->value.u32range.max);
+        ptr += sprintf(ptr, "%u..%u", value->u32range.min, value->u32range.max);
         return ptr - buffer;
     case TAI_ATTR_VALUE_TYPE_S32RANGE:
-        ptr += sprintf(ptr, "%d..%d", attr->value.s32range.min, attr->value.s32range.max);
+        ptr += sprintf(ptr, "%d..%d", value->s32range.min, value->s32range.max);
         return ptr - buffer;
     case TAI_ATTR_VALUE_TYPE_OBJMAPLIST:
         TAI_META_LOG_WARN("objmaplist serialization is not implemented");
         return TAI_SERIALIZE_ERROR;
+    case TAI_ATTR_VALUE_TYPE_ATTRLIST:
+        for ( i = 0; i < value->attrlist.count; i++ ) {
+            ptr += tai_serialize_attribute_value(ptr, &m, &value->attrlist.list[i], option);
+            if ( i != (value->attrlist.count - 1)) {
+                ptr += sprintf(ptr, ", ");
+            }
+        }
+        return ptr - buffer;
     default:
         TAI_META_LOG_WARN("unknown attr value type");
     }
     return TAI_SERIALIZE_ERROR;
+}
+
+int tai_serialize_attribute(
+        _Out_ char *buffer,
+        _In_ const tai_attr_metadata_t *meta,
+        _In_ const tai_attribute_t *attr,
+        _In_ const tai_serialize_option_t *option)
+{
+    char *ptr = buffer;
+    int count = 0;
+    if ( option == NULL || !option->valueonly ) {
+        if ( option != NULL && option->human ) {
+            ptr += sprintf(ptr, "%s | ", meta->attridshortname);
+        } else {
+            ptr += sprintf(ptr, "%s | ", meta->attridname);
+        }
+        count = ptr - buffer;
+    }
+
+    return count + tai_serialize_attribute_value(ptr, meta, &attr->value, option);
 }
 
 int tai_deserialize_attribute(
