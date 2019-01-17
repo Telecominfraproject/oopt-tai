@@ -46,6 +46,11 @@
 typedef enum _tai_attr_value_type_t
 {
     /**
+     * @brief Attribute value is unspecified
+     */
+    TAI_ATTR_VALUE_TYPE_UNSPECIFIED,
+
+    /**
      * @brief Attribute value is bool.
      */
     TAI_ATTR_VALUE_TYPE_BOOLDATA,
@@ -169,6 +174,11 @@ typedef enum _tai_attr_value_type_t
      * @brief Attribute value is object map list.
      */
     TAI_ATTR_VALUE_TYPE_OBJMAPLIST,
+
+    /**
+     * @brief Attribute value is attr list.
+     */
+    TAI_ATTR_VALUE_TYPE_ATTRLIST,
 
 } tai_attr_value_type_t;
 
@@ -474,6 +484,11 @@ typedef struct _tai_attr_metadata_t
      * @brief Specifies attribute value type for this attribute.
      */
     tai_attr_value_type_t                       attrvaluetype;
+
+    /**
+     * @brief Specifies internal attribute value type for attr list attribute.
+     */
+    tai_attr_value_type_t                       attrlistvaluetype;
 
     /**
      * @brief Specifies flags for this attribute.

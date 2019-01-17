@@ -44,7 +44,7 @@ class TAIDefaultValueType(Enum):
 
 def process_type(header, type_):
     ts = [v.strip('#') for v in type_.split(' ')]
-    t = e = v = None
+    t = e = v = attrlistvaluetype  = None
     if len(ts) == 1:
         t = ts[0]
     elif len(ts) == 2:
@@ -53,6 +53,20 @@ def process_type(header, type_):
             e = ts[1]
         elif ts[0] == 'tai_pointer_t':
             t = ts[0]
+        elif ts[0] == 'tai_attr_value_list_t':
+            t = ts[0]
+            if ts[1] == 'tai_attr_value_list_t':
+                raise Exception("unsupported type format: {}".format(type_))
+            attrlistvaluetype = ts[1]
+        else:
+            raise Exception("unsupported type format: {}".format(type_))
+    elif len(ts) == 3:
+        if ts[0] == 'tai_attr_value_list_t':
+            t = ts[0]
+            if ts[1] == 'tai_attr_value_list_t':
+                raise Exception("unsupported type format: {}".format(type_))
+            attrlistvaluetype = ts[1]
+            e = ts[2]
         else:
             raise Exception("unsupported type format: {}".format(type_))
     else:
@@ -66,10 +80,13 @@ def process_type(header, type_):
         e = t
         v = 's32'
 
+    if attrlistvaluetype:
+        attrlistvaluetype = header.attr_value_map.get(attrlistvaluetype, None)
+
     if e and not header.get_enum(e):
         raise Exception("{} not found".format(e))
 
-    return t, e, v
+    return t, e, v, attrlistvaluetype
 
 
 def process_default_value_type(default):
@@ -126,7 +143,7 @@ class TAIAttribute(object):
             self.flags = set()
         # process type command
         t = self.cmt['type']
-        self.type, self.enum_type, self.value_field = process_type(self.taiobject.taiheader, t)
+        self.type, self.enum_type, self.value_field, self.attrlist_value_type = process_type(self.taiobject.taiheader, t)
 
         # process default command
         self.default = self.cmt.get('default', '')
@@ -191,8 +208,13 @@ class TAIHeader(object):
         return self._get_name(node, name)
 
     def _get_name(self, node, name):
-        if node.displayname == name:        
-            return node
+        if node.displayname == name:
+            # ignore forward declaration
+            # https://joshpeterson.github.io/identifying-a-forward-declaration-with-libclang
+            d = node.get_definition()
+            c = clang.cindex.conf.lib.clang_getNullCursor()
+            if d != c and d == node:
+                return node
         for child in node.get_children():
             n = self._get_name(child, name)
             if n:
@@ -266,6 +288,9 @@ const tai_attr_metadata_t tai_metadata_attr_{{ typename }} = {
     .attridname          = "{{ typename }}",
     .attridshortname     = "{{ shorttypename }}",
     .attrvaluetype       = {{ attr_type }},
+{%- if attrlist_value_type %}
+    .attrlistvaluetype   = {{ attrlist_value_type }},
+{%- endif %}
 {%- if attr_flags %}
     .flags               = {{ attr_flags }},
 {%- else %}
@@ -298,6 +323,9 @@ const tai_attr_metadata_t tai_metadata_attr_{{ typename }} = {
             raise Exception("invalid attr type name: {}, obj: {}".format(typename, obj))
         shorttypename = typename[len(prefix):].lower().replace('_', '-')
         attr_type = 'TAI_ATTR_VALUE_TYPE_{}'.format(attr.value_field.upper())
+        attrlist_value_type = None
+        if attr.attrlist_value_type:
+            attrlist_value_type = 'TAI_ATTR_VALUE_TYPE_{}'.format(attr.attrlist_value_type.upper())
         is_enum = 'false'
         enum_meta_data = None
         if attr.enum_type:
@@ -315,6 +343,7 @@ const tai_attr_metadata_t tai_metadata_attr_{{ typename }} = {
                      'typename': typename,
                      'shorttypename': shorttypename,
                      'attr_type': attr_type,
+                     'attrlist_value_type': attrlist_value_type,
                      'attr_flags': attr_flags,
                      'value_field': attr.value_field,
                      'is_enum': is_enum,
