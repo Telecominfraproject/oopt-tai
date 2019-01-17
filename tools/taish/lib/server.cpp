@@ -274,7 +274,7 @@ static void convert_metadata(const tai_attr_metadata_t* const src, ::tai::Attrib
     char buf[128] = {0};
     auto a = response->mutable_attribute();
 
-    if( tai_metadata_alloc_attr_value(meta, &attr, nullptr) != TAI_STATUS_SUCESS ) {
+    if( tai_metadata_alloc_attr_value(meta, &attr, nullptr) != TAI_STATUS_SUCCESS ) {
         return Status(StatusCode::UNKNOWN, "failed to alloc value");
     }
 
@@ -303,7 +303,7 @@ static void convert_metadata(const tai_attr_metadata_t* const src, ::tai::Attrib
 
     a->set_value(buf);
 err:
-    if ( tai_metadata_free_attr_value(meta, &attr, nullptr) != TAI_STATUS_SUCESS ) {
+    if ( tai_metadata_free_attr_value(meta, &attr, nullptr) != TAI_STATUS_SUCCESS ) {
         return Status(StatusCode::UNKNOWN, "failed to free value");
     }
     if ( ret < 0 ) {
@@ -346,7 +346,7 @@ err:
         ret = TAI_STATUS_FAILURE;
     }
 err:
-    if ( tai_metadata_free_attr_value(meta, &attr, nullptr) != TAI_STATUS_SUCESS ) {
+    if ( tai_metadata_free_attr_value(meta, &attr, nullptr) != TAI_STATUS_SUCCESS ) {
         return Status(StatusCode::UNKNOWN, "failed to free value");
     }
     if ( ret == 0 ) {
