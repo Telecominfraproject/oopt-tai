@@ -64,8 +64,8 @@ tai_status_t create_modules() {
             attr[0].id = TAI_NETWORK_INTERFACE_ATTR_INDEX;
             attr[0].value.u32 = i;
 
-            attr[1].id = TAI_NETWORK_INTERFACE_ATTR_TX_ENABLE;
-            attr[1].value.booldata = true;
+            attr[1].id = TAI_NETWORK_INTERFACE_ATTR_TX_DIS;
+            attr[1].value.booldata = false;
 
             attr[2].id = TAI_NETWORK_INTERFACE_ATTR_TX_LASER_FREQ;
             attr[2].value.u64 = 191300000000000;
