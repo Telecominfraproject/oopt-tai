@@ -171,15 +171,13 @@ typedef enum _tai_network_interface_attr_t
     TAI_NETWORK_INTERFACE_ATTR_RX_ALIGN_STATUS,
 
     /**
-     * @brief TX Enable
-     *
-     * Interpreted as complement of MSA defined TX_DIS signal
+     * @brief TX Disable
      *
      * @type bool
      * @flags CREATE_AND_SET
-     * @default true
+     * @default false
      */
-    TAI_NETWORK_INTERFACE_ATTR_TX_ENABLE,
+    TAI_NETWORK_INTERFACE_ATTR_TX_DIS,
 
     /**
      * @brief TX Grid Spacing
