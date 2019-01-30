@@ -25,12 +25,36 @@
 #include <stdarg.h>
 #include <string.h>
 #include <syslog.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "tai.h"
+#include "taimetadata.h"
 
 
 static tai_service_method_table_t adapter_host_fns;
 static bool                       initialized = false;
 
+#define STUB_NUM_MODULE 4
+#define STUB_NUM_HOSTIF 2
+#define STUB_NUM_NETIF 1
+
+typedef struct _tai_attr_node_t {
+    tai_attribute_t attr;
+    struct _tai_attr_node_t *next;
+} tai_attr_node_t;
+
+typedef struct _stub_object_t {
+    tai_object_id_t oid;
+    tai_attr_node_t *head;
+} stub_object_t;
+
+typedef struct _stub_module_t {
+    stub_object_t module;
+    stub_object_t hostifs[STUB_NUM_HOSTIF];
+    stub_object_t netifs[STUB_NUM_NETIF];
+} stub_module_t;
+
+static stub_module_t g_modules[STUB_NUM_MODULE];
 
 /*------------------------------------------------------------------------------
 
@@ -43,9 +67,10 @@ static bool                       initialized = false;
 
 /** @brief The Stub TAI adapter uses the following format for object ids */
 typedef struct _stub_object_id_t {
-    uint8_t type;
-    uint8_t reserved;
-    uint32_t value;
+    uint16_t value;
+    uint16_t module;
+    uint32_t :24;
+    uint8_t  type;
 } stub_object_id_t;
 
 /**
@@ -150,6 +175,64 @@ void tai_syslog(_In_ tai_api_t tai_api_id, _In_ tai_log_level_t log_level,
     return;
 }
 
+/**
+ * @brief Generic helper function for setting an attribute
+ *
+ * @param [in] head head of tai_attr_node list
+ * @param [in] meta metadata of the attribute to set
+ * @param [in] attr attribute to set
+ *
+ * @return TAI_STATUS_SUCCESS on success, failure status code on error
+ */
+static tai_status_t _set_attribute(tai_attr_node_t** const head, const tai_attr_metadata_t* const meta, const tai_attribute_t* const attr) {
+    tai_attr_node_t *p = *head, **update = head;
+    tai_status_t ret;
+    if ( p == NULL ) {
+        goto alloc;
+    }
+    do {
+        if ( p->attr.id == attr->id ) {
+            return tai_metadata_deepcopy_attr_value(meta, attr, &p->attr);
+        }
+        update = &p->next;
+        p = p->next;
+    } while ( p != NULL );
+alloc:
+    p = (tai_attr_node_t*)calloc(1, sizeof(tai_attr_node_t));
+    ret = tai_metadata_alloc_attr_value(meta, &p->attr, NULL);
+    if ( ret != TAI_STATUS_SUCCESS ) {
+        return ret;
+    }
+    ret = tai_metadata_deepcopy_attr_value(meta, attr, &p->attr);
+    if ( ret != TAI_STATUS_SUCCESS ) {
+        return ret;
+    }
+    *update = p;
+    return TAI_STATUS_SUCCESS;
+}
+
+/**
+ * @brief Generic helper function for getting an attribute
+ *
+ * @param [in] head head of tai_attr_node list
+ * @param [in] meta metadata of the attribute to set
+ * @param [in,out] attr A pointer to the attribute to be retrieved
+ *
+ * @return TAI_STATUS_SUCCESS on success, failure status code on error
+ */
+static tai_status_t _get_attribute(const tai_attr_node_t* const head, const tai_attr_metadata_t* const meta, tai_attribute_t* const attr) {
+    const tai_attr_node_t* p = head;
+    if ( p == NULL ) {
+        return TAI_STATUS_ITEM_NOT_FOUND;
+    }
+    do {
+        if ( p->attr.id == attr->id ) {
+            return tai_metadata_deepcopy_attr_value(meta, &p->attr, attr);
+        }
+        p = p->next;
+    } while ( p != NULL );
+    return TAI_STATUS_ITEM_NOT_FOUND;
+}
 
 /*------------------------------------------------------------------------------
 
@@ -172,16 +255,29 @@ static tai_status_t stub_get_host_interface_attribute(
     _In_ tai_object_id_t     host_interface_id,
     _Inout_ tai_attribute_t *attr)
 {
-    TAI_SYSLOG_DEBUG("Retrieving host interface attribute: %d", attr->id);
-    switch (attr->id) {
-        case TAI_HOST_INTERFACE_ATTR_INDEX:
-        case TAI_HOST_INTERFACE_ATTR_LANE_FAULT:
-        case TAI_HOST_INTERFACE_ATTR_TX_ALIGN_STATUS:
-        case TAI_HOST_INTERFACE_ATTR_FEC_TYPE:
-        case TAI_HOST_INTERFACE_ATTR_LOOPBACK_TYPE:
-            return TAI_STATUS_SUCCESS;
+    stub_object_id_t id = *(stub_object_id_t*)&host_interface_id;
+    stub_object_t object;
+    const tai_attr_metadata_t* meta;
+    if ( id.type != TAI_OBJECT_TYPE_HOSTIF ) {
+        return TAI_STATUS_INVALID_PARAMETER;
     }
-    return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
+    if ( id.module >= STUB_NUM_MODULE ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    if ( id.value >= STUB_NUM_HOSTIF ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    object = g_modules[id.module].hostifs[id.value];
+    if ( object.oid == 0 ) {
+        return TAI_STATUS_ITEM_NOT_FOUND;
+    }
+
+    TAI_SYSLOG_DEBUG("Retrieving host interface attribute: %d", attr->id);
+    meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_HOSTIF, attr->id);
+    if ( meta == NULL ) {
+        return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
+    }
+    return _get_attribute(object.head, meta, attr);
 }
 
 /**
@@ -222,17 +318,29 @@ static tai_status_t stub_set_host_interface_attribute(
    _In_ tai_object_id_t        host_interface_id,
    _In_ const tai_attribute_t *attr)
 {
-    TAI_SYSLOG_DEBUG("Setting host interface attribute: %d", attr->id);
-    switch (attr->id) {
-        case TAI_HOST_INTERFACE_ATTR_INDEX:
-        case TAI_HOST_INTERFACE_ATTR_FEC_TYPE:
-        case TAI_HOST_INTERFACE_ATTR_LOOPBACK_TYPE:
-            return TAI_STATUS_SUCCESS;
-        case TAI_HOST_INTERFACE_ATTR_LANE_FAULT:
-        case TAI_HOST_INTERFACE_ATTR_TX_ALIGN_STATUS:
-            return TAI_STATUS_INVALID_ATTRIBUTE_0;
+    stub_object_id_t id = *(stub_object_id_t*)&host_interface_id;
+    stub_object_t* object;
+    const tai_attr_metadata_t* meta;
+    if ( id.type != TAI_OBJECT_TYPE_HOSTIF ) {
+        return TAI_STATUS_INVALID_PARAMETER;
     }
-    return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
+    if ( id.module >= STUB_NUM_MODULE ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    if ( id.value >= STUB_NUM_HOSTIF ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    object = &g_modules[id.module].hostifs[id.value];
+    if ( object->oid == 0 ) {
+        return TAI_STATUS_ITEM_NOT_FOUND;
+    }
+
+    TAI_SYSLOG_DEBUG("Setting host interface attribute: %d", attr->id);
+    meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_HOSTIF, attr->id);
+    if ( meta == NULL ) {
+        return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
+    }
+    return _set_attribute(&object->head, meta, attr);
 }
 
 /**
@@ -282,12 +390,40 @@ static tai_status_t stub_create_host_interface(
 {
     tai_status_t ret;
     const tai_attribute_value_t * hostif_addr;
+    int i;
+    bool found = false;
+    stub_object_id_t id = { .type = TAI_OBJECT_TYPE_HOSTIF };
 
     hostif_addr = find_attribute_in_list(TAI_HOST_INTERFACE_ATTR_INDEX, attr_count, attr_list);
     if (NULL == hostif_addr) {
         TAI_SYSLOG_ERROR("The required TAI_HOST_INTERFACE_ATTR_INDEX attribute was not provided");
         return TAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
     }
+
+    for ( i = 0; i < STUB_NUM_MODULE; i++ ) {
+        if ( g_modules[i].module.oid == module_id ) {
+            found = true;
+            break;
+        }
+    }
+
+    if ( !found ) {
+        TAI_SYSLOG_ERROR("failed to create hostif: module %x not found", module_id);
+        return TAI_STATUS_ITEM_NOT_FOUND;
+    }
+
+    if ( hostif_addr->u32 >= STUB_NUM_HOSTIF ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+
+    if ( g_modules[i].hostifs[hostif_addr->u32].oid != 0 ) {
+        return TAI_STATUS_ITEM_ALREADY_EXISTS;
+    }
+
+    id.module = i;
+    id.value = hostif_addr->u32;
+    *host_interface_id = *(tai_object_id_t*)&id;
+    g_modules[i].hostifs[hostif_addr->u32].oid = *host_interface_id;
 
     ret = stub_set_host_interface_attributes(*host_interface_id, attr_count, attr_list);
     if (TAI_STATUS_SUCCESS != ret) {
@@ -308,6 +444,36 @@ static tai_status_t stub_create_host_interface(
  */
 static tai_status_t stub_remove_host_interface(_In_ tai_object_id_t host_interface_id)
 {
+    stub_object_id_t id = *(stub_object_id_t*)&host_interface_id;
+    stub_object_t* object;
+    tai_attr_node_t *p, *next;
+    const tai_attr_metadata_t* meta;
+    tai_status_t ret;
+    if ( id.type != TAI_OBJECT_TYPE_HOSTIF ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    if ( id.module >= STUB_NUM_MODULE ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    if ( id.value >= STUB_NUM_HOSTIF ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    object = &g_modules[id.module].hostifs[id.value];
+    if ( object->oid == 0 ) {
+        return TAI_STATUS_ITEM_NOT_FOUND;
+    }
+    p = object->head;
+    while ( p != NULL ) {
+        meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_HOSTIF, p->attr.id);
+        ret = tai_metadata_free_attr_value(meta, &p->attr, NULL);
+        if ( ret != TAI_STATUS_SUCCESS ) {
+            return ret;
+        }
+        next = p->next;
+        free(p);
+        p = next;
+    }
+    object->oid = 0;
     return TAI_STATUS_SUCCESS;
 }
 
@@ -346,32 +512,29 @@ static tai_status_t stub_get_network_interface_attribute(
     _In_ tai_object_id_t     network_interface_id,
     _Inout_ tai_attribute_t *attr)
 {
-    TAI_SYSLOG_DEBUG("Retrieving network interface attribute: %d", attr->id);
-    switch (attr->id) {
-        case TAI_NETWORK_INTERFACE_ATTR_INDEX:
-        case TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS:
-        case TAI_NETWORK_INTERFACE_ATTR_RX_ALIGN_STATUS:
-        case TAI_NETWORK_INTERFACE_ATTR_TX_DIS:
-        case TAI_NETWORK_INTERFACE_ATTR_TX_GRID_SPACING:
-        case TAI_NETWORK_INTERFACE_ATTR_OUTPUT_POWER:
-        case TAI_NETWORK_INTERFACE_ATTR_CURRENT_OUTPUT_POWER:
-        case TAI_NETWORK_INTERFACE_ATTR_TX_LASER_FREQ:
-        case TAI_NETWORK_INTERFACE_ATTR_TX_FINE_TUNE_LASER_FREQ:
-        case TAI_NETWORK_INTERFACE_ATTR_MODULATION_FORMAT:
-        case TAI_NETWORK_INTERFACE_ATTR_CURRENT_BER:
-        case TAI_NETWORK_INTERFACE_ATTR_CURRENT_BER_PERIOD:
-        case TAI_NETWORK_INTERFACE_ATTR_DIFFERENTIAL_ENCODING:
-        case TAI_NETWORK_INTERFACE_ATTR_OPER_STATUS:
-        case TAI_NETWORK_INTERFACE_ATTR_MIN_LASER_FREQ:
-        case TAI_NETWORK_INTERFACE_ATTR_MAX_LASER_FREQ:
-        case TAI_NETWORK_INTERFACE_ATTR_LASER_GRID_SUPPORT:
-        case TAI_NETWORK_INTERFACE_ATTR_LOOPBACK_TYPE:
-        case TAI_NETWORK_INTERFACE_ATTR_PRBS_TYPE:
-        case TAI_NETWORK_INTERFACE_ATTR_CURRENT_TX_LASER_FREQ:
-        case TAI_NETWORK_INTERFACE_ATTR_CH1_FREQ:
-            return TAI_STATUS_SUCCESS;
+    stub_object_id_t id = *(stub_object_id_t*)&network_interface_id;
+    stub_object_t object;
+    const tai_attr_metadata_t* meta;
+    if ( id.type != TAI_OBJECT_TYPE_NETWORKIF ) {
+        return TAI_STATUS_INVALID_PARAMETER;
     }
-    return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
+    if ( id.module >= STUB_NUM_MODULE ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    if ( id.value >= STUB_NUM_NETIF ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    object = g_modules[id.module].netifs[id.value];
+    if ( object.oid == 0 ) {
+        return TAI_STATUS_ITEM_NOT_FOUND;
+    }
+
+    TAI_SYSLOG_DEBUG("Retrieving network interface attribute: %d", attr->id);
+    meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORKIF, attr->id);
+    if ( meta == NULL ) {
+        return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
+    }
+    return _get_attribute(object.head, meta, attr);
 }
 
 /**
@@ -412,34 +575,29 @@ static tai_status_t stub_set_network_interface_attribute(
    _In_ tai_object_id_t        network_interface_id,
    _In_ const tai_attribute_t *attr)
 {
-    TAI_SYSLOG_DEBUG("Setting network interface attribute: %d", attr->id);
-    switch (attr->id) {
-        case TAI_NETWORK_INTERFACE_ATTR_INDEX:
-            return TAI_STATUS_SUCCESS;
-        case TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS:
-        case TAI_NETWORK_INTERFACE_ATTR_RX_ALIGN_STATUS:
-        case TAI_NETWORK_INTERFACE_ATTR_TX_GRID_SPACING:
-        case TAI_NETWORK_INTERFACE_ATTR_CURRENT_OUTPUT_POWER:
-        case TAI_NETWORK_INTERFACE_ATTR_CURRENT_BER:
-        case TAI_NETWORK_INTERFACE_ATTR_CURRENT_BER_PERIOD:
-        case TAI_NETWORK_INTERFACE_ATTR_OPER_STATUS:
-        case TAI_NETWORK_INTERFACE_ATTR_MIN_LASER_FREQ:
-        case TAI_NETWORK_INTERFACE_ATTR_MAX_LASER_FREQ:
-        case TAI_NETWORK_INTERFACE_ATTR_LASER_GRID_SUPPORT:
-        case TAI_NETWORK_INTERFACE_ATTR_CURRENT_TX_LASER_FREQ:
-            return TAI_STATUS_INVALID_ATTRIBUTE_0;
-        case TAI_NETWORK_INTERFACE_ATTR_TX_DIS:
-        case TAI_NETWORK_INTERFACE_ATTR_OUTPUT_POWER:
-        case TAI_NETWORK_INTERFACE_ATTR_TX_LASER_FREQ:
-        case TAI_NETWORK_INTERFACE_ATTR_TX_FINE_TUNE_LASER_FREQ:
-        case TAI_NETWORK_INTERFACE_ATTR_MODULATION_FORMAT:
-        case TAI_NETWORK_INTERFACE_ATTR_DIFFERENTIAL_ENCODING:
-        case TAI_NETWORK_INTERFACE_ATTR_LOOPBACK_TYPE:
-        case TAI_NETWORK_INTERFACE_ATTR_PRBS_TYPE:
-        case TAI_NETWORK_INTERFACE_ATTR_CH1_FREQ:
-            return TAI_STATUS_SUCCESS;
+    stub_object_id_t id = *(stub_object_id_t*)&network_interface_id;
+    stub_object_t *object;
+    const tai_attr_metadata_t* meta;
+    if ( id.type != TAI_OBJECT_TYPE_NETWORKIF ) {
+        return TAI_STATUS_INVALID_PARAMETER;
     }
-    return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
+    if ( id.module >= STUB_NUM_MODULE ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    if ( id.value >= STUB_NUM_NETIF ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    object = &g_modules[id.module].netifs[id.value];
+    if ( object->oid == 0 ) {
+        return TAI_STATUS_ITEM_NOT_FOUND;
+    }
+
+    TAI_SYSLOG_DEBUG("Setting network interface attribute: %d", attr->id);
+    meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORKIF, attr->id);
+    if ( meta == NULL ) {
+        return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
+    }
+    return _set_attribute(&object->head, meta, attr);
 }
 
 /**
@@ -489,12 +647,40 @@ static tai_status_t stub_create_network_interface(
 {
     tai_status_t ret;
     const tai_attribute_value_t * netif_addr;
+    int i;
+    bool found = false;
+    stub_object_id_t id = { .type = TAI_OBJECT_TYPE_NETWORKIF };
 
     netif_addr = find_attribute_in_list(TAI_NETWORK_INTERFACE_ATTR_INDEX, attr_count, attr_list);
     if (NULL == netif_addr) {
         TAI_SYSLOG_ERROR("The required TAI_NETWORK_INTERFACE_ATTR_INDEX attribute was not provided");
         return TAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
     }
+
+    for ( i = 0; i < STUB_NUM_MODULE; i++ ) {
+        if ( g_modules[i].module.oid == module_id ) {
+            found = true;
+            break;
+        }
+    }
+
+    if ( !found ) {
+        TAI_SYSLOG_ERROR("failed to create netif: module %x not found", module_id);
+        return TAI_STATUS_ITEM_NOT_FOUND;
+    }
+
+    if ( netif_addr->u32 >= STUB_NUM_NETIF ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+
+    if ( g_modules[i].netifs[netif_addr->u32].oid != 0 ) {
+        return TAI_STATUS_ITEM_ALREADY_EXISTS;
+    }
+
+    id.module = i;
+    id.value = netif_addr->u32;
+    *network_interface_id = *(tai_object_id_t*)&id;
+    g_modules[i].netifs[netif_addr->u32].oid = *network_interface_id;
 
     ret = stub_set_network_interface_attributes(*network_interface_id, attr_count, attr_list);
     if (TAI_STATUS_SUCCESS != ret) {
@@ -516,6 +702,36 @@ static tai_status_t stub_create_network_interface(
  */
 static tai_status_t stub_remove_network_interface(_In_ tai_object_id_t network_interface_id)
 {
+    stub_object_id_t id = *(stub_object_id_t*)&network_interface_id;
+    stub_object_t* object;
+    tai_attr_node_t *p, *next;
+    const tai_attr_metadata_t* meta;
+    tai_status_t ret;
+    if ( id.type != TAI_OBJECT_TYPE_NETWORKIF ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    if ( id.module >= STUB_NUM_MODULE ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    if ( id.value >= STUB_NUM_NETIF ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    object = &g_modules[id.module].netifs[id.value];
+    if ( object->oid == 0 ) {
+        return TAI_STATUS_ITEM_NOT_FOUND;
+    }
+    p = object->head;
+    while ( p != NULL ) {
+        meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORKIF, p->attr.id);
+        ret = tai_metadata_free_attr_value(meta, &p->attr, NULL);
+        if ( ret != TAI_STATUS_SUCCESS ) {
+            return ret;
+        }
+        next = p->next;
+        free(p);
+        p = next;
+    }
+    object->oid = 0;
     return TAI_STATUS_SUCCESS;
 }
 
@@ -554,22 +770,34 @@ static tai_status_t stub_get_module_attribute(
     _In_ tai_object_id_t     module_id,
     _Inout_ tai_attribute_t *attr)
 {
+    stub_object_id_t id = *(stub_object_id_t*)&module_id;
+    stub_object_t object;
+    const tai_attr_metadata_t* meta;
+    if ( id.type != TAI_OBJECT_TYPE_MODULE ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    if ( id.value >= STUB_NUM_MODULE ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    object = g_modules[id.value].module;
+    if ( object.oid == 0 ) {
+        return TAI_STATUS_ITEM_NOT_FOUND;
+    }
+
     TAI_SYSLOG_DEBUG("Retrieving module attribute: %d", attr->id);
+    meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_MODULE, attr->id);
+    if ( meta == NULL ) {
+        return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
+    }
     switch (attr->id) {
-        case TAI_MODULE_ATTR_LOCATION:
-        case TAI_MODULE_ATTR_VENDOR_NAME:
-        case TAI_MODULE_ATTR_VENDOR_PART_NUMBER:
-        case TAI_MODULE_ATTR_VENDOR_SERIAL_NUMBER:
-        case TAI_MODULE_ATTR_FIRMWARE_VERSIONS:
-        case TAI_MODULE_ATTR_OPER_STATUS:
-        case TAI_MODULE_ATTR_ADMIN_STATUS:
-        case TAI_MODULE_ATTR_TEMP:
-        case TAI_MODULE_ATTR_POWER:
         case TAI_MODULE_ATTR_NUM_HOST_INTERFACES:
+            attr->value.u32 = STUB_NUM_HOSTIF;
+            return TAI_STATUS_SUCCESS;
         case TAI_MODULE_ATTR_NUM_NETWORK_INTERFACES:
+            attr->value.u32 = STUB_NUM_NETIF;
             return TAI_STATUS_SUCCESS;
     }
-    return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
+    return _get_attribute(object.head, meta, attr);
 }
 
 /**
@@ -610,24 +838,26 @@ static tai_status_t stub_set_module_attribute(
    _In_ tai_object_id_t        module_id,
    _In_ const tai_attribute_t *attr)
 {
-    TAI_SYSLOG_DEBUG("Setting module attribute: %d", attr->id);
-    switch (attr->id) {
-        case TAI_MODULE_ATTR_LOCATION:
-            return TAI_STATUS_SUCCESS;
-        case TAI_MODULE_ATTR_VENDOR_NAME:
-        case TAI_MODULE_ATTR_VENDOR_PART_NUMBER:
-        case TAI_MODULE_ATTR_VENDOR_SERIAL_NUMBER:
-        case TAI_MODULE_ATTR_FIRMWARE_VERSIONS:
-        case TAI_MODULE_ATTR_TEMP:
-        case TAI_MODULE_ATTR_POWER:
-        case TAI_MODULE_ATTR_NUM_HOST_INTERFACES:
-        case TAI_MODULE_ATTR_NUM_NETWORK_INTERFACES:
-        case TAI_MODULE_ATTR_OPER_STATUS:
-            return TAI_STATUS_INVALID_ATTRIBUTE_0;
-        case TAI_MODULE_ATTR_ADMIN_STATUS:
-            return TAI_STATUS_SUCCESS;
+    stub_object_id_t id = *(stub_object_id_t*)&module_id;
+    stub_object_t *object;
+    const tai_attr_metadata_t* meta = NULL;
+    if ( id.type != TAI_OBJECT_TYPE_MODULE ) {
+        return TAI_STATUS_INVALID_PARAMETER;
     }
-    return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
+    if ( id.value >= STUB_NUM_MODULE ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    object = &g_modules[id.value].module;
+    if ( object->oid == 0 ) {
+        return TAI_STATUS_ITEM_NOT_FOUND;
+    }
+
+    TAI_SYSLOG_DEBUG("Setting module attribute: %d", attr->id);
+    meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_MODULE, attr->id);
+    if ( meta == NULL ) {
+        return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
+    }
+    return _set_attribute(&object->head, meta, attr);
 }
 
 /**
@@ -673,12 +903,24 @@ static tai_status_t stub_create_module(
 {
     tai_status_t ret;
     const tai_attribute_value_t * mod_addr;
+    stub_object_id_t id = { .type = TAI_OBJECT_TYPE_MODULE };
+    int i = -1;
 
     mod_addr = find_attribute_in_list(TAI_MODULE_ATTR_LOCATION, attr_count, attr_list);
     if (NULL == mod_addr) {
         TAI_SYSLOG_ERROR("The required TAI_MODULE_ATTR_LOCATION attribute was not provided");
         return TAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
     }
+
+    sscanf(mod_addr->charlist.list, "%d", &i);
+    if ( i < 0 || i > STUB_NUM_MODULE ) {
+        TAI_SYSLOG_ERROR("Invalid module location: %s", mod_addr->charlist.list);
+        return TAI_STATUS_FAILURE;
+    }
+
+    id.value = i;
+    *module_id = *(tai_object_id_t*)&id;
+    g_modules[i].module.oid = *module_id;
 
     ret = stub_set_module_attributes(*module_id, attr_count, attr_list);
     if (TAI_STATUS_SUCCESS != ret) {
@@ -698,6 +940,44 @@ static tai_status_t stub_create_module(
  */
 static tai_status_t stub_remove_module(_In_ tai_object_id_t module_id)
 {
+    stub_object_id_t id = *(stub_object_id_t*)&module_id;
+    stub_object_t *object;
+    tai_attr_node_t *p, *next;
+    const tai_attr_metadata_t* meta;
+    tai_status_t ret;
+    int i;
+    if ( id.type != TAI_OBJECT_TYPE_MODULE ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    if ( id.value >= STUB_NUM_MODULE ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    object = &g_modules[id.value].module;
+    if ( object->oid == 0 ) {
+        return TAI_STATUS_ITEM_NOT_FOUND;
+    }
+    for ( i = 0; i < STUB_NUM_HOSTIF; i++ ) {
+        if ( g_modules[id.value].hostifs[i].oid != 0 ) {
+            return TAI_STATUS_OBJECT_IN_USE;
+        }
+    }
+    for ( i = 0; i < STUB_NUM_NETIF; i++ ) {
+        if ( g_modules[id.value].netifs[i].oid != 0 ) {
+            return TAI_STATUS_OBJECT_IN_USE;
+        }
+    }
+    p = object->head;
+    while ( p != NULL ) {
+        meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_MODULE, p->attr.id);
+        ret = tai_metadata_free_attr_value(meta, &p->attr, NULL);
+        if ( ret != TAI_STATUS_SUCCESS ) {
+            return ret;
+        }
+        next = p->next;
+        free(p);
+        p = next;
+    }
+    object->oid = 0;
     return TAI_STATUS_SUCCESS;
 }
 
@@ -745,7 +1025,17 @@ tai_status_t tai_api_initialize(_In_ uint64_t flags,
     }
 
     memcpy(&adapter_host_fns, services, sizeof(adapter_host_fns));
+    memset(g_modules, 0, sizeof(g_modules) * STUB_NUM_MODULE);
     initialized = true; 
+
+    if ( services->module_presence != NULL ) {
+        int i;
+        char name[16];
+        for ( i = 0; i < STUB_NUM_MODULE; i++ ) {
+            sprintf(name, "%d", i);
+            services->module_presence(true, name);
+        }
+    }
 
     return TAI_STATUS_SUCCESS;
 }
@@ -825,6 +1115,28 @@ tai_object_type_t tai_object_type_query(_In_ tai_object_id_t tai_object_id)
         TAI_SYSLOG_ERROR("Unknown type %d", type);
         return TAI_OBJECT_TYPE_NULL;
     }
+}
+
+/**
+ * @brief Query TAI module id.
+ *
+ * @param [in] tai_object_id Object id
+ *
+ * @return #TAI_NULL_OBJECT_ID when tai_object_id is not valid.
+ * Otherwise, return a valid TAI_OBJECT_TYPE_MODULE object on which provided
+ * object id belongs. If valid module id object is provided as input parameter
+ * it should return itself.
+ */
+tai_object_id_t tai_module_id_query(_In_ tai_object_id_t tai_object_id)
+{
+    stub_object_id_t id = *(stub_object_id_t*)&tai_object_id;
+    if ( id.type != TAI_OBJECT_TYPE_NETWORKIF && id.type != TAI_OBJECT_TYPE_HOSTIF ) {
+        return TAI_OBJECT_TYPE_NULL;
+    }
+    id.type = TAI_OBJECT_TYPE_MODULE;
+    id.value = id.module;
+    id.module = 0;
+    return *(tai_object_id_t*)&id;
 }
 
 /**
