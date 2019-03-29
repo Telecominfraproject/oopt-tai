@@ -132,6 +132,41 @@ typedef enum _tai_network_interface_prbs_type_t
     TAI_NETWORK_INTERFACE_PRBS_TYPE_MAX,
 } tai_network_interface_prbs_type_t;
 
+/** @brief The RX OTU Frame Status with Open ROADM Multi-Source Agreement */
+typedef enum _tai_network_interface_rx_otu_status_t
+{
+    TAI_NETWORK_INTERFACE_RX_OTU_LOSS_OF_FRAME,
+    TAI_NETWORK_INTERFACE_RX_OTU_LOSS_OF_MULTIFRAME,
+    TAI_NETWORK_INTERFACE_RX_OTU_BACKWARD_DEFECT_INDICATION,
+    TAI_NETWORK_INTERFACE_RX_OTU_ALARM_INIDICATION_SIGNAL,
+    TAI_NETWORK_INTERFACE_RX_OTU_ERR
+} tai_network_interface_rx_otu_status_t;
+
+/** @brief The RX ODU Frame Status with Open ROADM Multi-Source Agreement */
+typedef enum _tai_network_interface_rx_odu_status_t
+{
+    TAI_NETWORK_INTERFACE_RX_ODU_BACKWARD_DEFECT_INDICATION,
+    TAI_NETWORK_INTERFACE_RX_ODU_ALARM_INIDICATION_SIGNAL,
+    TAI_NETWORK_INTERFACE_RX_ODU_OPEN_CONNECTION_INIDICATION,
+    TAI_NETWORK_INTERFACE_RX_ODU_LOCKED_DEFECT,
+    TAI_NETWORK_INTERFACE_RX_ODU_ERR
+} tai_network_interface_rx_odu_status_t;
+
+/** @brief The RX OPU Frame Status with Open ROADM Multi-Source Agreement */
+typedef enum _tai_network_interface_rx_opu_status_t
+{
+    TAI_NETWORK_INTERFACE_RX_OPU_PAYLOAD_MISMATCH,
+    TAI_NETWORK_INTERFACE_RX_OPU_CLIENT_SIGNAL_FAIL,
+    TAI_NETWORK_INTERFACE_RX_OPU_ERR
+} tai_network_interface_rx_opu_status_t;
+
+/** @brief The RX Training Sequence Status */
+typedef enum _tai_network_interface_rx_ts_status_t
+{
+    TAI_NETWORK_INTERFACE_RX_TS_LOSS_OF_LOCK,
+    TAI_NETWORK_INTERFACE_RX_TS_ERR
+} tai_network_interface_rx_ts_status_t;
+
 /**
  * @brief Network interface attribute IDs
  */
@@ -395,6 +430,38 @@ typedef enum _tai_network_interface_attr_t
      * @default vendor-specific
      */
     TAI_NETWORK_INTERFACE_ATTR_CH1_FREQ,
+
+    /**
+    * @brief Rx OTU Status with Open ROADM Multi-Source Agreement
+    *
+    * @type #tai_network_interface_rx_otu_status_t
+    * @flags READ_ONLY
+    */
+    TAI_NETWORK_INTERFACE_ATTR_RX_OTU_STATUS,
+
+    /**
+    * @brief Rx ODU Status with Open ROADM Multi-Source Agreement
+    *
+    * @type #tai_network_interface_rx_odu_status_t
+    * @flags READ_ONLY
+    */
+    TAI_NETWORK_INTERFACE_ATTR_RX_ODU_STATUS,
+
+    /**
+    * @brief Rx OPU Status with Open ROADM Multi-Source Agreement
+    *
+    * @type #tai_network_interface_rx_opu_status_t
+    * @flags READ_ONLY
+    */
+    TAI_NETWORK_INTERFACE_ATTR_RX_OPU_STATUS,
+
+    /**
+    * @brief Rx Training Sequence Status
+    *
+    * @type #tai_network_interface_rx_ts_status_t
+    * @flags READ_ONLY
+    */
+    TAI_NETWORK_INTERFACE_ATTR_RX_TS_STATUS,
 
     /**
      * @brief End of attributes
