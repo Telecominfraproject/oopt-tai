@@ -135,36 +135,40 @@ typedef enum _tai_network_interface_prbs_type_t
 /** @brief The RX OTU Frame Status with Open ROADM Multi-Source Agreement */
 typedef enum _tai_network_interface_rx_otu_status_t
 {
-    TAI_NETWORK_INTERFACE_RX_OTU_STATUS_LOSS_OF_FRAME,
-    TAI_NETWORK_INTERFACE_RX_OTU_STATUS_LOSS_OF_MULTIFRAME,
-    TAI_NETWORK_INTERFACE_RX_OTU_STATUS_BACKWARD_DEFECT_INDICATION,
-    TAI_NETWORK_INTERFACE_RX_OTU_STATUS_ALARM_INIDICATION_SIGNAL,
-    TAI_NETWORK_INTERFACE_RX_OTU_STATUS_ERR
+    TAI_NETWORK_INTERFACE_RX_OTU_STATUS_LOSS_OF_FRAME,                 /**< LOF Alarm for OTU */
+    TAI_NETWORK_INTERFACE_RX_OTU_STATUS_LOSS_OF_MULTIFRAME,            /**< LOM Alarm for OTU */
+    TAI_NETWORK_INTERFACE_RX_OTU_STATUS_BACKWARD_DEFECT_INDICATION,    /**< BDI Alarm for OTU */
+    TAI_NETWORK_INTERFACE_RX_OTU_STATUS_ALARM_INIDICATION_SIGNAL,      /**< AIS Alarm for OTU */
+    TAI_NETWORK_INTERFACE_RX_OTU_STATUS_ERR,                           /**< Other Alarm for OTU */
+    TAI_NETWORK_INTERFACE_RX_OTU_STATUS_MAX                            /**< Number of states */
 } tai_network_interface_rx_otu_status_t;
 
 /** @brief The RX ODU Frame Status with Open ROADM Multi-Source Agreement */
 typedef enum _tai_network_interface_rx_odu_status_t
 {
-    TAI_NETWORK_INTERFACE_RX_ODU_STATUS_BACKWARD_DEFECT_INDICATION,
-    TAI_NETWORK_INTERFACE_RX_ODU_STATUS_ALARM_INIDICATION_SIGNAL,
-    TAI_NETWORK_INTERFACE_RX_ODU_STATUS_OPEN_CONNECTION_INIDICATION,
-    TAI_NETWORK_INTERFACE_RX_ODU_STATUS_LOCKED_DEFECT,
-    TAI_NETWORK_INTERFACE_RX_ODU_STATUS_ERR
+    TAI_NETWORK_INTERFACE_RX_ODU_STATUS_BACKWARD_DEFECT_INDICATION,    /**< BDI Alarm for ODU */
+    TAI_NETWORK_INTERFACE_RX_ODU_STATUS_ALARM_INIDICATION_SIGNAL,      /**< AIS Alarm for ODU */
+    TAI_NETWORK_INTERFACE_RX_ODU_STATUS_OPEN_CONNECTION_INIDICATION,   /**< OCI Alarm for ODU */
+    TAI_NETWORK_INTERFACE_RX_ODU_STATUS_LOCKED_DEFECT,                 /**< LCK Alarm for ODU */
+    TAI_NETWORK_INTERFACE_RX_ODU_STATUS_ERR,                           /**< Other Alarm for ODU */
+    TAI_NETWORK_INTERFACE_RX_ODU_STATUS_MAX                            /**< Number of states */
 } tai_network_interface_rx_odu_status_t;
 
 /** @brief The RX OPU Frame Status with Open ROADM Multi-Source Agreement */
 typedef enum _tai_network_interface_rx_opu_status_t
 {
-    TAI_NETWORK_INTERFACE_RX_OPU_STATUS_PAYLOAD_MISMATCH,
-    TAI_NETWORK_INTERFACE_RX_OPU_STATUS_CLIENT_SIGNAL_FAIL,
-    TAI_NETWORK_INTERFACE_RX_OPU_STATUS_ERR
+    TAI_NETWORK_INTERFACE_RX_OPU_STATUS_PAYLOAD_MISMATCH,              /**< PLM Alarm for OPU */
+    TAI_NETWORK_INTERFACE_RX_OPU_STATUS_CLIENT_SIGNAL_FAIL,            /**< CSF Alarm for OPU */
+    TAI_NETWORK_INTERFACE_RX_OPU_STATUS_ERR,                           /**< Other Alarm for OPU */
+    TAI_NETWORK_INTERFACE_RX_OPU_STATUS_MAX                            /**< Number of states */
 } tai_network_interface_rx_opu_status_t;
 
 /** @brief The RX Training Sequence Status */
 typedef enum _tai_network_interface_rx_ts_status_t
 {
-    TAI_NETWORK_INTERFACE_RX_TS_STATUS_LOSS_OF_LOCK,
-    TAI_NETWORK_INTERFACE_RX_TS_STATUS_ERR
+    TAI_NETWORK_INTERFACE_RX_TS_STATUS_LOSS_OF_LOCK,                   /**< LOF Alarm in Traning Sequence */
+    TAI_NETWORK_INTERFACE_RX_TS_STATUS_ERR,                            /**< Other Alarm in Trainig Sequence */
+    TAI_NETWORK_INTERFACE_RX_TS_STATUS_MAX                             /**< Number of states */
 } tai_network_interface_rx_ts_status_t;
 
 /**
@@ -434,7 +438,7 @@ typedef enum _tai_network_interface_attr_t
     /**
      * @brief Rx OTU Status with Open ROADM Multi-Source Agreement
      *
-     * @type #tai_network_interface_rx_otu_status_t
+     * @type #tai_s32_list_t #tai_network_interface_rx_otu_status_t
      * @flags READ_ONLY
      */
     TAI_NETWORK_INTERFACE_ATTR_RX_OTU_STATUS,
@@ -442,7 +446,7 @@ typedef enum _tai_network_interface_attr_t
     /**
      * @brief Rx ODU Status with Open ROADM Multi-Source Agreement
      *
-     * @type #tai_network_interface_rx_odu_status_t
+     * @type #tai_s32_list_t #tai_network_interface_rx_odu_status_t
      * @flags READ_ONLY
      */
     TAI_NETWORK_INTERFACE_ATTR_RX_ODU_STATUS,
@@ -450,7 +454,7 @@ typedef enum _tai_network_interface_attr_t
     /**
      * @brief Rx OPU Status with Open ROADM Multi-Source Agreement
      *
-     * @type #tai_network_interface_rx_opu_status_t
+     * @type #tai_s32_list_t #tai_network_interface_rx_opu_status_t
      * @flags READ_ONLY
      */
     TAI_NETWORK_INTERFACE_ATTR_RX_OPU_STATUS,
@@ -458,7 +462,7 @@ typedef enum _tai_network_interface_attr_t
     /**
      * @brief Rx Training Sequence Status
      *
-     * @type #tai_network_interface_rx_ts_status_t
+     * @type #tai_s32_list_t #tai_network_interface_rx_ts_status_t
      * @flags READ_ONLY
      */
     TAI_NETWORK_INTERFACE_ATTR_RX_TS_STATUS,
