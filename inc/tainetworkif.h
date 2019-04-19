@@ -90,6 +90,26 @@ typedef enum _tai_network_interface_tx_grid_spacing_t
     TAI_NETWORK_INTERFACE_TX_GRID_SPACING_MAX
 } tai_network_interface_tx_grid_spacing_t;
 
+/** @brief The bitrate */
+typedef enum _tai_network_interface_bitrate_t
+{
+    TAI_NETWORK_INTERFACE_BITRATE_UNKNOWN,
+    TAI_NETWORK_INTERFACE_BITRATE_100G,
+    TAI_NETWORK_INTERFACE_BITRATE_150G,
+    TAI_NETWORK_INTERFACE_BITRATE_200G,
+    TAI_NETWORK_INTERFACE_BITRATE_250G,
+    TAI_NETWORK_INTERFACE_BITRATE_300G,
+    TAI_NETWORK_INTERFACE_BITRATE_400G,
+    TAI_NETWORK_INTERFACE_BITRATE_500G,
+    TAI_NETWORK_INTERFACE_BITRATE_600G,
+    TAI_NETWORK_INTERFACE_BITRATE_700G,
+    TAI_NETWORK_INTERFACE_BITRATE_800G,
+    TAI_NETWORK_INTERFACE_BITRATE_900G,
+    TAI_NETWORK_INTERFACE_BITRATE_1000G,
+    TAI_NETWORK_INTERFACE_BITRATE_1100G,
+    TAI_NETWORK_INTERFACE_BITRATE_MAX
+} tai_network_interface_bitrate_t;
+
 /** @brief The modulation formats */
 typedef enum _tai_network_interface_modulation_format_t
 {
