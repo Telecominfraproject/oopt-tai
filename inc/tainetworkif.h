@@ -468,6 +468,26 @@ typedef enum _tai_network_interface_attr_t
     TAI_NETWORK_INTERFACE_ATTR_RX_TS_STATUS,
 
     /**
+     * @brief Current Chromatic Dispersion (CD) in ps/nm
+     *
+     * @reference CFP MSA B800/B810
+     *
+     * @type tai_uint64_t
+     * @flags READ_ONLY
+     */
+    TAI_NETWORK_INTERFACE_ATTR_CURRENT_CHROMATIC_DISPERSION,
+
+    /**
+     * @brief Current Differential Group Delay (DGD) in ps
+     *
+     * @reference CFP MSA B880
+     *
+     * @type tai_uint32_t
+     * @flags READ_ONLY
+     */
+    TAI_NETWORK_INTERFACE_ATTR_CURRENT_DIFFERENTIAL_GROUP_DELAY,
+
+    /**
      * @brief End of attributes
      */
     TAI_NETWORK_INTERFACE_ATTR_END,
