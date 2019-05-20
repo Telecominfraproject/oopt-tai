@@ -207,6 +207,9 @@ typedef struct _tai_attr_value_list_t
 
     /** Attribute value list */
     tai_attribute_value_t *list;
+
+    /** Number of attribute values allocated in the list */
+    uint32_t _alloced;
 } tai_attr_value_list_t;
 
 /**

@@ -158,11 +158,17 @@ extern bool tai_metadata_is_condition_met(
 /**
  * @brief Allocation info
  *
- * Specify how much list items needs to be allocated
+ * hint for the allocation
  *
  */
+
 typedef struct _tai_alloc_info_t {
     uint32_t list_size;
+
+   /**
+     * @brief reference attribute for size information
+     */
+    const tai_attribute_t* reference;
 } tai_alloc_info_t;
 
 /**
@@ -179,7 +185,7 @@ typedef struct _tai_alloc_info_t {
  * TAI_STATUS_INVALID_PARAMETER/TAI_STATUS_NO_MEMORY on failure
  */
 extern tai_status_t tai_metadata_alloc_attr_value(
-        _In_ const tai_attr_metadata_t *metadata,
+        _In_ const tai_attr_metadata_t* const metadata,
         _In_ tai_attribute_t* const attr,
         _In_ const tai_alloc_info_t* const info);
 
@@ -194,7 +200,7 @@ extern tai_status_t tai_metadata_alloc_attr_value(
  * TAI_STATUS_INVALID_PARAMETER on failure
  */
 extern tai_status_t tai_metadata_free_attr_value(
-        _In_ const tai_attr_metadata_t *metadata,
+        _In_ const tai_attr_metadata_t* const metadata,
         _In_ tai_attribute_t* const attr,
         _In_ const tai_alloc_info_t* const info);
 
@@ -209,7 +215,7 @@ extern tai_status_t tai_metadata_free_attr_value(
  * TAI_STATUS_INVALID_PARAMETER on failure
  */
 extern tai_status_t tai_metadata_deepcopy_attr_value(
-        _In_ const tai_attr_metadata_t *metadata,
+        _In_ const tai_attr_metadata_t* const metadata,
         _In_ const tai_attribute_t* const in,
         _Out_ tai_attribute_t* const out);
 
