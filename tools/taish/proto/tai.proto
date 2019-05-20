@@ -46,7 +46,7 @@ message GetAttributeMetadataResponse {
 
 message GetAttributeRequest {
     uint64 oid = 1;
-    uint64 attr_id = 2;
+    Attribute attribute = 2;
 }
 
 message GetAttributeResponse {
