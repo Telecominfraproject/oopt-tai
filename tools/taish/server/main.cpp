@@ -139,7 +139,7 @@ void grpc_thread(std::string addr) {
     TAIServiceImpl service(&g_api);
 
     ServerBuilder builder;
-    builder.AddListeningPort(addr, grpc::InsecureServerCredentials());
+    builder.AddListeningPort(grpc::string(addr), grpc::InsecureServerCredentials());
     builder.RegisterService(&service);
 
     auto server = builder.BuildAndStart();

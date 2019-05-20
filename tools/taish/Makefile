@@ -39,4 +39,4 @@ bash:
 	cd ../../ && docker run --net=host -it -v `pwd`:/data -w /data/tools/taish libtai-grpc-builder bash
 
 clean:
-	-rm -f ${OBJS} *.pb\.* ${PROG} ${LIB_PROG}
+	-rm -f ${OBJS} */*.pb\.* ${PROG} ${LIB_PROG}

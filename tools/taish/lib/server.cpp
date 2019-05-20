@@ -185,6 +185,9 @@ static void usage(const tai_attr_metadata_t* meta, std::string* str) {
     case TAI_ATTR_VALUE_TYPE_OBJMAPLIST:
         *str = "<oid map list>";
         break;
+    case TAI_ATTR_VALUE_TYPE_ATTRLIST:
+        *str = "<attribute list>";
+        break;
     default:
         *str = "<unknown>";
     }
@@ -265,20 +268,32 @@ static void convert_metadata(const tai_attr_metadata_t* const src, ::tai::Attrib
 
 ::grpc::Status TAIServiceImpl::GetAttribute(::grpc::ServerContext* context, const ::tai::GetAttributeRequest* request, ::tai::GetAttributeResponse* response) {
     auto oid = request->oid();
-    auto id = request->attr_id();
+    ::tai::Attribute a = request->attribute();
+    ::tai::Attribute* res;
+    auto id = a.attr_id();
+    auto v = a.value();
     auto type = tai_object_type_query(oid);
     auto meta = tai_metadata_get_attr_metadata(type, id);
-    tai_attribute_t attr = {0};
+    tai_attribute_t attr = {0}, reference = {0};
     attr.id = id;
-    tai_serialize_option_t option{true, true};
-    char buf[128] = {0};
-    auto a = response->mutable_attribute();
+    tai_serialize_option_t option{true, true, true};
+    tai_alloc_info_t alloc_info = { .list_size = 16 };
+    char bbuf[64] = {0}, *buf = bbuf;
+    size_t buf_size = 64, count = 0;
 
-    if( tai_metadata_alloc_attr_value(meta, &attr, nullptr) != TAI_STATUS_SUCCESS ) {
+again:
+    if( tai_metadata_alloc_attr_value(meta, &attr, &alloc_info) != TAI_STATUS_SUCCESS ) {
         return Status(StatusCode::UNKNOWN, "failed to alloc value");
     }
 
     tai_status_t ret;
+    if ( v.size() > 0 ) {
+        ret = tai_deserialize_attribute_value(v.c_str(), meta, &attr.value, &option);
+        if ( ret < 0 ) {
+            goto err;
+        }
+    }
+
     switch (type) {
     case TAI_OBJECT_TYPE_MODULE:
         ret = m_api->module_api->get_module_attribute(oid, &attr);
@@ -293,22 +308,49 @@ static void convert_metadata(const tai_attr_metadata_t* const src, ::tai::Attrib
         ret = TAI_STATUS_FAILURE;
     }
 
-    if ( ret != TAI_STATUS_SUCCESS ) {
+    // if alloc size is not enough and this is the first try (we can decide this
+    // by checking alloc_info.reference == nullptr), try again with the reference
+    // attribute which contains size information for the necessary allocation
+    if ( ret == TAI_STATUS_BUFFER_OVERFLOW && alloc_info.reference == nullptr ) {
+        reference = attr;
+        alloc_info.reference = &reference;
+        goto again;
+    } else if ( ret != TAI_STATUS_SUCCESS ) {
         goto err;
     }
 
-    if ( (ret = tai_serialize_attribute(buf, meta, &attr, &option)) < 0 ) {
+    count = tai_serialize_attribute(buf, buf_size, meta, &attr, &option);
+    if ( count < 0 ) {
         goto err;
     }
+    if ( count > buf_size ) {
+        buf_size = count + 1;
+        buf = new char[buf_size];
+        count = tai_serialize_attribute(buf, buf_size, meta, &attr, &option);
+        if ( count < 0 || count > buf_size ) {
+            goto err;
+        }
+    }
 
-    a->set_value(buf);
+    res = response->mutable_attribute();
+    res->set_attr_id(id);
+    res->set_value(buf, count);
 err:
-    if ( tai_metadata_free_attr_value(meta, &attr, nullptr) != TAI_STATUS_SUCCESS ) {
+    // check if buf is dynamically allocated
+    if ( buf != bbuf ) {
+        delete[] buf;
+    }
+    if ( tai_metadata_free_attr_value(meta, &attr, &alloc_info) != TAI_STATUS_SUCCESS ) {
         return Status(StatusCode::UNKNOWN, "failed to free value");
+    }
+    if ( alloc_info.reference != nullptr ) {
+        if ( tai_metadata_free_attr_value(meta, const_cast<tai_attribute_t*>(alloc_info.reference), &alloc_info) != TAI_STATUS_SUCCESS ) {
+            return Status(StatusCode::UNKNOWN, "failed to free reference value");
+        }
     }
     if ( ret < 0 ) {
         std::stringstream ss;
-        ss << "failed to get attribute(" << id << "): ret:" << ret;
+        ss << "failed to get attribute(" << std::hex << id << "): ret:" << -ret;
         return Status(StatusCode::UNKNOWN, ss.str());
     }
     return Status::OK;
@@ -349,8 +391,10 @@ err:
     if ( tai_metadata_free_attr_value(meta, &attr, nullptr) != TAI_STATUS_SUCCESS ) {
         return Status(StatusCode::UNKNOWN, "failed to free value");
     }
-    if ( ret == 0 ) {
-        return Status::OK;
+    if ( ret < 0 ) {
+        std::stringstream ss;
+        ss << "failed to set attribute(" << std::hex << id << "): ret:" << -ret;
+        return Status(StatusCode::UNKNOWN, ss.str());
     }
-    return Status(StatusCode::UNKNOWN, "failed to set attribute");
+    return Status::OK;
 }
