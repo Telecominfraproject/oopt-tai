@@ -550,6 +550,39 @@ int tai_deserialize_object_id(
     return TAI_SERIALIZE_ERROR;
 }
 
+#define DEFINE_TAI_DESERIALIZE_LIST(listname, listtypename, itemname) \
+int tai_deserialize_ ## listname (\
+        _In_ const char *buffer,\
+        _Out_ listtypename *value)\
+{ \
+    int ret = 0, i = 0; \
+    const char *ptr = buffer; \
+    while(true) { \
+        if ( i > value->count ) { \
+            TAI_META_LOG_WARN("deserialize listname buffer overflow"); \
+            return TAI_SERIALIZE_ERROR; \
+        } \
+        ret = tai_deserialize_ ## itemname(ptr, &value->list[i]); \
+        if ( *(ptr + ret) == 0 ) { \
+            value->count = i + 1; \
+            return 0; \
+        } \
+        if ( *(ptr + ret++) != ',' ) { \
+            return -1; \
+        } \
+        ptr += ret; \
+        i++; \
+    } \
+}
+
+DEFINE_TAI_DESERIALIZE_LIST(u8list, tai_u8_list_t, uint8)
+DEFINE_TAI_DESERIALIZE_LIST(s8list, tai_s8_list_t, int8)
+DEFINE_TAI_DESERIALIZE_LIST(u16list, tai_u16_list_t, uint16)
+DEFINE_TAI_DESERIALIZE_LIST(s16list, tai_s16_list_t, int16)
+DEFINE_TAI_DESERIALIZE_LIST(u32list, tai_u32_list_t, uint32)
+DEFINE_TAI_DESERIALIZE_LIST(s32list, tai_s32_list_t, int32)
+DEFINE_TAI_DESERIALIZE_LIST(floatlist, tai_float_list_t, float)
+
 int tai_serialize_enum(
         _Out_ char *buffer,
         _In_ size_t n,
@@ -891,6 +924,26 @@ int tai_deserialize_attribute_value(
     case TAI_ATTR_VALUE_TYPE_PTR:
         TAI_META_LOG_WARN("pointer serialization is not implemented");
         return TAI_SERIALIZE_ERROR;
+    case TAI_ATTR_VALUE_TYPE_U32RANGE:
+        return tai_deserialize_u32range(buffer, &value->u32range);
+    case TAI_ATTR_VALUE_TYPE_S32RANGE:
+        return tai_deserialize_s32range(buffer, &value->s32range);
+    case TAI_ATTR_VALUE_TYPE_CHARLIST:
+        return tai_deserialize_charlist(buffer, &value->charlist);
+    case TAI_ATTR_VALUE_TYPE_U8LIST:
+        return tai_deserialize_u8list(buffer, &value->u8list);
+    case TAI_ATTR_VALUE_TYPE_S8LIST:
+        return tai_deserialize_s8list(buffer, &value->s8list);
+    case TAI_ATTR_VALUE_TYPE_U16LIST:
+        return tai_deserialize_u16list(buffer, &value->u16list);
+    case TAI_ATTR_VALUE_TYPE_S16LIST:
+        return tai_deserialize_s16list(buffer, &value->s16list);
+    case TAI_ATTR_VALUE_TYPE_U32LIST:
+        return tai_deserialize_u32list(buffer, &value->u32list);
+    case TAI_ATTR_VALUE_TYPE_S32LIST:
+        return tai_deserialize_s32list(buffer, &value->s32list);
+    case TAI_ATTR_VALUE_TYPE_FLOATLIST:
+        return tai_deserialize_floatlist(buffer, &value->floatlist);
     }
     return TAI_SERIALIZE_ERROR;
 }

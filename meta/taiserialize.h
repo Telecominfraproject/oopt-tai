@@ -431,6 +431,35 @@ int tai_deserialize_object_id(
         _In_ const char *buffer,
         _Out_ tai_object_id_t *object_id);
 
+
+int tai_deserialize_u8list(
+        _In_ const char *buffer,
+        _Out_ tai_u8_list_t *value);
+
+int tai_deserialize_s8list(
+        _In_ const char *buffer,
+        _Out_ tai_s8_list_t *value);
+
+int tai_deserialize_u16list(
+        _In_ const char *buffer,
+        _Out_ tai_u16_list_t *value);
+
+int tai_deserialize_s16list(
+        _In_ const char *buffer,
+        _Out_ tai_s16_list_t *value);
+
+int tai_deserialize_u32list(
+        _In_ const char *buffer,
+        _Out_ tai_u32_list_t *value);
+
+int tai_deserialize_s32list(
+        _In_ const char *buffer,
+        _Out_ tai_s32_list_t *value);
+
+int tai_deserialize_floatlist(
+        _In_ const char *buffer,
+        _Out_ tai_float_list_t *value);
+
 /**
  * @brief Attribute serialize/deserialize option.
  */
