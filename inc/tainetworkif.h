@@ -276,7 +276,7 @@ typedef enum _tai_network_interface_attr_t
      * @type #tai_float_t
      * @flags READ_ONLY
      */
-    TAI_NETWORK_INTERFACE_ATTR_CURRENT_BER,
+    TAI_NETWORK_INTERFACE_ATTR_CURRENT_PRE_FEC_BER,
 
     /**
      * @brief The time period over which the current pre-FEC bit error rate was 
@@ -486,6 +486,24 @@ typedef enum _tai_network_interface_attr_t
      * @flags READ_ONLY
      */
     TAI_NETWORK_INTERFACE_ATTR_CURRENT_DIFFERENTIAL_GROUP_DELAY,
+
+    /**
+     * @brief The current post-FEC bit error rate
+     *
+     * @type #tai_float_t
+     * @flags READ_ONLY
+     */
+    TAI_NETWORK_INTERFACE_ATTR_CURRENT_POST_FEC_BER,
+
+    /**
+     * @brief The current PRBS bit error rate
+     *
+     * The value is meaningful when PRBS_TYPE is set except NONE
+     *
+     * @type #tai_float_t
+     * @flags READ_ONLY
+     */
+    TAI_NETWORK_INTERFACE_ATTR_CURRENT_PRBS_BER,
 
     /**
      * @brief End of attributes
