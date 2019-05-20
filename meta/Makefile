@@ -7,7 +7,7 @@ taimetadata.c taimetadata.h: main.py
 	python3 main.py ../inc/tai.h
 
 docker-image:
-	docker build -t taimeta-builder .
+	docker build --build-arg http_proxy=${http_proxy} --build-arg https_proxy=${https_proxy} -t taimeta-builder .
 
 docker:
 	cd ../; docker run -v `pwd`:/data -w /data -u `id -u`:`id -g` taimeta-builder make -C meta
