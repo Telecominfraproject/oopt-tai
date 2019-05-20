@@ -132,6 +132,9 @@ class TAIAttribute(object):
         self.object_name = taiobject.name
 
         rm = ' /*'
+        if node.raw_comment is None:
+            raise Exception("no comment detected for the attribute: {}".format(node.displayname))
+
         cmt = [l.strip(rm).split(' ') for l in node.raw_comment.split('\n') if l.strip(rm).startswith('@')] # this omits long description from the comment
         s = { l[0][1:]: ' '.join(l[1:]) for l in cmt }
         self.cmt = s
@@ -140,7 +143,7 @@ class TAIAttribute(object):
         if flags[0] != '':
             self.flags = set(TAIAttributeFlag[e.strip()] for e in flags)
         else:
-            self.flags = set()
+            self.flags = None
         # process type command
         t = self.cmt['type']
         self.type, self.enum_type, self.value_field, self.attrlist_value_type = process_type(self.taiobject.taiheader, t)
@@ -195,7 +198,7 @@ class TAIHeader(object):
             key = 'bool' if f.displayname == 'booldata' else f.type.spelling
             self.attr_value_map[key] = f.displayname
 
-        self.objects = [TAIObject(name, self) for name in TAIObject.OBJECT_MAP.keys()]
+        self.objects = [TAIObject(name, self) for name in ['module', 'host_interface', 'network_interface']]
 
     def kinds(self, kind):
         node = self.tu.cursor
