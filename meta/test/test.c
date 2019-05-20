@@ -6,7 +6,7 @@
 int testSerializeModuleOperStatus() {
     int ret;
     char buf[128] = {0};
-    ret = tai_serialize_module_oper_status(buf, TAI_MODULE_OPER_STATUS_READY, NULL);
+    ret = tai_serialize_module_oper_status(buf, 128, TAI_MODULE_OPER_STATUS_READY, NULL);
     if ( ret < 0 ) {
         return ret;
     }
@@ -39,7 +39,7 @@ int testSerializeAttributeEnum() {
     const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_MODULE, TAI_MODULE_ATTR_OPER_STATUS);
     attr.id = TAI_MODULE_ATTR_OPER_STATUS;
     attr.value.s32 = TAI_MODULE_OPER_STATUS_READY;
-    ret = tai_serialize_attribute(buf, meta, &attr, &option);
+    ret = tai_serialize_attribute(buf, 128, meta, &attr, &option);
     if ( ret <  0 ) {
         return -1;
     }
@@ -60,7 +60,7 @@ int testSerializeAttributeFloat() {
     const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_MODULE, TAI_MODULE_ATTR_TEMP);
     attr.id = TAI_MODULE_ATTR_TEMP;
     attr.value.flt = 1.10;
-    ret = tai_serialize_attribute(buf, meta, &attr, &option);
+    ret = tai_serialize_attribute(buf, 128, meta, &attr, &option);
     if ( ret < 0 ) {
         return -1;
     }
@@ -87,7 +87,7 @@ int testSerializeAttributeEnumList() {
     attr.id = TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS;
     attr.value.s32list.count = 2;
     attr.value.s32list.list = (int32_t*)&list;
-    ret = tai_serialize_attribute(buf, meta, &attr, &option);
+    ret = tai_serialize_attribute(buf, 128, meta, &attr, &option);
     if ( ret < 0 ) {
         return -1;
     }
@@ -179,6 +179,42 @@ int testDeepcopyAttrValue() {
     return 0;
 }
 
+int testSerializeUnsignedRange() {
+    char buf[128] = {0};
+    tai_attribute_value_t value = {0};
+    tai_attr_metadata_t meta = { .attrvaluetype = TAI_ATTR_VALUE_TYPE_U32RANGE };
+    tai_serialize_option_t option = {
+        .valueonly = true,
+        .human = true,
+    };
+    int ret = tai_deserialize_attribute_value("100,1000", &meta, &value, NULL);
+    tai_attribute_t attr = { .value = value };
+    tai_serialize_attribute(buf, 128, &meta, &attr, &option);
+    ret = strcmp(buf, "100,1000");
+    if ( ret != 0 ) {
+        return -1;
+    }
+    return 0;
+}
+
+int testSerializeSignedRange() {
+    char buf[128] = {0};
+    tai_attribute_value_t value = {0};
+    tai_attr_metadata_t meta = { .attrvaluetype = TAI_ATTR_VALUE_TYPE_S32RANGE };
+    tai_serialize_option_t option = {
+        .valueonly = true,
+        .human = true,
+    };
+    int ret = tai_deserialize_attribute_value("-100,-1000", &meta, &value, NULL);
+    tai_attribute_t attr = { .value = value };
+    tai_serialize_attribute(buf, 128, &meta, &attr, &option);
+    ret = strcmp(buf, "-100,-1000");
+    if ( ret != 0 ) {
+        return -1;
+    }
+    return 0;
+}
+
 int testSerializeValueAttrList() {
     char buf[128] = {0};
     const tai_attr_metadata_t* meta;
@@ -205,12 +241,76 @@ int testSerializeValueAttrList() {
     attr.id = TAI_HOST_INTERFACE_ATTR_LANE_FAULT;
     attr.value.attrlist.count = 2;
     attr.value.attrlist.list = (tai_attribute_value_t*)&list;
-    ret = tai_serialize_attribute(buf, meta, &attr, &option);
+    ret = tai_serialize_attribute(buf, 128, meta, &attr, &option);
     if ( ret < 0 ) {
         return -1;
     }
     ret = strcmp(buf, "lane-fault | loss-of-lock|tx-fifo-err, loss-of-lock|tx-fifo-err");
     if ( ret != 0 ) {
+        return -1;
+    }
+    return 0;
+}
+
+int testDeserializeU8list() {
+    uint8_t list[10] = {0};
+    tai_u8_list_t value;
+    value.count = 10;
+    value.list = list;
+    int ret = tai_deserialize_u8list("1,2,3,4", &value);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    if ( value.count != 4 || list[0] != 1 || list[1] != 2 || list[2] != 3 || list[3] != 4) {
+        return -1;
+    }
+    return 0;
+}
+
+int testDeserializeFloatlist() {
+    float list[10] = {0};
+    tai_float_list_t value;
+    value.count = 10;
+    value.list = list;
+    int ret = tai_deserialize_floatlist("1.1,2.1234,3.1,4.5634", &value);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    if ( value.count != 4 || list[0] < 1 || list[1] < 2.1 || list[2] > 3.2 || list[3] > 4.6 ) {
+        return -1;
+    }
+    return 0;
+}
+
+int testSerializeListJSON() {
+    char buf[128] = {0};
+    const tai_attr_metadata_t* meta;
+    tai_attribute_t attr = {0};
+    int ret;
+    int32_t value[] = {
+        TAI_HOST_INTERFACE_LANE_FAULT_LOSS_OF_LOCK,
+        TAI_HOST_INTERFACE_LANE_FAULT_TX_FIFO_ERR,
+    };
+    tai_serialize_option_t option = {
+        .human = true,
+        .json = true,
+    };
+    tai_attribute_value_t lane_fault;
+    lane_fault.s32list.count = 2;
+    lane_fault.s32list.list = value;
+    tai_attribute_value_t list[] = {
+        lane_fault,
+        lane_fault,
+    };
+    meta = tai_metadata_get_attr_metadata_by_attr_id_name("TAI_HOST_INTERFACE_ATTR_LANE_FAULT");
+    if ( meta == NULL ) {
+        return -1;
+    }
+    attr.id = TAI_HOST_INTERFACE_ATTR_LANE_FAULT;
+    attr.value.attrlist.count = 2;
+    attr.value.attrlist.list = (tai_attribute_value_t*)&list;
+    ret = tai_serialize_attribute(buf, 128, meta, &attr, &option);
+    if ( ret < 0 ) {
         return -1;
     }
     return 0;
@@ -227,7 +327,12 @@ testF tests[] = {
     testGetAttrMetadataByAttrIdName,
     testDeserializeNetworkInterfaceAttr,
     testDeepcopyAttrValue,
+    testSerializeUnsignedRange,
+    testSerializeSignedRange,
     testSerializeValueAttrList,
+    testDeserializeU8list,
+    testDeserializeFloatlist,
+    testSerializeListJSON,
     NULL,
 };
 
@@ -242,7 +347,8 @@ int main() {
         }
         ret = tests[i++]();
         if ( ret < 0 ) {
-            return ret;
+            printf("test %d failed\n", --i);
+            return -ret;
         }
     }
     return 0;

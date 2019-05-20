@@ -89,6 +89,7 @@ bool tai_serialize_is_char_allowed(
  */
 int tai_serialize_bool(
         _Out_ char *buffer,
+        _In_ size_t n,
         _In_ bool flag);
 
 /**
@@ -117,6 +118,7 @@ int tai_deserialize_bool(
  */
 int tai_serialize_chardata(
         _Out_ char *buffer,
+        _In_ size_t n,
         _In_ const char data[TAI_CHARDATA_LENGTH]);
 
 /**
@@ -143,6 +145,7 @@ int tai_deserialize_chardata(
  */
 int tai_serialize_uint8(
         _Out_ char *buffer,
+        _In_ size_t n,
         _In_ uint8_t u8);
 
 /**
@@ -169,6 +172,7 @@ int tai_deserialize_uint8(
  */
 int tai_serialize_int8(
         _Out_ char *buffer,
+        _In_ size_t n,
         _In_ int8_t u8);
 
 /**
@@ -195,6 +199,7 @@ int tai_deserialize_int8(
  */
 int tai_serialize_uint16(
         _Out_ char *buffer,
+        _In_ size_t n,
         _In_ uint16_t u16);
 
 /**
@@ -221,6 +226,7 @@ int tai_deserialize_uint16(
  */
 int tai_serialize_int16(
         _Out_ char *buffer,
+        _In_ size_t n,
         _In_ int16_t s16);
 
 /**
@@ -247,6 +253,7 @@ int tai_deserialize_int16(
  */
 int tai_serialize_uint32(
         _Out_ char *buffer,
+        _In_ size_t n,
         _In_ uint32_t u32);
 
 /**
@@ -273,6 +280,7 @@ int tai_deserialize_uint32(
  */
 int tai_serialize_int32(
         _Out_ char *buffer,
+        _In_ size_t n,
         _In_ int32_t s32);
 
 /**
@@ -299,6 +307,7 @@ int tai_deserialize_int32(
  */
 int tai_serialize_uint64(
         _Out_ char *buffer,
+        _In_ size_t n,
         _In_ uint64_t u64);
 
 /**
@@ -325,6 +334,7 @@ int tai_deserialize_uint64(
  */
 int tai_serialize_int64(
         _Out_ char *buffer,
+        _In_ size_t n,
         _In_ int64_t s64);
 
 /**
@@ -351,6 +361,7 @@ int tai_deserialize_int64(
  */
 int tai_serialize_float(
         _Out_ char *buffer,
+        _In_ size_t n,
         _In_ float flt);
 
 /**
@@ -377,6 +388,7 @@ int tai_deserialize_float(
  */
 int tai_serialize_size(
         _Out_ char *buffer,
+        _In_ size_t n,
         _In_ tai_size_t size);
 
 /**
@@ -403,6 +415,7 @@ int tai_deserialize_size(
  */
 int tai_serialize_object_id(
         _Out_ char *buffer,
+        _In_ size_t n,
         _In_ tai_object_id_t object_id);
 
 /**
@@ -432,6 +445,12 @@ typedef struct _tai_serialize_option_t
      * @brief value only
      */
     bool valueonly;
+
+    /**
+     * @brief json
+     */
+    bool json;
+
 } tai_serialize_option_t;
 
 /**
@@ -449,6 +468,7 @@ typedef struct _tai_serialize_option_t
  */
 int tai_serialize_enum(
         _Out_ char *buffer,
+        _In_ size_t n,
         _In_ const tai_enum_metadata_t *meta,
         _In_ int32_t value,
         _In_ const tai_serialize_option_t *option);
@@ -484,6 +504,7 @@ int tai_deserialize_enum(
  */
 int tai_serialize_attribute(
         _Out_ char *buffer,
+        _In_ size_t n,
         _In_ const tai_attr_metadata_t *meta,
         _In_ const tai_attribute_t *attribute,
         _In_ const tai_serialize_option_t *option);

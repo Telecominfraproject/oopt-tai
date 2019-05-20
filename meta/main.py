@@ -362,7 +362,7 @@ const tai_attr_metadata_t tai_metadata_attr_{{ typename }} = {
 
 
 class EnumMetadataGenerator(Generator):
-    HEADER_TEMPLATE = '''int tai_serialize_{{ typename | simplify }}( _Out_ char *buffer, _In_ {{ typename }} {{ typename | simplify }}, _In_ const tai_serialize_option_t *option);;
+    HEADER_TEMPLATE = '''int tai_serialize_{{ typename | simplify }}( _Out_ char *buffer, _In_ size_t n, _In_ {{ typename }} {{ typename | simplify }}, _In_ const tai_serialize_option_t *option);;
 int tai_deserialize_{{ typename | simplify }}( _In_ const char *buffer, _Out_ int32_t *value, _In_ const tai_serialize_option_t *option);
 '''
 
@@ -399,10 +399,11 @@ const tai_enum_metadata_t tai_metadata_enum_{{ typename }} = {
 
 int tai_serialize_{{ typename | simplify }}(
     _Out_ char *buffer,
+    _In_ size_t n,
     _In_ {{ typename }} {{ typename | simplify }},
     _In_ const tai_serialize_option_t *option)
 {
-    return tai_serialize_enum(buffer, &tai_metadata_enum_{{ typename }}, {{ typename | simplify }}, option);
+    return tai_serialize_enum(buffer, n, &tai_metadata_enum_{{ typename }}, {{ typename | simplify }}, option);
 }
 
 int tai_deserialize_{{ typename | simplify }}(
