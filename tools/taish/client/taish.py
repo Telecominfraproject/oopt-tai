@@ -226,13 +226,9 @@ class TAIShellCompleter(Completer):
         return
 
 
-def loop(stub, modules):
+def loop(stub, modules, module, netif, hostif):
 
-    module = None
-    netif = None
-    hostif = None
     session = PromptSession()
-
 
     while True:
         p = "> "
@@ -338,38 +334,40 @@ def main():
                 print('specify a reachable host by using --addr option')
             sys.exit(1)
 
-        if len(args) == 0:
-            loop(stub, modules)
-
-        if args[0] == 'list':
-            show_modules(modules)
-            return
-
-        if options.module == None:
-            options.module = list(modules.keys())[0]
-
-        if options.module not in modules:
-            print('no module whose location is {}'.format(options.module))
-            return
-        module = modules[options.module]
+        module = None
+        if options.module != None:
+            if options.module not in modules:
+                print('no module whose location is {}'.format(options.module))
+                return
+            module = modules[options.module]
 
         if options.netif != None and options.hostif != None:
             print('can\'t specify both netif and hostif')
             return
 
         netif = None
-        if options.netif != None:
+        if module != None and options.netif != None:
             if len(module.netifs) <= options.netif:
                 print('invalid index: len: {}'.format(len(module.netifs)))
                 return
             netif = module.netifs[options.netif]
 
         hostif = None
-        if options.hostif != None:
+        if module != None and options.hostif != None:
             if len(module.hostifs) <= options.hostif:
                 print('invalid index: len: {}'.format(len(module.hostifs)))
                 return
             hostif = module.hostifs[options.hostif]
+
+        if len(args) == 0:
+            loop(stub, modules, module, netif, hostif)
+
+        if args[0] == 'list':
+            show_modules(modules)
+            return
+
+        if module == None:
+            module = modules.values()[0]
 
         if args[0] == 'list-attr':
             list_attr(stub, module, netif, hostif)
