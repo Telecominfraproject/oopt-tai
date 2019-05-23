@@ -180,6 +180,11 @@ typedef enum _tai_attr_value_type_t
      */
     TAI_ATTR_VALUE_TYPE_ATTRLIST,
 
+    /*
+     * @brief Attribute value is notification handler.
+     */
+    TAI_ATTR_VALUE_TYPE_NOTIFICATION,
+
 } tai_attr_value_type_t;
 
 /**

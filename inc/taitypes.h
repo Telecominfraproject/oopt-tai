@@ -212,6 +212,36 @@ typedef struct _tai_attr_value_list_t
     uint32_t _alloced;
 } tai_attr_value_list_t;
 
+// Forward declaration of tai_attribute_t for tai_notification_fn
+struct _tai_attribute_t;
+typedef struct _tai_attribute_t tai_attribute_t;
+
+/**
+ * @brief TAI notification callback
+ *
+ * @param[in] context User context
+ * @param[in] oid object ID
+ * @param[in] attribute Updated attribute
+ */
+typedef void (*tai_notification_fn)(
+        _In_ void* context,
+        _In_ tai_object_id_t oid,
+        _In_ tai_attribute_t const * const attribute);
+
+/**
+ * @brief TAI notification handler
+ *
+ * Generic notification handler which can be used by any TAI objects
+ *
+ * The handler will be set by TAI adapter host by using TAI attribute
+ * whose value type must be #tai_pointer_t #tai_notification_handler_t
+ *
+ */
+typedef struct _tai_notification_handler_t {
+    void* context;
+    tai_notification_fn notify;
+} tai_notification_handler_t;
+
 /**
  * @brief Data Type
  *
@@ -245,7 +275,7 @@ typedef union _tai_attribute_value_t
     tai_s32_range_t s32range;
     tai_object_map_list_t objmaplist;
     tai_attr_value_list_t attrlist;
-
+    tai_notification_handler_t notification;
 } tai_attribute_value_t;
 
 typedef struct _tai_attribute_t
