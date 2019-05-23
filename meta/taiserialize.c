@@ -731,6 +731,13 @@ int tai_serialize_attribute_value(
         return tai_serialize_float(ptr, n, value->flt);
     case TAI_ATTR_VALUE_TYPE_PTR:
         return tai_serialize_pointer(ptr, n, value->ptr);
+    case TAI_ATTR_VALUE_TYPE_NOTIFICATION:
+        _SERIALIZE(snprintf(ptr, n, "{ \"context\": \""), count, ptr, n);
+        _SERIALIZE(tai_serialize_pointer(ptr, n, value->notification.context), count, ptr, n);
+        _SERIALIZE(snprintf(ptr, n, "\", \"notify\": \""), count, ptr, n);
+        _SERIALIZE(tai_serialize_pointer(ptr, n, value->notification.notify), count, ptr, n);
+        _SERIALIZE(snprintf(ptr, n, "\"}"), count, ptr, n);
+        return ptr - buffer;
     case TAI_ATTR_VALUE_TYPE_OID:
         return tai_serialize_object_id(ptr, n, value->oid);
     case TAI_ATTR_VALUE_TYPE_OBJLIST:

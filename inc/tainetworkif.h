@@ -506,6 +506,15 @@ typedef enum _tai_network_interface_attr_t
     TAI_NETWORK_INTERFACE_ATTR_CURRENT_PRBS_BER,
 
     /**
+     * @brief Network interface generic notification
+     *
+     * @type #tai_notification_handler_t
+     * @flags CREATE_AND_SET
+     * @default NULL
+     */
+    TAI_NETWORK_INTERFACE_ATTR_NOTIFY,
+
+    /**
      * @brief End of attributes
      */
     TAI_NETWORK_INTERFACE_ATTR_END,

@@ -383,6 +383,7 @@ tai_status_t _tai_metadata_free_attr_value(
     case TAI_ATTR_VALUE_TYPE_OID:
     case TAI_ATTR_VALUE_TYPE_U32RANGE:
     case TAI_ATTR_VALUE_TYPE_S32RANGE:
+    case TAI_ATTR_VALUE_TYPE_NOTIFICATION:
         return TAI_STATUS_SUCCESS;
     case TAI_ATTR_VALUE_TYPE_OBJLIST:
         _TAI_META_FREE_LIST(objlist);
@@ -455,6 +456,7 @@ static int _tai_list_size(
     case TAI_ATTR_VALUE_TYPE_OID:
     case TAI_ATTR_VALUE_TYPE_U32RANGE:
     case TAI_ATTR_VALUE_TYPE_S32RANGE:
+    case TAI_ATTR_VALUE_TYPE_NOTIFICATION:
         return 0;
     case TAI_ATTR_VALUE_TYPE_OBJLIST:
         return value->objlist.count;
@@ -522,6 +524,7 @@ static tai_status_t _tai_metadata_alloc_attr_value(
     case TAI_ATTR_VALUE_TYPE_OID:
     case TAI_ATTR_VALUE_TYPE_U32RANGE:
     case TAI_ATTR_VALUE_TYPE_S32RANGE:
+    case TAI_ATTR_VALUE_TYPE_NOTIFICATION:
         return TAI_STATUS_SUCCESS;
     case TAI_ATTR_VALUE_TYPE_OBJLIST:
         _TAI_META_ALLOC_LIST(objlist, tai_object_id_t);
@@ -636,6 +639,7 @@ static tai_status_t _tai_metadata_deepcopy_attr_value(
     case TAI_ATTR_VALUE_TYPE_OID:
     case TAI_ATTR_VALUE_TYPE_U32RANGE:
     case TAI_ATTR_VALUE_TYPE_S32RANGE:
+    case TAI_ATTR_VALUE_TYPE_NOTIFICATION:
         memcpy(out, in, sizeof(tai_attribute_value_t));
         break;
     case TAI_ATTR_VALUE_TYPE_OBJLIST:
