@@ -533,6 +533,14 @@ int tai_serialize_object_id(
     return snprintf(buffer, n, "oid:0x%lx", oid);
 }
 
+int tai_serialize_pointer(
+        _Out_ char *buffer,
+        _In_ size_t n,
+        _In_ tai_pointer_t ptr)
+{
+    return snprintf(buffer, n, "%p", ptr);
+}
+
 int tai_deserialize_object_id(
         _In_ const char *buffer,
         _Out_ tai_object_id_t *oid)
@@ -722,8 +730,7 @@ int tai_serialize_attribute_value(
     case TAI_ATTR_VALUE_TYPE_FLT:
         return tai_serialize_float(ptr, n, value->flt);
     case TAI_ATTR_VALUE_TYPE_PTR:
-        TAI_META_LOG_WARN("pointer serialization is not implemented");
-        return TAI_SERIALIZE_ERROR;
+        return tai_serialize_pointer(ptr, n, value->ptr);
     case TAI_ATTR_VALUE_TYPE_OID:
         return tai_serialize_object_id(ptr, n, value->oid);
     case TAI_ATTR_VALUE_TYPE_OBJLIST:
@@ -922,7 +929,7 @@ int tai_deserialize_attribute_value(
     case TAI_ATTR_VALUE_TYPE_FLT:
         return tai_deserialize_float(buffer, &value->flt);
     case TAI_ATTR_VALUE_TYPE_PTR:
-        TAI_META_LOG_WARN("pointer serialization is not implemented");
+        TAI_META_LOG_WARN("pointer deserialization is not implemented");
         return TAI_SERIALIZE_ERROR;
     case TAI_ATTR_VALUE_TYPE_U32RANGE:
         return tai_deserialize_u32range(buffer, &value->u32range);
