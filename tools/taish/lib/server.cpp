@@ -23,9 +23,35 @@
 #include "taigrpc.hpp"
 #include "taimetadata.h"
 #include <sstream>
+#include <chrono>
 
 using grpc::Status;
 using grpc::StatusCode;
+
+static int _serialize_attribute(const tai_attr_metadata_t* meta, const tai_attribute_t* attr, std::string& out) {
+    tai_serialize_option_t option{true, true, true};
+    size_t buf_size = 64;
+    char bbuf[64] = {0}, *buf = bbuf;
+    auto count = tai_serialize_attribute(buf, buf_size, meta, attr, &option);
+    if ( count < 0 ) {
+        return count;
+    }
+    if ( count > buf_size ) {
+        buf_size = count + 1;
+        buf = new char[buf_size];
+        count = tai_serialize_attribute(buf, buf_size, meta, attr, &option);
+        if ( count < 0 || count > buf_size ) {
+            return count;
+        }
+        out = buf;
+    }
+    out = buf;
+    // check if buf is dynamically allocated
+    if ( buf != bbuf ) {
+        delete[] buf;
+    }
+    return 0;
+}
 
 TAIAPIModuleList::TAIAPIModuleList(uint32_t module_size, uint32_t hostif_size, uint32_t netif_size) : m_module_size(module_size), m_hostif_size(hostif_size), m_netif_size(netif_size) {
     m_list.count = module_size;
@@ -278,8 +304,8 @@ static void convert_metadata(const tai_attr_metadata_t* const src, ::tai::Attrib
     attr.id = id;
     tai_serialize_option_t option{true, true, true};
     tai_alloc_info_t alloc_info = { .list_size = 16 };
-    char bbuf[64] = {0}, *buf = bbuf;
-    size_t buf_size = 64, count = 0;
+    size_t count = 0;
+    std::string value;
 
 again:
     if( tai_metadata_alloc_attr_value(meta, &attr, &alloc_info) != TAI_STATUS_SUCCESS ) {
@@ -319,27 +345,15 @@ again:
         goto err;
     }
 
-    count = tai_serialize_attribute(buf, buf_size, meta, &attr, &option);
-    if ( count < 0 ) {
+    if ( _serialize_attribute(meta, &attr, value) != 0 ) {
+        ret = TAI_STATUS_FAILURE;
         goto err;
-    }
-    if ( count > buf_size ) {
-        buf_size = count + 1;
-        buf = new char[buf_size];
-        count = tai_serialize_attribute(buf, buf_size, meta, &attr, &option);
-        if ( count < 0 || count > buf_size ) {
-            goto err;
-        }
     }
 
     res = response->mutable_attribute();
     res->set_attr_id(id);
-    res->set_value(buf, count);
+    res->set_value(value);
 err:
-    // check if buf is dynamically allocated
-    if ( buf != bbuf ) {
-        delete[] buf;
-    }
     if ( tai_metadata_free_attr_value(meta, &attr, &alloc_info) != TAI_STATUS_SUCCESS ) {
         return Status(StatusCode::UNKNOWN, "failed to free value");
     }
@@ -396,5 +410,150 @@ err:
         ss << "failed to set attribute(" << std::hex << id << "): ret:" << -ret;
         return Status(StatusCode::UNKNOWN, ss.str());
     }
+    return Status::OK;
+}
+
+int TAINotifier::notify(const tai_notification_t& n) {
+    auto oid = n.oid;
+    auto type = tai_object_type_query(oid);
+    auto meta = tai_metadata_get_attr_metadata(type, n.attr->id);
+    tai_alloc_info_t alloc_info;
+    alloc_info.reference = n.attr;
+
+    std::unique_lock<std::mutex> lk(mtx);
+    for ( auto& s : m ) {
+        tai_attribute_t *attr = new tai_attribute_t();
+        attr->id = n.attr->id;
+
+        if ( tai_metadata_alloc_attr_value(meta, attr, &alloc_info) != TAI_STATUS_SUCCESS ) {
+            return -1;
+        }
+
+        if ( tai_metadata_deepcopy_attr_value(meta, n.attr, attr) != TAI_STATUS_SUCCESS ) {
+            return -1;
+        }
+
+        tai_notification_t nn{ oid, attr };
+
+        auto v = s.second;
+        std::unique_lock<std::mutex> lk(v->mtx);
+        v->q.push(nn);
+        v->cv.notify_one();
+    }
+    return 0;
+}
+
+void monitor_callback(void* context, tai_object_id_t oid, tai_attribute_t const * const attribute) {
+    if ( context == nullptr ) {
+        return;
+    }
+    auto impl = static_cast<TAIServiceImpl*>(context);
+    impl->notify(oid, attribute);
+}
+
+void TAIServiceImpl::notify(tai_object_id_t oid, tai_attribute_t const * const attribute) {
+    std::unique_lock<std::mutex> lk(m_mtx);
+    auto n = m_notifiers[oid];
+    if ( n != nullptr ) {
+        n->notify(tai_notification_t{oid, attribute});
+    }
+}
+
+::grpc::Status TAIServiceImpl::Monitor(::grpc::ServerContext* context, const ::tai::MonitorRequest* request, ::grpc::ServerWriter< ::tai::MonitorResponse>* writer) {
+    auto oid = request->oid();
+    auto type = tai_object_type_query(oid);
+    tai_attribute_t attr = {0};
+    tai_status_t ret;
+
+    switch (type) {
+    case TAI_OBJECT_TYPE_NETWORKIF:
+        attr.id = TAI_NETWORK_INTERFACE_ATTR_NOTIFY;
+        ret = m_api->netif_api->get_network_interface_attribute(oid, &attr);
+        break;
+    default:
+        return Status(StatusCode::UNKNOWN, "unsupported object type");
+    }
+
+    if ( ret != TAI_STATUS_SUCCESS ) {
+        std::stringstream ss;
+        ss << "failed to get notify attribute: ret:" << std::hex << -ret;
+        return Status(StatusCode::UNKNOWN, ss.str());
+    }
+
+    auto notifier = get_notifier(oid);
+
+    if ( attr.value.notification.notify == nullptr ) {
+        attr.value.notification.notify = monitor_callback;
+        attr.value.notification.context = this;
+        ret = m_api->netif_api->set_network_interface_attribute(oid, &attr);
+        if ( ret != TAI_STATUS_SUCCESS ) {
+            std::stringstream ss;
+            ss << "failed to set notify attribute: ret:" << std::hex << -ret;
+            return Status(StatusCode::UNKNOWN, ss.str());
+        }
+    } else if ( attr.value.notification.notify != nullptr && notifier->size() == 0 ) {
+        return Status(StatusCode::UNKNOWN, "notify attribute is set by others");
+    }
+
+    tai_subscription_t s;
+
+    if ( notifier->subscribe(writer, &s) < 0 ) {
+        return Status(StatusCode::UNKNOWN, "failed to subscribe");
+    }
+
+    std::unique_lock<std::mutex> lk(s.mtx);
+    while(true) {
+        std::chrono::seconds sec(1);
+        auto pred = s.cv.wait_for(lk, sec, [&]{ return !s.q.empty(); });
+        if ( !pred ) { // queue is empty
+            if ( context->IsCancelled() ) {
+                break;
+            }
+            // writer is still alive continue
+            continue;
+        }
+        auto n = s.q.front();
+        s.q.pop();
+
+
+        ::tai::MonitorResponse res;
+        auto a = res.mutable_attribute();
+        auto meta = tai_metadata_get_attr_metadata(type, n.attr->id);
+
+        a->set_attr_id(n.attr->id);
+        std::string value;
+        _serialize_attribute(meta, n.attr, value);
+        a->set_value(value);
+
+        tai_attribute_t *attr = const_cast<tai_attribute_t*>(n.attr);
+        if ( tai_metadata_free_attr_value(meta, attr, nullptr) < 0 ) {
+            return Status(StatusCode::UNKNOWN, "failed to free attribute");
+        }
+
+        delete attr;
+
+        if (!writer->Write(res)) {
+            break;
+        }
+    }
+
+    if ( notifier->desubscribe(writer) < 0 ) {
+        return Status(StatusCode::UNKNOWN, "failed to desubscribe");
+    }
+
+    if ( notifier->size() == 0 ) {
+        std::unique_lock<std::mutex> lk(m_mtx);
+        delete notifier;
+        m_notifiers.erase(oid);
+        attr.value.notification.notify = nullptr;
+        attr.value.notification.context = nullptr;
+        ret = m_api->netif_api->set_network_interface_attribute(oid, &attr);
+        if ( ret != TAI_STATUS_SUCCESS ) {
+            std::stringstream ss;
+            ss << "failed to clear notify attribute: ret:" << std::hex << -ret;
+            return Status(StatusCode::UNKNOWN, ss.str());
+        }
+    }
+
     return Status::OK;
 }

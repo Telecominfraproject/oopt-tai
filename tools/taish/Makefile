@@ -23,8 +23,12 @@ lib: proto $(LIB_OBJS)
 .cpp.o:
 	$(CC) $(CFLAGS) $(INCLUDE) -c -o $@ $<
 
-proto: proto/tai.proto
+proto: lib/tai.grpc.pb.cc lib/tai.grpc.pb.h lib/tai.pb.cc lib/tai.pb.h
+
+lib/tai.pb.cc lib/tai.pb.h: proto/tai.proto
 	protoc --cpp_out=./lib -I proto tai.proto
+
+lib/tai.grpc.pb.cc lib/tai.grpc.pb.h: proto/tai.proto
 	protoc --grpc_out=./lib --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` -I proto tai.proto
 
 docker:

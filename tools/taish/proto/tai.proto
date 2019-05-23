@@ -8,6 +8,7 @@ service TAI {
     rpc GetAttributeMetadata(GetAttributeMetadataRequest) returns (GetAttributeMetadataResponse);
     rpc GetAttribute(GetAttributeRequest) returns (GetAttributeResponse);
     rpc SetAttribute(SetAttributeRequest) returns (SetAttributeResponse);
+    rpc Monitor(MonitorRequest) returns (stream MonitorResponse);
 }
 
 enum TAIObjectType {
@@ -59,6 +60,14 @@ message SetAttributeRequest {
 }
 
 message SetAttributeResponse {
+}
+
+message MonitorRequest {
+    uint64 oid = 1;
+}
+
+message MonitorResponse {
+    Attribute attribute = 1;
 }
 
 message Attribute {

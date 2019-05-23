@@ -26,6 +26,11 @@
 #include "tai.h"
 #include "tai.grpc.pb.h"
 #include <grpcpp/grpcpp.h>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
+#include <map>
+#include <iostream>
 
 struct tai_api_module_t
 {
@@ -62,6 +67,46 @@ class TAIAPIModuleList {
         uint32_t m_netif_size;
 };
 
+struct tai_notification_t {
+    tai_object_id_t oid;
+    tai_attribute_t const * const attr;
+};
+
+struct tai_subscription_t {
+    std::mutex mtx;
+    std::queue<tai_notification_t> q;
+    std::condition_variable cv;
+};
+
+class TAINotifier {
+    public:
+        TAINotifier() {};
+        int notify(const tai_notification_t& n);
+        int subscribe(void* id, tai_subscription_t* s) {
+            std::unique_lock<std::mutex> lk(mtx);
+            if ( m.find(id) != m.end() ) {
+                return -1;
+            }
+            m[id] = s;
+            return 0;
+        }
+        int desubscribe(void* id) {
+            std::unique_lock<std::mutex> lk(mtx);
+            if ( m.find(id) == m.end() ) {
+                return -1;
+            }
+            m.erase(id);
+            return 0;
+        }
+        int size() {
+            std::unique_lock<std::mutex> lk(mtx);
+            return m.size();
+        }
+    private:
+        std::map<void*, tai_subscription_t*> m;
+        std::mutex mtx;
+};
+
 class TAIServiceImpl final : public tai::TAI::Service {
     public:
         TAIServiceImpl(const tai_api_method_table_t* const api) : m_api(api) {};
@@ -70,8 +115,19 @@ class TAIServiceImpl final : public tai::TAI::Service {
         ::grpc::Status GetAttributeMetadata(::grpc::ServerContext* context, const ::tai::GetAttributeMetadataRequest* request, ::tai::GetAttributeMetadataResponse* response);
         ::grpc::Status GetAttribute(::grpc::ServerContext* context, const ::tai::GetAttributeRequest* request, ::tai::GetAttributeResponse* response);
         ::grpc::Status SetAttribute(::grpc::ServerContext* context, const ::tai::SetAttributeRequest* request, ::tai::SetAttributeResponse* response);
+        ::grpc::Status Monitor(::grpc::ServerContext* context, const ::tai::MonitorRequest* request, ::grpc::ServerWriter< ::tai::MonitorResponse>* writer);
+        void notify(tai_object_id_t oid, tai_attribute_t const * const attribute);
     private:
+        TAINotifier* get_notifier(tai_object_id_t oid) {
+            std::unique_lock<std::mutex> lk(m_mtx);
+            if ( m_notifiers.find(oid) == m_notifiers.end() ) {
+                m_notifiers[oid] = new TAINotifier();
+            }
+            return m_notifiers[oid];
+        }
         const tai_api_method_table_t* const m_api;
+        std::map<tai_object_id_t, TAINotifier*> m_notifiers;
+        std::mutex m_mtx;
 };
 
 #endif // __TAIGRPC_HPP__

@@ -33,7 +33,8 @@ def show_help(hidden=False):
     d = [['list', 'list detected TAI objects'],
     ['list-attr', 'list attributes of the selected TAI object'],
     ['set <attr-name> <attr-value>', 'set an attribute'],
-    ['get <attr-name> [<attr-value>]', 'get an attribute']]
+    ['get <attr-name> [<attr-value>]', 'get an attribute'],
+    ['monitor', 'monitor state change']]
     print(tabulate(d, headers=['command', 'description']))
 
 def show_modules(modules):
@@ -65,6 +66,24 @@ def list_attr(stub, module, netif, hostif):
     for m in get_attribute_metadata(stub, module, netif, hostif):
         d.append([m.short_name, 'ro' if m.is_readonly else 'r/w', m.usage, 'custom' if m.attr_id > TAI_ATTR_CUSTOM_RANGE_START else 'official'])
     print(tabulate(d, headers=['name', 'type', 'value', 'range']))
+
+def monitor(stub, module, netif, hostif):
+    req = tai_pb2.MonitorRequest()
+    req.oid = netif.oid
+
+    m = get_attribute_metadata(stub, module, netif, hostif)
+
+    try:
+        for res in stub.Monitor(req):
+            a = [ v.short_name for v in m if v.attr_id == res.attribute.attr_id ]
+            if len(a) == 1:
+                print('{} | {}'.format(a[0], res.attribute.value))
+            elif len(a) == 0:
+                print('0x{:x} | {}'.format(res.attribute.attr_id, res.attribute.value))
+            else:
+                print('error: more than one metadata matched for id 0x{:x}: {}'.format(res.attribute.attr_id, a))
+    except KeyboardInterrupt:
+        pass
 
 def get_attr(stub, module, netif, hostif, cmds):
     if not module:
@@ -169,7 +188,7 @@ class TAIShellCompleter(Completer):
         if len(t) == 1:
             cmds = ['list', 'module', 'help', 'quit', 'exit']
             if self.module != None:
-                cmds += ['list-attr', 'netif', 'hostif', 'set', 'get']
+                cmds += ['list-attr', 'netif', 'hostif', 'set', 'get', 'monitor']
 
             for c in cmds:
                 if c.startswith(t[0]):
@@ -277,6 +296,8 @@ def loop(stub, modules):
                 print(get_attr(stub, module, netif, hostif, cmds))
             elif cmd == 'set':
                 set_attr(stub, module, netif, hostif, cmds)
+            elif cmd == 'monitor':
+                monitor(stub, module, netif, hostif)
             elif cmd in ['exit', 'quit', 'q']:
                 if netif:
                     netif = None
@@ -358,6 +379,8 @@ def main():
             set_attr(stub, module, netif, hostif, args)
         elif args[0] == 'help':
             show_help()
+        elif args[0] == 'monitor':
+            monitor(stub, module, netif, hostif)
         else:
             print('unknown cmd: {}'.format(args[0]))
             show_help()
