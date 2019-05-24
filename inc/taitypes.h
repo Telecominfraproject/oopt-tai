@@ -194,6 +194,10 @@ typedef struct _tai_object_map_list_t
 
     /** Map list */
     tai_object_map_t *list;
+
+    /** Number of tai_object_map_t allocated in the list */
+    uint32_t _alloced;
+
 } tai_object_map_list_t;
 
 // Forward declaration of tai_attribute_value_t for tai_attr_value_list_t

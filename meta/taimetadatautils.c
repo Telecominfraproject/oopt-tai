@@ -412,15 +412,17 @@ tai_status_t _tai_metadata_free_attr_value(
         _TAI_META_FREE_LIST(floatlist);
         break;
     case TAI_ATTR_VALUE_TYPE_OBJMAPLIST:
-        for ( i = 0; i < value->objmaplist.count; i++ ) {
+        // we must use alloced field instead of count field since
+        // count field is not always equal to the allocated number
+        for ( i = 0; i < value->objmaplist._alloced; i++ ) {
             value->objmaplist.list[i].value.count = 0;
             free(value->objmaplist.list[i].value.list);
         }
         _TAI_META_FREE_LIST(objmaplist);
         break;
     case TAI_ATTR_VALUE_TYPE_ATTRLIST:
-        // we must use alloced field instead of count field sinze
-        // count field doesn't necessarily equal to the allocated number
+        // we must use alloced field instead of count field since
+        // count field is not always equal to the allocated number
         for ( i = 0; i < value->attrlist._alloced; i++ ) {
             if ( _tai_metadata_free_attr_value(&m, &value->attrlist.list[i], info) < 0 ) {
                 return TAI_STATUS_FAILURE;
@@ -552,6 +554,7 @@ static tai_status_t _tai_metadata_alloc_attr_value(
         break;
     case TAI_ATTR_VALUE_TYPE_OBJMAPLIST:
         _TAI_META_ALLOC_LIST(objmaplist, tai_object_map_list_t);
+        value->attrlist._alloced = size;
         for ( i = 0; i < size; i++ ) {
             value->objmaplist.list[i].value.count = size;
             value->objmaplist.list[i].value.list = calloc(size, sizeof(tai_object_map_t));
