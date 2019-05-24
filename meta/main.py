@@ -148,6 +148,9 @@ class TAIAttribute(object):
         t = self.cmt['type']
         self.type, self.enum_type, self.value_field, self.attrlist_value_type = process_type(self.taiobject.taiheader, t)
 
+        # check if the attribute value contains object id
+        self.is_oid_attribute = (self.value_field in ['oid', 'objlist', 'objmaplist'])
+
         # process default command
         self.default = self.cmt.get('default', '')
         self.default_type = process_default_value_type(self.default)
@@ -305,6 +308,7 @@ const tai_attr_metadata_t tai_metadata_attr_{{ typename }} = {
 {%- else %}
     .enummetadata        = NULL,
 {%- endif %}
+    .isoidattribute      = {{ isoidattribute }},
     .ismandatoryoncreate = {{ ismandatoryoncreate }},
     .iscreateonly        = {{ iscreateonly }},
     .iscreateandset      = {{ iscreateandset }},
@@ -351,6 +355,7 @@ const tai_attr_metadata_t tai_metadata_attr_{{ typename }} = {
                      'value_field': attr.value_field,
                      'is_enum': is_enum,
                      'enum_meta_data': enum_meta_data,
+                     'isoidattribute': 'true' if attr.is_oid_attribute else 'false',
                      'ismandatoryoncreate': 'true' if TAIAttributeFlag.MANDATORY_ON_CREATE in attr.flags else 'false',
                      'iscreateonly': 'true' if TAIAttributeFlag.CREATE_ONLY in attr.flags else 'false',
                      'iscreateandset': 'true' if TAIAttributeFlag.CREATE_AND_SET in attr.flags else 'false',
