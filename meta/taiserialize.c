@@ -688,7 +688,7 @@ int tai_serialize_attribute_value(
         _In_ const tai_attribute_value_t *value,
         _In_ const tai_serialize_option_t *option)
 {
-    int i, count = 0;
+    int i, j, count = 0;
     char *ptr = buffer;
 
     tai_attr_metadata_t m = *meta;
@@ -785,8 +785,26 @@ int tai_serialize_attribute_value(
         _SERIALIZE(snprintf(ptr, n, "%d,%d", value->s32range.min, value->s32range.max), count, ptr, n);
         return ptr - buffer;
     case TAI_ATTR_VALUE_TYPE_OBJMAPLIST:
-        TAI_META_LOG_WARN("objmaplist serialization is not implemented");
-        return TAI_SERIALIZE_ERROR;
+        _SERIALIZE(snprintf(ptr, n, "["), count, ptr, n);
+        for ( i = 0; i < value->objmaplist.count; i++ ) {
+            _SERIALIZE(snprintf(ptr, n, "{\""), count, ptr, n);
+            _SERIALIZE(tai_serialize_object_id(ptr, n, value->objmaplist.list[i].key), count, ptr, n);
+            _SERIALIZE(snprintf(ptr, n, "\": ["), count, ptr, n);
+            for ( j = 0; j < value->objmaplist.list[i].value.count; j++ ) {
+                _SERIALIZE(snprintf(ptr, n, "\""), count, ptr, n);
+                _SERIALIZE(tai_serialize_object_id(ptr, n, value->objmaplist.list[i].value.list[j]), count, ptr, n);
+                _SERIALIZE(snprintf(ptr, n, "\""), count, ptr, n);
+                if ( j != (value->objmaplist.list[i].value.count - 1)) {
+                    _SERIALIZE(snprintf(ptr, n, ", "), count, ptr, n);
+                }
+            }
+            _SERIALIZE(snprintf(ptr, n, "]}"), count, ptr, n);
+            if ( i != (value->objmaplist.count - 1)) {
+                _SERIALIZE(snprintf(ptr, n, ", "), count, ptr, n);
+            }
+        }
+        _SERIALIZE(snprintf(ptr, n, "]"), count, ptr, n);
+        return ptr - buffer;
     case TAI_ATTR_VALUE_TYPE_ATTRLIST:
         if ( option->json ) {
             _SERIALIZE(snprintf(ptr, n, "["), count, ptr, n);
