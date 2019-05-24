@@ -316,6 +316,42 @@ int testSerializeListJSON() {
     return 0;
 }
 
+int testSerializeObjectMapList() {
+    char buf[128] = {0};
+    tai_serialize_option_t option = {
+        .human = true,
+        .json = true,
+        .valueonly = true,
+    };
+    tai_attr_metadata_t meta = {0};
+    tai_attribute_t attr = {0};
+    tai_object_map_t list[2];
+    tai_object_id_t l[4];
+    l[0] = 0x2000;
+    l[1] = 0x3000;
+    l[2] = 0x4000;
+    l[3] = 0x5000;
+    list[0].key = 0x1000;
+    list[0].value.count = 4;
+    list[0].value.list = l;
+    list[1].key = 0x1100;
+    list[1].value.count = 2;
+    list[1].value.list = l;
+    meta.attrvaluetype = TAI_ATTR_VALUE_TYPE_OBJMAPLIST;
+    attr.value.objmaplist.count = 2;
+    attr.value.objmaplist.list = list;
+    int ret = tai_serialize_attribute(buf, 128, &meta, &attr, &option);
+    if ( ret < 0 ) {
+        return -1;
+    }
+    ret = strcmp(buf, "[{\"oid:0x1000\": [\"oid:0x2000\", \"oid:0x3000\", \"oid:0x4000\", \"oid:0x5000\"]}, {\"oid:0x1100\": [\"oid:0x2000\", \"oid:0x3000\"]}]");
+    if ( ret != 0 ) {
+        return -1;
+    }
+ 
+    return 0;
+}
+
 typedef int (*testF)();
 
 testF tests[] = {
@@ -333,6 +369,7 @@ testF tests[] = {
     testDeserializeU8list,
     testDeserializeFloatlist,
     testSerializeListJSON,
+    testSerializeObjectMapList,
     NULL,
 };
 
