@@ -9,6 +9,7 @@ service TAI {
     rpc GetAttribute(GetAttributeRequest) returns (GetAttributeResponse);
     rpc SetAttribute(SetAttributeRequest) returns (SetAttributeResponse);
     rpc Monitor(MonitorRequest) returns (stream MonitorResponse);
+    rpc SetLogLevel(SetLogLevelRequest) returns (SetLogLevelResponse);
 }
 
 enum TAIObjectType {
@@ -16,6 +17,22 @@ enum TAIObjectType {
     MODULE = 1;
     HOSTIF = 2;
     NETIF = 3;
+}
+
+enum TAIAPIType {
+    UNSPECIFIED_API = 0;
+    MODULE_API = 1;
+    HOSTIF_API = 2;
+    NETIF_API = 3;
+}
+
+enum TAILogLevel {
+    DEBUG = 0;
+    INFO = 1;
+    NOTICE = 2;
+    WARN = 3;
+    ERROR = 4;
+    CRITICAL = 5;
 }
 
 message ListModuleRequest {
@@ -68,6 +85,14 @@ message MonitorRequest {
 
 message MonitorResponse {
     Attribute attribute = 1;
+}
+
+message SetLogLevelRequest {
+    TAIAPIType api = 1;
+    TAILogLevel level = 2;
+}
+
+message SetLogLevelResponse {
 }
 
 message Attribute {
