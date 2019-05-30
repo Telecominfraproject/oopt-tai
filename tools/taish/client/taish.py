@@ -34,7 +34,8 @@ def show_help(hidden=False):
     ['list-attr', 'list attributes of the selected TAI object'],
     ['set <attr-name> <attr-value>', 'set an attribute'],
     ['get <attr-name> [<attr-value>]', 'get an attribute'],
-    ['monitor', 'monitor state change']]
+    ['monitor', 'monitor state change'],
+    ['log-level <level> [<api-type>]', 'set log level']]
     print(tabulate(d, headers=['command', 'description']))
 
 def show_modules(modules):
@@ -174,6 +175,44 @@ def set_attr(stub, module, netif, hostif, cmds):
         print(e)
 
 
+def set_log_level(stub, cmds):
+    if len(cmds) < 2:
+        print('invalid input: log-level <level> [<api-type>]')
+        return
+    if cmds[1] == 'debug':
+        level = tai_pb2.DEBUG
+    elif cmds[1] == 'info':
+        level = tai_pb2.INFO
+    elif cmds[1] == 'notice':
+        level = tai_pb2.NOTICE
+    elif cmds[1] == 'warn':
+        level = tai_pb2.WARN
+    elif cmds[1] == 'error':
+        level = tai_pb2.ERROR
+    elif cmds[1] == 'critical':
+        level = tai_pb2.CRITICAL
+    else:
+        print('invalid log level. choose from [debug, info, notice, warn, error, critical]')
+        return
+
+    api = tai_pb2.UNSPECIFIED_API
+    if len(cmds) > 2:
+        if cmds[2] == 'module':
+            api = tai_pb2.MODULE_API
+        elif cmds[2] == 'netif':
+            api = tai_pb2.NETIF_API
+        elif cmds[2] == 'hostif':
+            api = tai_pb2.HOSTIF_API
+        else:
+            print('invalid api type. choose from [module, netif, hostif]')
+            return
+
+    req = tai_pb2.SetLogLevelRequest()
+    req.level = level
+    req.api = api
+    return stub.SetLogLevel(req)
+
+
 class TAIShellCompleter(Completer):
     def __init__(self, stub, modules, module, netif, hostif):
         self.stub = stub
@@ -186,7 +225,7 @@ class TAIShellCompleter(Completer):
     def get_completions(self, document, complete_event):
         t = document.text.split(' ')
         if len(t) == 1:
-            cmds = ['list', 'module', 'help', 'quit', 'exit']
+            cmds = ['list', 'module', 'help', 'quit', 'exit', 'log-level']
             if self.module != None:
                 cmds += ['list-attr', 'netif', 'hostif', 'set', 'get', 'monitor']
 
@@ -211,6 +250,10 @@ class TAIShellCompleter(Completer):
                         yield Completion(k, start_position=-len(t[1]))
             elif t[0] == 'module':
                 for k in self.modules.keys():
+                    if k.startswith(t[1]):
+                        yield Completion(k, start_position=-len(t[1]))
+            elif t[0] == 'log-level':
+                for k in ['debug', 'info', 'notice', 'warn', 'error', 'critical']:
                     if k.startswith(t[1]):
                         yield Completion(k, start_position=-len(t[1]))
 
@@ -294,6 +337,8 @@ def loop(stub, modules, module, netif, hostif):
                 set_attr(stub, module, netif, hostif, cmds)
             elif cmd == 'monitor':
                 monitor(stub, module, netif, hostif)
+            elif cmd == 'log-level':
+                set_log_level(stub, cmds)
             elif cmd in ['exit', 'quit', 'q']:
                 if netif:
                     netif = None
@@ -379,6 +424,8 @@ def main():
             show_help()
         elif args[0] == 'monitor':
             monitor(stub, module, netif, hostif)
+        elif args[0] == 'log-level':
+            set_log_level(stub, args)
         else:
             print('unknown cmd: {}'.format(args[0]))
             show_help()
