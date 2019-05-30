@@ -1,0 +1,29 @@
+{
+    "2": {
+        "attrs": {
+            "admin-status": "down"
+        },
+        "netif": {
+            "0": {
+                "attrs": {
+                    "modulation-format": "dp-qpsk"
+                }
+            }
+        },
+        "hostif": {
+            "0": {
+                "attrs": {
+                }
+            },
+            "1": {
+                "attrs": {
+                }
+            }
+        }
+    },
+    "6": {
+        "attrs": {
+            "admin-status": "down"
+        }
+    }
+}

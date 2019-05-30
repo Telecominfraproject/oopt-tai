@@ -2,3 +2,4 @@ This source code includes following software
 
 - SAI : licensed by Microsoft under the Apache License, Version 2.0
 - cJSON : licensed by Dave Gamble and cJSON contributors under MIT License
+- JSON for Modern C++ : licensed by Niels Lohmann under MIT License
