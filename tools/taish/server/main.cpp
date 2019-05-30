@@ -10,7 +10,6 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-#include "taigrpc.hpp"
 #include <thread>
 #include <queue>
 #include <mutex>
@@ -19,9 +18,17 @@
 #include "unistd.h"
 #include <cstdlib>
 #include <sstream>
+#include <fstream>
+
+#include "json.hpp"
+
+#include "taigrpc.hpp"
+#include "taimetadata.h"
 
 using grpc::ServerBuilder;
 using grpc::ServerContext;
+
+using json = nlohmann::json;
 
 static const std::string TAI_RPC_DEFAULT_IP = "0.0.0.0";
 static const uint16_t TAI_RPC_DEFAULT_PORT = 50051;
@@ -36,27 +43,100 @@ class module;
 
 std::map<tai_object_id_t, module*> g_modules;
 
+static int load_config(const json& config, std::vector<tai_attribute_t>& list, tai_object_type_t t) {
+    int32_t attr_id;
+    tai_serialize_option_t option{true, true, true};
+    tai_alloc_info_t alloc_info = { .list_size = 16 };
+    tai_attribute_t attr;
+
+    if ( !config.is_object() ) {
+        return -1;
+    }
+
+    for ( auto& a: config["attrs"].items() ) {
+        int ret;
+        option.json = false;
+        switch ( t ) {
+        case TAI_OBJECT_TYPE_MODULE:
+            ret = tai_deserialize_module_attr(a.key().c_str(), &attr_id, &option);
+            break;
+        case TAI_OBJECT_TYPE_HOSTIF:
+            ret = tai_deserialize_host_interface_attr(a.key().c_str(), &attr_id, &option);
+            break;
+        case TAI_OBJECT_TYPE_NETWORKIF:
+            ret = tai_deserialize_network_interface_attr(a.key().c_str(), &attr_id, &option);
+            break;
+        default:
+            throw std::runtime_error("unsupported object type");
+        }
+        if ( ret <  0 ) {
+            std::stringstream ss;
+            ss << "failed to deserialize attribute name: " << a.key();
+            throw std::runtime_error(ss.str());
+        }
+        attr.id = attr_id;
+        auto meta = tai_metadata_get_attr_metadata(t, attr_id);
+        if ( meta == nullptr ) {
+            std::stringstream ss;
+            ss << "failed to get metadata for " << a.key();
+            throw std::runtime_error(ss.str());
+        }
+
+        if ( tai_metadata_alloc_attr_value(meta, &attr, &alloc_info) != TAI_STATUS_SUCCESS ) {
+            throw std::runtime_error("failed allocation");
+        }
+
+        option.json = true;
+
+        auto value = a.value().dump();
+        if ( tai_deserialize_attribute_value(value.c_str(), meta, &attr.value, &option) < 0 ) {
+            throw std::runtime_error("failed to deserialize attribute value");
+        }
+        list.push_back(attr);
+    }
+    return 0;
+}
+
 class module {
     public:
-        module(tai_object_id_t id, std::string location) : m_id(id), m_location(location) {
+        module(std::string location, const json& config) : m_location(location) {
             std::vector<tai_attribute_t> list;
             tai_attribute_t attr;
+
+            attr.id = TAI_MODULE_ATTR_LOCATION;
+            attr.value.charlist.count = location.size();
+            attr.value.charlist.list = (char*)location.c_str();
+            list.push_back(attr);
+
+            load_config(config, list, TAI_OBJECT_TYPE_MODULE);
+
+            if ( g_api.module_api->create_module(&m_id, list.size(), list.data()) != TAI_STATUS_SUCCESS ) {
+                throw std::runtime_error("failed to create module");
+            }
+            std::cout << "created module id: 0x" << std::hex << m_id << std::endl;
+
+            list.clear();
+
             attr.id = TAI_MODULE_ATTR_NUM_HOST_INTERFACES;
             list.push_back(attr);
             attr.id = TAI_MODULE_ATTR_NUM_NETWORK_INTERFACES;
             list.push_back(attr);
-            auto status = g_api.module_api->get_module_attributes(id, list.size(), list.data());
+            auto status = g_api.module_api->get_module_attributes(m_id, list.size(), list.data());
             if ( status != TAI_STATUS_SUCCESS ) {
                 throw std::runtime_error("faile to get attribute");
             }
             std::cout << "num hostif: " << list[0].value.u32 << std::endl;
             std::cout << "num netif: " << list[1].value.u32 << std::endl;
-            create_hostif(list[0].value.u32);
-            create_netif(list[1].value.u32);
+            create_hostif(list[0].value.u32, config);
+            create_netif(list[1].value.u32, config);
         }
 
         const std::string& location() {
             return m_location;
+        }
+
+        tai_object_id_t id() {
+            return m_id;
         }
 
         std::vector<tai_object_id_t> netifs;
@@ -64,11 +144,9 @@ class module {
     private:
         tai_object_id_t m_id;
         std::string m_location;
-        int create_hostif(uint32_t num);
-        int create_netif(uint32_t num);
+        int create_hostif(uint32_t num, const json& config);
+        int create_netif(uint32_t num, const json& config);
 };
-
-
 
 void module_presence(bool present, char* location) {
     uint64_t v = 1;
@@ -77,17 +155,8 @@ void module_presence(bool present, char* location) {
     auto ret = write(event_fd, &v, sizeof(uint64_t));
 }
 
-tai_status_t create_module(const std::string& location, tai_object_id_t& m_id) {
-    std::vector<tai_attribute_t> list;
-    tai_attribute_t attr;
-    attr.id = TAI_MODULE_ATTR_LOCATION;
-    attr.value.charlist.count = location.size();
-    attr.value.charlist.list = (char*)location.c_str();
-    list.push_back(attr);
-    return g_api.module_api->create_module(&m_id, list.size(), list.data());
-}
-
-int module::create_hostif(uint32_t num) {
+int module::create_hostif(uint32_t num, const json& config) {
+    auto c = config.find("hostif");
     for ( int i = 0; i < num; i++ ) {
         tai_object_id_t id;
         std::vector<tai_attribute_t> list;
@@ -95,17 +164,28 @@ int module::create_hostif(uint32_t num) {
         attr.id = TAI_HOST_INTERFACE_ATTR_INDEX;
         attr.value.u32 = i;
         list.push_back(attr);
+
+        if ( c != config.end() && c->is_object() ) {
+            std::stringstream ss;
+            ss << i;
+            auto cc = c->find(ss.str());
+            if ( cc != c->end() ) {
+                load_config(*cc, list, TAI_OBJECT_TYPE_HOSTIF);
+            }
+        }
+
         auto status = g_api.hostif_api->create_host_interface(&id, m_id, list.size(), list.data());
         if ( status != TAI_STATUS_SUCCESS ) {
             throw std::runtime_error("failed to create host interface");
         }
-        std::cout << "hostif: " << id << std::endl;
+        std::cout << "hostif: 0x" << std::hex << id << std::endl;
         hostifs.push_back(id);
     }
     return 0;
 }
 
-int module::create_netif(uint32_t num) {
+int module::create_netif(uint32_t num, const json& config) {
+    auto c = config.find("netif");
     for ( int i = 0; i < num; i++ ) {
         tai_object_id_t id;
         std::vector<tai_attribute_t> list;
@@ -115,11 +195,20 @@ int module::create_netif(uint32_t num) {
         attr.value.u32 = i;
         list.push_back(attr);
 
+        if ( c != config.end() && c->is_object() ) {
+            std::stringstream ss;
+            ss << i;
+            auto cc = c->find(ss.str());
+            if ( cc != c->end() ) {
+                load_config(*cc, list, TAI_OBJECT_TYPE_NETWORKIF);
+            }
+        }
+
         auto status = g_api.netif_api->create_network_interface(&id, m_id, list.size(), list.data());
         if ( status != TAI_STATUS_SUCCESS ) {
             throw std::runtime_error("failed to create network interface");
         }
-        std::cout << "netif: " << id << std::endl;
+        std::cout << "netif: 0x" << std::hex << id << std::endl;
         netifs.push_back(id);
     }
     return 0;
@@ -180,9 +269,11 @@ int main(int argc, char *argv[]) {
 
     auto ip = TAI_RPC_DEFAULT_IP;
     auto port = TAI_RPC_DEFAULT_PORT;
+    std::string config_file;
     char c;
+    tai_log_level_t level = TAI_LOG_LEVEL_INFO;
 
-    while ((c = getopt (argc, argv, "i:p:")) != -1) {
+    while ((c = getopt (argc, argv, "i:p:f:v")) != -1) {
       switch (c) {
       case 'i':
         ip = std::string(optarg);
@@ -192,8 +283,16 @@ int main(int argc, char *argv[]) {
         port = atoi(optarg);
         break;
 
+      case 'f':
+        config_file = std::string(optarg);
+        break;
+
+      case 'v':
+        level = TAI_LOG_LEVEL_DEBUG;
+        break;
+
       default:
-        std::cerr << "Usage: taish -i <IP address> -p <Port number>" << std::endl;
+        std::cerr << "Usage: taish -i <IP address> -p <Port number> -f <Config file> -v" << std::endl;
         return 1;
       }
     }
@@ -205,6 +304,12 @@ int main(int argc, char *argv[]) {
     auto status = tai_api_initialize(0, &services);
     if ( status != TAI_STATUS_SUCCESS ) {
         std::cout << "failed to initialize" << std::endl;
+        return -1;
+    }
+
+    status = tai_log_set(TAI_API_UNSPECIFIED, level);
+    if ( status != TAI_STATUS_SUCCESS ) {
+        std::cout << "failed to set log level" << std::endl;
         return -1;
     }
 
@@ -232,6 +337,23 @@ int main(int argc, char *argv[]) {
     ss << ip << ":" << port;
     start_grpc_server(ss.str());
 
+    json config;
+    if ( config_file != "" ) {
+        std::ifstream ifs(config_file);
+        if ( !ifs ) {
+            std::cout << "failed to open config file: " << config_file << std::endl;
+            return -1;
+        }
+
+        std::istreambuf_iterator<char> it(ifs), last;
+        std::string c(it, last);
+        config = json::parse(c);
+        if ( !config.is_object() ) {
+            std::cout << "invalid configuration. config is not object" << std::endl;
+            return -1;
+        }
+    }
+
     while (true) {
         uint64_t v;
         read(event_fd, &v, sizeof(uint64_t));
@@ -239,16 +361,11 @@ int main(int argc, char *argv[]) {
             std::lock_guard<std::mutex> g(m);
             while ( !q.empty() ) {
                 auto p = q.front();
-                std::cout << "present: " << p.first << ", loc: " << p.second << std::endl;
+                auto loc = p.second;
+                std::cout << "present: " << p.first << ", loc: " << loc << std::endl;
                 if ( p.first ) {
-                    tai_object_id_t m_id;
-                    auto status = create_module(p.second, m_id);
-                    if ( status != TAI_STATUS_SUCCESS ) {
-                        std::cerr << "failed to create module: " << status << std::endl;
-                        return 1;
-                    }
-                    std::cout << "module id: " << m_id << std::endl;
-                    g_modules[m_id] = new module(m_id, p.second);
+                    auto m = new module(loc, config[loc]);
+                    g_modules[m->id()] = m;
                 }
                 q.pop();
             }
