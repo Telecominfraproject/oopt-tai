@@ -29,6 +29,7 @@
 #include "taimetadatautils.h"
 #include "taimetadatalogger.h"
 #include "taiserialize.h"
+#include "cJSON.h"
 
 #define PRIMITIVE_BUFFER_SIZE 128
 #define MAX_CHARS_PRINT 25
@@ -459,8 +460,10 @@ int tai_deserialize_charlist(
 {
     int count = strlen(buffer) + 1;
     if ( count > value->count ) {
+        value->count = count;
         return -1;
     }
+    value->count = count;
     memcpy(value->list, buffer, count);
     return count;
 }
@@ -551,14 +554,43 @@ int tai_deserialize_object_id(
 #define DEFINE_TAI_DESERIALIZE_LIST(listname, listtypename, itemname) \
 int tai_deserialize_ ## listname (\
         _In_ const char *buffer,\
-        _Out_ listtypename *value)\
+        _Out_ listtypename *value,\
+        _In_ const tai_serialize_option_t *option)\
 { \
     int ret = 0, i = 0; \
     const char *ptr = buffer; \
+    if ( option != NULL && option->json ) { \
+        cJSON *j = cJSON_Parse(buffer), *elem = NULL; \
+        char *p = NULL; \
+        int size = 0;\
+        if ( j == NULL ) {\
+            TAI_META_LOG_WARN("failed to parse buffer as json: %s", buffer);\
+            return TAI_SERIALIZE_ERROR;\
+        }\
+        if ( !cJSON_IsArray(j) ) {\
+            TAI_META_LOG_WARN("failed to parse buffer as json array");\
+            return TAI_SERIALIZE_ERROR; \
+        }\
+        size = cJSON_GetArraySize(j);\
+        if ( size > value->count ) {\
+            value->count = size;\
+            TAI_META_LOG_WARN("deserialize listname buffer overflow"); \
+            return TAI_STATUS_BUFFER_OVERFLOW;\
+        }\
+        for ( i = 0 ; i < size; i++ ) {\
+            elem = cJSON_GetArrayItem(j, i);\
+            p = cJSON_Print(elem);\
+            ret = tai_deserialize_ ## itemname(p, &value->list[i]);\
+            free(p);\
+        }\
+        value->count = size;\
+        return 0;\
+    }\
     while(true) { \
         if ( i > value->count ) { \
             TAI_META_LOG_WARN("deserialize listname buffer overflow"); \
-            return TAI_SERIALIZE_ERROR; \
+            value->count = i*2;\
+            return TAI_STATUS_BUFFER_OVERFLOW;\
         } \
         ret = tai_deserialize_ ## itemname(ptr, &value->list[i]); \
         if ( *(ptr + ret) == 0 ) { \
@@ -632,6 +664,21 @@ int tai_deserialize_enum(
         return tai_deserialize_int32(buffer, value);
     }
 
+    const char *ptr = buffer;
+    cJSON* j = NULL;
+    if ( option != NULL && option->json ) {
+        j = cJSON_Parse(buffer);
+        if ( j == NULL ) {
+            TAI_META_LOG_WARN("failed to parse buffer as json: %s", buffer);
+            return -1;
+        }
+        ptr = cJSON_GetStringValue(j);
+        if ( ptr == NULL ) {
+            TAI_META_LOG_WARN("failed to parse buffer as json string");
+            return -1;
+        }
+    }
+
     const char* const* names = meta->valuesnames;
     if ( option != NULL && option->human ) {
         names = meta->valuesshortnames;
@@ -643,17 +690,128 @@ int tai_deserialize_enum(
     {
         size_t len = strlen(names[idx]);
 
-        if (strncmp(names[idx], buffer, len) == 0 &&
-            tai_serialize_is_char_allowed(buffer[len]))
+        if (strncmp(names[idx], ptr, len) == 0 &&
+            tai_serialize_is_char_allowed(ptr[len]))
         {
             *value = meta->values[idx];
             return (int)len;
         }
     }
 
-    TAI_META_LOG_WARN("enum value '%.*s' not found in enum %s", MAX_CHARS_PRINT, buffer, meta->name);
+    TAI_META_LOG_WARN("enum value '%.*s' not found in enum %s", MAX_CHARS_PRINT, ptr, meta->name);
+
+    if ( j != NULL ) {
+        cJSON_Delete(j);
+    }
 
     return tai_deserialize_int32(buffer, value);
+}
+
+int tai_deserialize_enumlist(
+        _In_ const char *buffer,
+        _In_ const tai_enum_metadata_t* meta,
+        _Out_ tai_s32_list_t *value,
+        _In_ const tai_serialize_option_t *option)
+{
+    int ret = 0, i = 0;
+    const char *ptr = buffer;
+    if ( meta == NULL ) {
+        return tai_deserialize_s32list(buffer, value, option);
+    }
+    if ( option != NULL && option->json ) {
+        cJSON *j = cJSON_Parse(buffer), *elem = NULL;
+        char *p = NULL;
+        int size = 0;
+        if ( j == NULL ) {
+            TAI_META_LOG_WARN("failed to parse buffer as json: %s", buffer);
+            return TAI_SERIALIZE_ERROR;
+        }
+        if ( !cJSON_IsArray(j) ) {
+            TAI_META_LOG_WARN("failed to parse buffer as json array");
+            return TAI_SERIALIZE_ERROR;
+        }
+        size = cJSON_GetArraySize(j);
+        if ( size > value->count ) {
+            value->count = size;
+            TAI_META_LOG_WARN("deserialize listname buffer overflow");
+            return TAI_STATUS_BUFFER_OVERFLOW;
+        }
+        for ( i = 0 ; i < size; i++ ) {
+            elem = cJSON_GetArrayItem(j, i);
+            p = cJSON_Print(elem);
+            ret = tai_deserialize_enum(p, meta, &value->list[i], option);
+            free(p);
+        }
+        value->count = size;
+        return 0;
+
+    }
+    while(true) {
+        if ( i > value->count ) {
+            TAI_META_LOG_WARN("deserialize listname buffer overflow");
+            value->count = i*2;
+            return TAI_STATUS_BUFFER_OVERFLOW;
+        }
+        ret = tai_deserialize_enum(ptr, meta, &value->list[i], option);
+        if ( *(ptr + ret) == 0 ) {
+            value->count = i + 1;
+            return 0;
+        }
+        if ( *(ptr + ret++) != ',' ) {
+            return -1;
+        }
+        ptr += ret;
+        i++;
+    }
+}
+
+int tai_deserialize_attrlist(
+        _In_ const char *buffer,
+        _In_ const tai_attr_metadata_t* meta,
+        _Out_ tai_attr_value_list_t *value,
+        _In_ const tai_serialize_option_t *option)
+{
+    if ( meta == NULL ) {
+        return TAI_SERIALIZE_ERROR;
+    }
+
+    tai_serialize_option_t o = *option;
+    o.json = true; // we need to parse internal attributes as json for attrlist
+
+    tai_attr_metadata_t m = *meta;
+    m.attrvaluetype = meta->attrlistvaluetype;
+    m.attrlistvaluetype = TAI_ATTR_VALUE_TYPE_UNSPECIFIED;
+
+    cJSON *j = cJSON_Parse(buffer), *elem = NULL;
+    char *p = NULL;
+    int size = 0, i, ret;
+    if ( j == NULL ) {
+        TAI_META_LOG_WARN("failed to parse buffer as json: %s", buffer);
+        return TAI_SERIALIZE_ERROR;
+    }
+    if ( !cJSON_IsArray(j) ) {
+        TAI_META_LOG_WARN("failed to parse buffer as json array");
+        return TAI_SERIALIZE_ERROR;
+    }
+
+    size = cJSON_GetArraySize(j);
+    if ( size > value->count ) {
+        value->count = size;
+        TAI_META_LOG_WARN("deserialize listname buffer overflow");
+        return TAI_STATUS_BUFFER_OVERFLOW;
+    }
+
+    for ( i = 0 ; i < size; i++ ) {
+        elem = cJSON_GetArrayItem(j, i);
+        p = cJSON_Print(elem);
+        ret = tai_deserialize_attribute_value(p, &m, &value->list[i], &o);
+        free(p);
+        if ( ret != 0 ) {
+            return ret;
+        }
+    }
+    value->count = size;
+    return 0;
 }
 
 #define _SERIALIZE(sentence, count, ptr, n) \
@@ -953,19 +1111,24 @@ int tai_deserialize_attribute_value(
     case TAI_ATTR_VALUE_TYPE_CHARLIST:
         return tai_deserialize_charlist(buffer, &value->charlist);
     case TAI_ATTR_VALUE_TYPE_U8LIST:
-        return tai_deserialize_u8list(buffer, &value->u8list);
+        return tai_deserialize_u8list(buffer, &value->u8list, option);
     case TAI_ATTR_VALUE_TYPE_S8LIST:
-        return tai_deserialize_s8list(buffer, &value->s8list);
+        return tai_deserialize_s8list(buffer, &value->s8list, option);
     case TAI_ATTR_VALUE_TYPE_U16LIST:
-        return tai_deserialize_u16list(buffer, &value->u16list);
+        return tai_deserialize_u16list(buffer, &value->u16list, option);
     case TAI_ATTR_VALUE_TYPE_S16LIST:
-        return tai_deserialize_s16list(buffer, &value->s16list);
+        return tai_deserialize_s16list(buffer, &value->s16list, option);
     case TAI_ATTR_VALUE_TYPE_U32LIST:
-        return tai_deserialize_u32list(buffer, &value->u32list);
+        return tai_deserialize_u32list(buffer, &value->u32list, option);
     case TAI_ATTR_VALUE_TYPE_S32LIST:
-        return tai_deserialize_s32list(buffer, &value->s32list);
+        if ( meta->isenum ) {
+            return tai_deserialize_enumlist(buffer, meta->enummetadata, &value->s32list, option);
+        }
+        return tai_deserialize_s32list(buffer, &value->s32list, option);
     case TAI_ATTR_VALUE_TYPE_FLOATLIST:
-        return tai_deserialize_floatlist(buffer, &value->floatlist);
+        return tai_deserialize_floatlist(buffer, &value->floatlist, option);
+    case TAI_ATTR_VALUE_TYPE_ATTRLIST:
+        return tai_deserialize_attrlist(buffer, meta, &value->attrlist, option);
     }
     return TAI_SERIALIZE_ERROR;
 }

@@ -255,9 +255,12 @@ int testSerializeValueAttrList() {
 int testDeserializeU8list() {
     uint8_t list[10] = {0};
     tai_u8_list_t value;
+    tai_serialize_option_t option = {
+        .json = false,
+    };
     value.count = 10;
     value.list = list;
-    int ret = tai_deserialize_u8list("1,2,3,4", &value);
+    int ret = tai_deserialize_u8list("1,2,3,4", &value, &option);
     if ( ret != 0 ) {
         return -1;
     }
@@ -270,9 +273,12 @@ int testDeserializeU8list() {
 int testDeserializeFloatlist() {
     float list[10] = {0};
     tai_float_list_t value;
+    tai_serialize_option_t option = {
+        .json = false,
+    };
     value.count = 10;
     value.list = list;
-    int ret = tai_deserialize_floatlist("1.1,2.1234,3.1,4.5634", &value);
+    int ret = tai_deserialize_floatlist("1.1,2.1234,3.1,4.5634", &value, &option);
     if ( ret != 0 ) {
         return -1;
     }
@@ -294,6 +300,7 @@ int testSerializeListJSON() {
     tai_serialize_option_t option = {
         .human = true,
         .json = true,
+        .valueonly = true,
     };
     tai_attribute_value_t lane_fault;
     lane_fault.s32list.count = 2;
@@ -313,6 +320,71 @@ int testSerializeListJSON() {
     if ( ret < 0 ) {
         return -1;
     }
+    ret = strcmp(buf, "[[\"loss-of-lock\",\"tx-fifo-err\"], [\"loss-of-lock\",\"tx-fifo-err\"]]");
+    if ( ret != 0 ) {
+        printf("%s\n", buf);
+        return -1;
+    }
+    return 0;
+}
+
+int testDeepcopyAttrlist() {
+    tai_attr_metadata_t meta = {0};
+    meta.attrvaluetype = TAI_ATTR_VALUE_TYPE_ATTRLIST;
+    meta.attrlistvaluetype = TAI_ATTR_VALUE_TYPE_FLOATLIST;
+    tai_attribute_t attr = {0}, dst = {0};
+    tai_serialize_option_t option = {
+        .human = true,
+        .json = true,
+        .valueonly = true,
+    };
+    char buf[10000] = {0};
+
+    if ( tai_metadata_alloc_attr_value(&meta, &attr, NULL) < 0 ) {
+        printf("failed to alloc\n");
+        return -1;
+    }
+
+    if ( tai_metadata_alloc_attr_value(&meta, &dst, NULL) < 0 ) {
+        printf("failed to alloc\n");
+        return -1;
+    }
+
+    attr.value.attrlist.count = 4;
+    attr.value.attrlist.list[0].floatlist.count = 4;
+    attr.value.attrlist.list[1].floatlist.count = 4;
+    attr.value.attrlist.list[2].floatlist.count = 4;
+    attr.value.attrlist.list[3].floatlist.count = 4;
+
+    attr.value.attrlist.list[0].floatlist.list[0] = 0.11;
+    attr.value.attrlist.list[1].floatlist.list[0] = 0.11;
+    attr.value.attrlist.list[2].floatlist.list[0] = 0.11;
+    attr.value.attrlist.list[3].floatlist.list[0] = 0.11;
+
+    if ( tai_serialize_attribute(buf, 10000, &meta, &attr, &option) < 0 ) {
+        return -1;
+    }
+    printf("%s\n", buf);
+
+    if ( tai_metadata_deepcopy_attr_value(&meta, &attr, &dst) < 0 ) {
+        return -1;
+    }
+
+    if ( tai_serialize_attribute(buf, 10000, &meta, &dst, &option) < 0 ) {
+        return -1;
+    }
+    printf("%s\n", buf);
+
+    if ( tai_metadata_free_attr_value(&meta, &attr, NULL) < 0 ) {
+        printf("failed to free\n");
+        return -1;
+    }
+
+    if ( tai_metadata_free_attr_value(&meta, &dst, NULL) < 0 ) {
+        printf("failed to free\n");
+        return -1;
+    }
+
     return 0;
 }
 
@@ -348,7 +420,151 @@ int testSerializeObjectMapList() {
     if ( ret != 0 ) {
         return -1;
     }
- 
+    return 0;
+}
+
+int testDeserializeJSONU8List() {
+    uint8_t list[10] = {0};
+    tai_u8_list_t value;
+    tai_serialize_option_t option = {
+        .json = true,
+    };
+    value.count = 10;
+    value.list = list;
+    int ret = tai_deserialize_u8list("[1,2,3,4]", &value, &option);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    if ( value.count != 4 || list[0] != 1 || list[1] != 2 || list[2] != 3 || list[3] != 4) {
+        return -1;
+    }
+    return 0;
+}
+
+int testDeserializeJSONFloatList() {
+    float list[10] = {0};
+    tai_float_list_t value;
+    value.count = 10;
+    value.list = list;
+    tai_serialize_option_t option = {
+        .json = true,
+    };
+    int ret = tai_deserialize_floatlist("[1.1,2.1234,3.1,4.5634]", &value, &option);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    if ( value.count != 4 || list[0] < 1 || list[1] < 2.1 || list[2] > 3.2 || list[3] > 4.6 ) {
+        return -1;
+    }
+    return 0;
+}
+
+int testDeserializeJSONEnumList() {
+    int32_t list[10] = {0};
+    tai_s32_list_t value;
+    value.count = 10;
+    value.list = list;
+    tai_serialize_option_t option = {
+        .json = true,
+        .human = true,
+    };
+    const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORKIF, TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS);
+    int ret = tai_deserialize_enumlist("[ \"loss\", \"out\" ]", meta->enummetadata, &value, &option);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    if ( value.count != 2 || list[0] != TAI_NETWORK_INTERFACE_TX_ALIGN_STATUS_LOSS || list[1] != TAI_NETWORK_INTERFACE_TX_ALIGN_STATUS_OUT ) {
+        return -1;
+    }
+    return 0;
+}
+
+int testDeserializeJSONAttrList() {
+    tai_attr_metadata_t meta = {0};
+    meta.attrvaluetype = TAI_ATTR_VALUE_TYPE_ATTRLIST;
+    meta.attrlistvaluetype = TAI_ATTR_VALUE_TYPE_FLOATLIST;
+    tai_attribute_t attr = {0};
+    tai_serialize_option_t option = {
+        .human = true,
+        .json = true,
+    };
+
+    if ( tai_metadata_alloc_attr_value(&meta, &attr, NULL) < 0 ) {
+        printf("failed to alloc\n");
+        return -1;
+    }
+
+    int ret = tai_deserialize_attrlist("[[0.11, 0.22], [0.33, 0.44, 0.55]]", &meta, &attr.value.attrlist, &option);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    if ( attr.value.attrlist.count != 2 || attr.value.attrlist.list[0].floatlist.count != 2 || attr.value.attrlist.list[1].floatlist.count != 3 ) {
+        return -1;
+    }
+    return 0;
+}
+
+int testDeserializeJSONAttrList2() {
+    tai_attribute_t attr = {0};
+    tai_serialize_option_t option = {
+        .human = true,
+        .json = true,
+    };
+    const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_HOSTIF, TAI_HOST_INTERFACE_ATTR_LANE_FAULT);
+
+    if ( tai_metadata_alloc_attr_value(meta, &attr, NULL) < 0 ) {
+        printf("failed to alloc\n");
+        return -1;
+    }
+
+    int ret = tai_deserialize_attrlist("[[\"loss-of-lock\", \"tx-fifo-err\"], [\"loss-of-lock\"], []]", meta, &attr.value.attrlist, &option);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    if ( attr.value.attrlist.count != 3 || attr.value.attrlist.list[0].s32list.count != 2 || attr.value.attrlist.list[1].s32list.count != 1 || attr.value.attrlist.list[2].s32list.count != 0) {
+        return -1;
+    }
+    if ( attr.value.attrlist.list[0].s32list.list[0] != TAI_HOST_INTERFACE_LANE_FAULT_LOSS_OF_LOCK ) {
+        return -1;
+    }
+    if ( attr.value.attrlist.list[0].s32list.list[1] != TAI_HOST_INTERFACE_LANE_FAULT_TX_FIFO_ERR ) {
+        return -1;
+    }
+    if ( attr.value.attrlist.list[1].s32list.list[0] != TAI_HOST_INTERFACE_LANE_FAULT_LOSS_OF_LOCK ) {
+        return -1;
+    }
+    return 0;
+}
+
+int testDeserializeJSONBufferOverflow() {
+    uint8_t list[10] = {0};
+    tai_u8_list_t value;
+    tai_serialize_option_t option = {
+        .json = true,
+    };
+    value.count = 1;
+    value.list = list;
+    int ret = tai_deserialize_u8list("[1,2,3,4]", &value, &option);
+    if ( ret != TAI_STATUS_BUFFER_OVERFLOW || value.count != 4 ) {
+        return -1;
+    }
+    return 0;
+}
+
+int testDeserializeJSONBufferOverflow2() {
+    int32_t list[10] = {0};
+    tai_s32_list_t value;
+    value.count = 1;
+    value.list = list;
+    tai_serialize_option_t option = {
+        .json = true,
+        .human = true,
+    };
+    const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORKIF, TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS);
+    int ret = tai_deserialize_enumlist("[ \"loss\", \"out\" ]", meta->enummetadata, &value, &option);
+    if ( ret != TAI_STATUS_BUFFER_OVERFLOW || value.count != 2 ) {
+        return -1;
+    }
     return 0;
 }
 
@@ -370,6 +586,13 @@ testF tests[] = {
     testDeserializeFloatlist,
     testSerializeListJSON,
     testSerializeObjectMapList,
+    testDeserializeJSONU8List,
+    testDeserializeJSONFloatList,
+    testDeserializeJSONEnumList,
+    testDeserializeJSONAttrList,
+    testDeserializeJSONAttrList2,
+    testDeserializeJSONBufferOverflow,
+    testDeserializeJSONBufferOverflow2,
     NULL,
 };
 
