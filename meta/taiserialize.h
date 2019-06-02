@@ -421,35 +421,6 @@ int tai_deserialize_object_id(
         _In_ const char *buffer,
         _Out_ tai_object_id_t *object_id);
 
-
-int tai_deserialize_u8list(
-        _In_ const char *buffer,
-        _Out_ tai_u8_list_t *value);
-
-int tai_deserialize_s8list(
-        _In_ const char *buffer,
-        _Out_ tai_s8_list_t *value);
-
-int tai_deserialize_u16list(
-        _In_ const char *buffer,
-        _Out_ tai_u16_list_t *value);
-
-int tai_deserialize_s16list(
-        _In_ const char *buffer,
-        _Out_ tai_s16_list_t *value);
-
-int tai_deserialize_u32list(
-        _In_ const char *buffer,
-        _Out_ tai_u32_list_t *value);
-
-int tai_deserialize_s32list(
-        _In_ const char *buffer,
-        _Out_ tai_s32_list_t *value);
-
-int tai_deserialize_floatlist(
-        _In_ const char *buffer,
-        _Out_ tai_float_list_t *value);
-
 /**
  * @brief Attribute serialize/deserialize option.
  */
@@ -471,6 +442,54 @@ typedef struct _tai_serialize_option_t
     bool json;
 
 } tai_serialize_option_t;
+
+
+int tai_deserialize_u8list(
+        _In_ const char *buffer,
+        _Out_ tai_u8_list_t *value,
+        _In_ const tai_serialize_option_t *option);
+
+int tai_deserialize_s8list(
+        _In_ const char *buffer,
+        _Out_ tai_s8_list_t *value,
+        _In_ const tai_serialize_option_t *option);
+
+int tai_deserialize_u16list(
+        _In_ const char *buffer,
+        _Out_ tai_u16_list_t *value,
+        _In_ const tai_serialize_option_t *option);
+
+int tai_deserialize_s16list(
+        _In_ const char *buffer,
+        _Out_ tai_s16_list_t *value,
+        _In_ const tai_serialize_option_t *option);
+
+int tai_deserialize_u32list(
+        _In_ const char *buffer,
+        _Out_ tai_u32_list_t *value,
+        _In_ const tai_serialize_option_t *option);
+
+int tai_deserialize_s32list(
+        _In_ const char *buffer,
+        _Out_ tai_s32_list_t *value,
+        _In_ const tai_serialize_option_t *option);
+
+int tai_deserialize_floatlist(
+        _In_ const char *buffer,
+        _Out_ tai_float_list_t *value,
+        _In_ const tai_serialize_option_t *option);
+
+int tai_deserialize_enumlist(
+        _In_ const char *buffer,
+        _In_ const tai_enum_metadata_t *meta,
+        _Out_ tai_s32_list_t *value,
+        _In_ const tai_serialize_option_t *option);
+
+int tai_deserialize_attrlist(
+        _In_ const char *buffer,
+        _In_ const tai_attr_metadata_t* meta,
+        _Out_ tai_attr_value_list_t *value,
+        _In_ const tai_serialize_option_t *option);
 
 /**
  * @brief Serialize enum value.
