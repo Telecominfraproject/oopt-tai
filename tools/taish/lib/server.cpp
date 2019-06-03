@@ -306,7 +306,11 @@ again:
     tai_status_t ret;
     if ( v.size() > 0 ) {
         ret = tai_deserialize_attribute_value(v.c_str(), meta, &attr.value, &option);
-        if ( ret < 0 ) {
+        if ( ret == TAI_STATUS_BUFFER_OVERFLOW && alloc_info.reference == nullptr ) {
+            reference = attr;
+            alloc_info.reference = &reference;
+            goto again;
+        } else if ( ret < 0 ) {
             goto err;
         }
     }
@@ -368,17 +372,25 @@ err:
     auto v = a.value();
     auto type = tai_object_type_query(oid);
     auto meta = tai_metadata_get_attr_metadata(type, id);
-    tai_attribute_t attr = {0};
+    tai_attribute_t attr = {0}, reference = {0};
     attr.id = id;
     tai_serialize_option_t option{true};
-    if( tai_metadata_alloc_attr_value(meta, &attr, nullptr) != TAI_STATUS_SUCCESS ) {
+    tai_alloc_info_t alloc_info = { .list_size = 16 };
+
+again:
+    if( tai_metadata_alloc_attr_value(meta, &attr, &alloc_info) != TAI_STATUS_SUCCESS ) {
         return Status(StatusCode::UNKNOWN, "failed to alloc value");
     }
 
     auto ret = tai_deserialize_attribute_value(v.c_str(), meta, &attr.value, &option);
-    if ( ret < 0 ) {
+    if ( ret == TAI_STATUS_BUFFER_OVERFLOW && alloc_info.reference == nullptr ) {
+        reference = attr;
+        alloc_info.reference = &reference;
+        goto again;
+    } else if ( ret < 0 ) {
         goto err;
     }
+
     switch (type) {
     case TAI_OBJECT_TYPE_MODULE:
         ret = m_api->module_api->set_module_attribute(oid, &attr);
@@ -395,6 +407,11 @@ err:
 err:
     if ( tai_metadata_free_attr_value(meta, &attr, nullptr) != TAI_STATUS_SUCCESS ) {
         return Status(StatusCode::UNKNOWN, "failed to free value");
+    }
+    if ( alloc_info.reference != nullptr ) {
+        if ( tai_metadata_free_attr_value(meta, const_cast<tai_attribute_t*>(alloc_info.reference), &alloc_info) != TAI_STATUS_SUCCESS ) {
+            return Status(StatusCode::UNKNOWN, "failed to free reference value");
+        }
     }
     if ( ret < 0 ) {
         std::stringstream ss;
