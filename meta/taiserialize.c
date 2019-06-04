@@ -6,24 +6,14 @@
  *
  * @copyright Copyright (c) 2014 Microsoft Open Technologies, Inc.
  * @copyright Copyright (c) 2018 Nippon Telegraph and Telephone Corporation
+ * All rights reserved.
  *
- * @remark  Licensed under the Apache License, Version 2.0 (the "License"); you
- *          may not use this file except in compliance with the License. You may
- *          obtain a copy of the License at
- *          http://www.apache.org/licenses/LICENSE-2.0
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree.
  *
- * @remark  THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR
- *          CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT
- *          LIMITATION ANY IMPLIED WARRANTIES OR CONDITIONS OF TITLE, FITNESS
- *          FOR A PARTICULAR PURPOSE, MERCHANTABILITY OR NON-INFRINGEMENT.
+ * This source code includes software licensed by Microsoft under the
+ * Apache License, Version 2.0
  *
- * @remark  See the Apache Version 2.0 License for specific language governing
- *          permissions and limitations under the License.
- *
- * @remark  Microsoft would like to thank the following companies for their
- *          review and assistance with these files: Intel Corporation, Mellanox
- *          Technologies Ltd, Dell Products, L.P., Facebook, Inc., Marvell
- *          International Ltd.
  */
 
 #include <arpa/inet.h>
