@@ -473,6 +473,9 @@ int tai_serialize_float(
         _In_ size_t n,
         _In_ float flt)
 {
+    if ( abs(flt) < 1e-4 || abs(flt) > 1e+4 ) {
+        return snprintf(buffer, n, "%e", flt);
+    }
     return snprintf(buffer, n, "%f", flt);
 }
 
