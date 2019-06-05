@@ -461,7 +461,7 @@ int tai_deserialize_charlist(
     int count = strlen(buffer) + 1;
     if ( count > value->count ) {
         value->count = count;
-        return -1;
+        return TAI_STATUS_BUFFER_OVERFLOW;
     }
     value->count = count;
     memcpy(value->list, buffer, count);
