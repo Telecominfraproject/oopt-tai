@@ -70,6 +70,7 @@ struct tai_subscription_t {
 class TAINotifier {
     public:
         TAINotifier() {};
+        ~TAINotifier();
         int notify(const tai_notification_t& n);
         int subscribe(void* id, tai_subscription_t* s) {
             std::unique_lock<std::mutex> lk(mtx);
@@ -106,10 +107,8 @@ class TAIServiceImpl final : public tai::TAI::Service {
         ::grpc::Status SetAttribute(::grpc::ServerContext* context, const ::tai::SetAttributeRequest* request, ::tai::SetAttributeResponse* response);
         ::grpc::Status Monitor(::grpc::ServerContext* context, const ::tai::MonitorRequest* request, ::grpc::ServerWriter< ::tai::MonitorResponse>* writer);
         ::grpc::Status SetLogLevel(::grpc::ServerContext* context, const ::tai::SetLogLevelRequest* request, ::tai::SetLogLevelResponse* response);
-        void notify(tai_object_id_t oid, tai_attribute_t const * const attribute);
     private:
         TAINotifier* get_notifier(tai_object_id_t oid) {
-            std::unique_lock<std::mutex> lk(m_mtx);
             if ( m_notifiers.find(oid) == m_notifiers.end() ) {
                 m_notifiers[oid] = new TAINotifier();
             }
@@ -117,7 +116,7 @@ class TAIServiceImpl final : public tai::TAI::Service {
         }
         const tai_api_method_table_t* const m_api;
         std::map<tai_object_id_t, TAINotifier*> m_notifiers;
-        std::mutex m_mtx;
+        std::mutex m_mtx; // mutex for m_notifiers
 };
 
 #endif // __TAIGRPC_HPP__
