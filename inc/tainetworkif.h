@@ -473,7 +473,17 @@ typedef enum _tai_network_interface_attr_t
      * @flags READ_ONLY
      */
     TAI_NETWORK_INTERFACE_ATTR_CURRENT_DIFFERENTIAL_GROUP_DELAY,
-
+    
+    /**
+     * @brief Current Signal-to-Noise Ratio (SNR) in dB
+     *
+     * @reference CFP MSA BA00
+     *
+     * @type #tai_float_t
+     * @flags READ_ONLY
+     */
+    TAI_NETWORK_INTERFACE_ATTR_CURRENT_SNR,
+    
     /**
      * @brief The current post-FEC bit error rate
      *
