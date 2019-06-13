@@ -131,88 +131,16 @@ static void usage(const tai_attr_metadata_t* meta, std::string* str) {
         *str += "]";
         return;
     }
-    switch (meta->attrvaluetype) {
-    case TAI_ATTR_VALUE_TYPE_BOOLDATA:
-        *str = "<bool>";
-        break;
-    case TAI_ATTR_VALUE_TYPE_CHARDATA:
-        *str = "<chardata>";
-        break;
-    case TAI_ATTR_VALUE_TYPE_U8:
-        *str = "<uint8>";
-        break;
-    case TAI_ATTR_VALUE_TYPE_S8:
-        *str = "<int8>";
-        break;
-    case TAI_ATTR_VALUE_TYPE_U16:
-        *str = "<uint16>";
-        break;
-    case TAI_ATTR_VALUE_TYPE_S16:
-        *str = "<int16>";
-        break;
-    case TAI_ATTR_VALUE_TYPE_U32:
-        *str = "<uint32>";
-        break;
-    case TAI_ATTR_VALUE_TYPE_S32:
-        *str = "<int32>";
-        break;
-    case TAI_ATTR_VALUE_TYPE_U64:
-        *str = "<uint64>";
-        break;
-    case TAI_ATTR_VALUE_TYPE_S64:
-        *str = "<int64>";
-        break;
-    case TAI_ATTR_VALUE_TYPE_FLT:
-        *str = "<float>";
-        break;
-    case TAI_ATTR_VALUE_TYPE_PTR:
-        *str = "<pointer>";
-        break;
-    case TAI_ATTR_VALUE_TYPE_OID:
-        *str = "<oid>";
-        break;
-    case TAI_ATTR_VALUE_TYPE_OBJLIST:
-        *str = "<oid list>";
-        break;
-    case TAI_ATTR_VALUE_TYPE_CHARLIST:
-        *str = "<string>";
-        break;
-    case TAI_ATTR_VALUE_TYPE_U8LIST:
-        *str = "<uint8 list>";
-        break;
-    case TAI_ATTR_VALUE_TYPE_S8LIST:
-        *str = "<int8 list>";
-        break;
-    case TAI_ATTR_VALUE_TYPE_U16LIST:
-        *str = "<uint16 list>";
-        break;
-    case TAI_ATTR_VALUE_TYPE_S16LIST:
-        *str = "<int16 list>";
-        break;
-    case TAI_ATTR_VALUE_TYPE_U32LIST:
-        *str = "<uint32 list>";
-        break;
-    case TAI_ATTR_VALUE_TYPE_S32LIST:
-        *str = "<int32 list>";
-        break;
-    case TAI_ATTR_VALUE_TYPE_FLOATLIST:
-        *str = "<flaot list>";
-        break;
-    case TAI_ATTR_VALUE_TYPE_U32RANGE:
-        *str = "<uint32 range>";
-        break;
-    case TAI_ATTR_VALUE_TYPE_S32RANGE:
-        *str = "<int32 range>";
-        break;
-    case TAI_ATTR_VALUE_TYPE_OBJMAPLIST:
-        *str = "<oid map list>";
-        break;
-    case TAI_ATTR_VALUE_TYPE_ATTRLIST:
-        *str = "<attribute list>";
-        break;
-    default:
+    char buf[32] = {0};
+    tai_serialize_option_t option;
+    option.human = true;
+    auto ret = tai_serialize_attr_value_type(buf, 32, meta->attrvaluetype, &option);
+    if ( ret < 0 ) {
         *str = "<unknown>";
     }
+    std::stringstream ss;
+    ss << "<" << buf << ">";
+    *str = ss.str();
 }
 
 static void convert_metadata(const tai_attr_metadata_t* const src, ::tai::AttributeMetadata* const dst) {
