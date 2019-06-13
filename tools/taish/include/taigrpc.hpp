@@ -21,6 +21,7 @@
 #include <map>
 #include <iostream>
 #include <string>
+#include <memory>
 
 struct tai_api_module_t
 {
@@ -121,14 +122,14 @@ class TAIServiceImpl final : public tai::TAI::Service {
         ::grpc::Status Create(::grpc::ServerContext* context, const ::tai::CreateRequest* request, ::tai::CreateResponse* response);
         ::grpc::Status Remove(::grpc::ServerContext* context, const ::tai::RemoveRequest* request, ::tai::RemoveResponse* response);
     private:
-        TAINotifier* get_notifier(tai_object_id_t oid) {
+        std::shared_ptr<TAINotifier> get_notifier(tai_object_id_t oid) {
             if ( m_notifiers.find(oid) == m_notifiers.end() ) {
-                m_notifiers[oid] = new TAINotifier();
+                m_notifiers[oid] = std::make_shared<TAINotifier>();
             }
             return m_notifiers[oid];
         }
         const tai_api_method_table_t* const m_api;
-        std::map<tai_object_id_t, TAINotifier*> m_notifiers;
+        std::map<tai_object_id_t, std::shared_ptr<TAINotifier>> m_notifiers;
         std::mutex m_mtx; // mutex for m_notifiers
 };
 

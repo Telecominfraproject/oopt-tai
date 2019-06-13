@@ -486,7 +486,7 @@ void monitor_callback(void* context, tai_object_id_t oid, tai_attribute_t const 
     tai_attribute_t attr = {0};
     tai_status_t ret;
     tai_subscription_t s;
-    TAINotifier *notifier = nullptr;
+    std::shared_ptr<TAINotifier> notifier = nullptr;
 
     {
         std::unique_lock<std::mutex> lk(m_mtx);
@@ -510,7 +510,7 @@ void monitor_callback(void* context, tai_object_id_t oid, tai_attribute_t const 
 
         if ( attr.value.notification.notify == nullptr ) {
             attr.value.notification.notify = monitor_callback;
-            attr.value.notification.context = notifier;
+            attr.value.notification.context = notifier.get();
             ret = m_api->netif_api->set_network_interface_attribute(oid, &attr);
             if ( ret != TAI_STATUS_SUCCESS ) {
                 std::stringstream ss;
@@ -536,6 +536,13 @@ void monitor_callback(void* context, tai_object_id_t oid, tai_attribute_t const 
 
             if ( context->IsCancelled() ) {
                 break;
+            }
+
+            {
+                std::unique_lock<std::mutex> lk(m_mtx);
+                if ( m_notifiers.find(oid) == m_notifiers.end() ) {
+                    return Status(StatusCode::UNKNOWN, "object is removed");
+                }
             }
 
             if ( s.q.size() == 0 ) {
@@ -586,7 +593,6 @@ void monitor_callback(void* context, tai_object_id_t oid, tai_attribute_t const 
         }
 
         if ( notifier->size() == 0 ) {
-            delete notifier;
             m_notifiers.erase(oid);
         }
 
@@ -705,7 +711,16 @@ err:
     if ( ret != TAI_STATUS_SUCCESS ) {
         return Status(StatusCode::UNKNOWN, "failed to remove object");
     } else {
+
+        {
+            std::unique_lock<std::mutex> lk(m_mtx);
+            if ( m_notifiers.find(oid) != m_notifiers.end() ) {
+                m_notifiers.erase(oid);
+            }
+        }
+
         m_api->object_update(type, oid, false);
+
     }
     return Status::OK;
 }
