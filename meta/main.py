@@ -511,7 +511,7 @@ const size_t tai_metadata_attr_sorted_by_id_name_count = {{ attrs | count }};
     def __init__(self, header):
         generators = []
         all_attrs = []
-        for obj in h.objects:
+        for obj in header.objects:
             attrs = obj.get_attributes()
             enums = obj.get_enums()
 

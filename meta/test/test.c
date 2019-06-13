@@ -568,6 +568,55 @@ int testDeserializeJSONBufferOverflow2() {
     return 0;
 }
 
+int testSerializeStatus() {
+    char buf[128] = {0};
+    tai_serialize_option_t option = {
+        .human = true,
+        .json = true,
+    };
+    int ret = tai_serialize_status(buf, 128, TAI_STATUS_SUCCESS, &option);
+    if ( ret < 0 ) {
+        return -1;
+    }
+    ret = strcmp(buf, "\"success\"");
+    if ( ret != 0 ) {
+        return -1;
+    }
+    option.json = false;
+    ret = tai_serialize_status(buf, 128, TAI_STATUS_SUCCESS, &option);
+    if ( ret < 0 ) {
+        return -1;
+    }
+    ret = strcmp(buf, "success");
+    if ( ret != 0 ) {
+        return -1;
+    }
+    option.human = false;
+    ret = tai_serialize_status(buf, 128, TAI_STATUS_SUCCESS, &option);
+    if ( ret < 0 ) {
+        return -1;
+    }
+    ret = strcmp(buf, "TAI_STATUS_SUCCESS");
+    if ( ret != 0 ) {
+        return -1;
+    }
+}
+
+int testSerializeAttrValueType() {
+    char buf[128] = {0};
+    tai_serialize_option_t option = {
+        .human = true,
+    };
+    int ret = tai_serialize_attr_value_type(buf, 128, TAI_ATTR_VALUE_TYPE_BOOLDATA, &option);
+    if ( ret < 0 ) {
+        return -1;
+    }
+    ret = strcmp(buf, "bool");
+    if ( ret != 0 ) {
+        return -1;
+    }
+}
+
 typedef int (*testF)();
 
 testF tests[] = {
@@ -593,6 +642,8 @@ testF tests[] = {
     testDeserializeJSONAttrList2,
     testDeserializeJSONBufferOverflow,
     testDeserializeJSONBufferOverflow2,
+    testSerializeStatus,
+    testSerializeAttrValueType,
     NULL,
 };
 

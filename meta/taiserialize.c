@@ -1135,3 +1135,126 @@ int tai_deserialize_attribute_value(
     }
     return TAI_SERIALIZE_ERROR;
 }
+
+#define _SERIALIZE_VALUE(s, short_name)\
+    if ( option != NULL && option->human ) {\
+        _SERIALIZE(snprintf(ptr, n, short_name), count, ptr, n);\
+    } else {\
+        _SERIALIZE(snprintf(ptr, n, s), count, ptr, n);\
+    }\
+    break;\
+
+#define CASE_SERIALIZE_VALUE(s, short_name)\
+    case s:\
+    _SERIALIZE_VALUE(#s, short_name)
+
+int tai_serialize_status(
+        _Out_ char *buffer,
+        _In_ size_t n,
+        _In_ const tai_status_t status,
+        _In_ const tai_serialize_option_t *option) {
+    int count;
+    char *ptr = buffer;
+
+    if ( option != NULL && option->json ) {
+        _SERIALIZE(snprintf(ptr, n, "\""), count, ptr, n);
+    }
+
+    switch ( status ) {
+    CASE_SERIALIZE_VALUE(TAI_STATUS_SUCCESS, "success")
+    CASE_SERIALIZE_VALUE(TAI_STATUS_FAILURE, "failure")
+    CASE_SERIALIZE_VALUE(TAI_STATUS_NOT_SUPPORTED, "not-supported")
+    CASE_SERIALIZE_VALUE(TAI_STATUS_NO_MEMORY, "no-memory")
+    CASE_SERIALIZE_VALUE(TAI_STATUS_INSUFFICIENT_RESOURCES, "insufficient-resources")
+    CASE_SERIALIZE_VALUE(TAI_STATUS_INVALID_PARAMETER, "invalid-parameter")
+    CASE_SERIALIZE_VALUE(TAI_STATUS_ITEM_ALREADY_EXISTS, "item-already-exists")
+    CASE_SERIALIZE_VALUE(TAI_STATUS_ITEM_NOT_FOUND, "item-not-found")
+    CASE_SERIALIZE_VALUE(TAI_STATUS_BUFFER_OVERFLOW, "buffer-overflow")
+    CASE_SERIALIZE_VALUE(TAI_STATUS_INVALID_PORT_NUMBER, "invalid-port-number")
+    CASE_SERIALIZE_VALUE(TAI_STATUS_INVALID_PORT_MEMBER, "invalid-port-member")
+    CASE_SERIALIZE_VALUE(TAI_STATUS_UNINITIALIZED, "uninitialized")
+    CASE_SERIALIZE_VALUE(TAI_STATUS_TABLE_FULL, "table-full")
+    CASE_SERIALIZE_VALUE(TAI_STATUS_MANDATORY_ATTRIBUTE_MISSING, "mandatory-attribute-missing")
+    CASE_SERIALIZE_VALUE(TAI_STATUS_NOT_IMPLEMENTED, "not-implemented")
+    CASE_SERIALIZE_VALUE(TAI_STATUS_ADDR_NOT_FOUND, "addr-not-found")
+    CASE_SERIALIZE_VALUE(TAI_STATUS_OBJECT_IN_USE, "object-in-use")
+    CASE_SERIALIZE_VALUE(TAI_STATUS_INVALID_OBJECT_TYPE, "invalid-object-type")
+    CASE_SERIALIZE_VALUE(TAI_STATUS_INVALID_OBJECT_ID, "invalid-object-id")
+    CASE_SERIALIZE_VALUE(TAI_STATUS_INVALID_NV_STORAGE, "invalid-nv-storage")
+    CASE_SERIALIZE_VALUE(TAI_STATUS_NV_STORAGE_FULL, "nv-storage-full")
+    CASE_SERIALIZE_VALUE(TAI_STATUS_SW_UPGRADE_VERSION_MISMATCH, "sw-upgrade-version-mismatch")
+    CASE_SERIALIZE_VALUE(TAI_STATUS_NOT_EXECUTED, "not-executed")
+    default:
+        if ( TAI_STATUS_IS_INVALID_ATTRIBUTE(status) ) {
+            _SERIALIZE_VALUE("TAI_STATUS_INVALID_ATTRIBUTE", "invalid-attribute")
+        } else if ( TAI_STATUS_IS_INVALID_ATTR_VALUE(status) ) {
+            _SERIALIZE_VALUE("TAI_STATUS_INVALID_ATTR_VALUE", "invalid-attr-value")
+        } else if ( TAI_STATUS_IS_ATTR_NOT_IMPLEMENTED(status) ) {
+            _SERIALIZE_VALUE("TAI_STATUS_ATTR_NOT_IMPLEMENTED", "attr-not-implemented")
+        } else if ( TAI_STATUS_IS_UNKNOWN_ATTRIBUTE(status) ) {
+            _SERIALIZE_VALUE("TAI_STATUS_UNKNOWN_ATTRIBUTE", "unknown-attribute")
+        } else if ( TAI_STATUS_IS_ATTR_NOT_SUPPORTED(status) ) {
+            _SERIALIZE_VALUE("TAI_STATUS_ATTR_NOT_SUPPORTED", "attr-not-supported")
+        } else {
+            _SERIALIZE(snprintf(ptr, n, "unknown(%d)", status), count, ptr, n);
+        }
+    }
+
+    if ( option != NULL && option->json ) {
+        _SERIALIZE(snprintf(ptr, n, "\""), count, ptr, n);
+    }
+
+    return ptr - buffer;
+}
+
+int tai_serialize_attr_value_type(
+        _Out_ char *buffer,
+        _In_ size_t n,
+        _In_ const tai_attr_value_type_t type,
+        _In_ const tai_serialize_option_t *option) {
+    int count;
+    char *ptr = buffer;
+
+    if ( option != NULL && option->json ) {
+        _SERIALIZE(snprintf(ptr, n, "\""), count, ptr, n);
+    }
+
+    switch (type) {
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_UNSPECIFIED, "unspecified")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_BOOLDATA, "bool")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_CHARDATA, "chardata")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_U8, "uint8")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_S8, "int8")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_U16, "uint16")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_S16, "int16")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_U32, "uint32")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_S32, "int32")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_U64, "uint64")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_S64, "int64")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_FLT, "float")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_PTR, "pointer")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_OID, "object-id")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_OBJLIST, "object-list")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_CHARLIST, "char-list")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_U8LIST, "uint8-list")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_S8LIST, "int8-list")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_U16LIST, "uint16-list")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_S16LIST, "int16-list")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_U32LIST, "uint32-list")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_S32LIST, "int32-list")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_FLOATLIST, "float-list")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_U32RANGE, "uint32-range")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_S32RANGE, "int32-range")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_OBJMAPLIST, "objet-map-list")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_ATTRLIST, "attribute-list")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_NOTIFICATION, "notification")
+    default:
+        _SERIALIZE(snprintf(ptr, n, "unknown(%d)", type), count, ptr, n);
+    }
+
+    if ( option != NULL && option->json ) {
+        _SERIALIZE(snprintf(ptr, n, "\""), count, ptr, n);
+    }
+
+    return ptr - buffer;
+}
