@@ -577,6 +577,39 @@ int tai_deserialize_attribute_value(
         _Out_ tai_attribute_value_t *value,
         _In_ const tai_serialize_option_t *option);
 
+/**
+ * @brief Serialize TAI status.
+ *
+ * @param[out] buffer Output buffer for serialized value.
+ * @param[in] n size of the buffer
+ * @param[in] status Status to be serialized.
+ * @param[in] option serialization option
+ *
+ * @return Number of characters written to buffer excluding '\0',
+ * or #TAI_SERIALIZE_ERROR on error.
+ */
+int tai_serialize_status(
+        _Out_ char *buffer,
+        _In_ size_t n,
+        _In_ const tai_status_t status,
+        _In_ const tai_serialize_option_t *option);
+
+/**
+ * @brief Serialize TAI attr value type.
+ *
+ * @param[out] buffer Output buffer for serialized value.
+ * @param[in] n size of the buffer
+ * @param[in] type Type to be serialized
+ * @param[in] option serialization option
+ *
+ * @return Number of characters written to buffer excluding '\0',
+ * or #TAI_SERIALIZE_ERROR on error.
+ */
+int tai_serialize_attr_value_type(
+        _Out_ char *buffer,
+        _In_ size_t n,
+        _In_ const tai_attr_value_type_t type,
+        _In_ const tai_serialize_option_t *option);
 
 /**
  * @}
