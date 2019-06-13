@@ -20,10 +20,13 @@
 #include <queue>
 #include <map>
 #include <iostream>
+#include <string>
 
 struct tai_api_module_t
 {
-    tai_object_id_t id;
+    std::string       location;
+    bool              present;
+    tai_object_id_t   id;
     tai_object_list_t hostifs;
     tai_object_list_t netifs;
 };
@@ -36,12 +39,20 @@ struct tai_api_module_list_t
 
 typedef tai_status_t (*tai_api_list_module_fn)(_Inout_ tai_api_module_list_t* const list);
 
+// this hook function will be called when taish library created or removed a TAI object
+// type : the object type, we can't use tai_object_type_query() since the object with the oid is
+//        already removed when this function is called
+// oid : the object id of the created or removed object
+// is_create : a flag to indicated whether the update is create or remove
+typedef void (*tai_object_update_fn)(tai_object_type_t type, tai_object_id_t oid, bool is_create);
+
 struct tai_api_method_table_t
 {
     tai_module_api_t* module_api;
     tai_host_interface_api_t* hostif_api;
     tai_network_interface_api_t* netif_api;
     tai_api_list_module_fn list_module;
+    tai_object_update_fn object_update;
 };
 
 class TAIAPIModuleList {
@@ -107,6 +118,8 @@ class TAIServiceImpl final : public tai::TAI::Service {
         ::grpc::Status SetAttribute(::grpc::ServerContext* context, const ::tai::SetAttributeRequest* request, ::tai::SetAttributeResponse* response);
         ::grpc::Status Monitor(::grpc::ServerContext* context, const ::tai::MonitorRequest* request, ::grpc::ServerWriter< ::tai::MonitorResponse>* writer);
         ::grpc::Status SetLogLevel(::grpc::ServerContext* context, const ::tai::SetLogLevelRequest* request, ::tai::SetLogLevelResponse* response);
+        ::grpc::Status Create(::grpc::ServerContext* context, const ::tai::CreateRequest* request, ::tai::CreateResponse* response);
+        ::grpc::Status Remove(::grpc::ServerContext* context, const ::tai::RemoveRequest* request, ::tai::RemoveResponse* response);
     private:
         TAINotifier* get_notifier(tai_object_id_t oid) {
             if ( m_notifiers.find(oid) == m_notifiers.end() ) {

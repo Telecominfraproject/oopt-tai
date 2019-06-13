@@ -15,6 +15,7 @@
 #include "taimetadata.h"
 #include <sstream>
 #include <chrono>
+#include <functional>
 
 using grpc::Status;
 using grpc::StatusCode;
@@ -65,7 +66,6 @@ TAIAPIModuleList::~TAIAPIModuleList() {
 }
 
 ::grpc::Status TAIServiceImpl::ListModule(::grpc::ServerContext* context, const ::tai::ListModuleRequest* request, ::grpc::ServerWriter< ::tai::ListModuleResponse>* writer) {
-    auto res = ::tai::ListModuleResponse();
 
     TAIAPIModuleList l;
     auto list = l.list();
@@ -80,25 +80,30 @@ TAIAPIModuleList::~TAIAPIModuleList() {
     }
 
     for ( auto i = 0; i < list->count; i++ ) {
+        auto res = ::tai::ListModuleResponse();
         auto m = res.mutable_module();
         auto module = list->list[i];
+        m->set_location(module.location);
+        m->set_present(module.present);
         m->set_oid(module.id);
-        ret = m_api->module_api->get_module_attribute(module.id, &attr);
-        if ( ret != TAI_STATUS_SUCCESS ) {
-            goto err;
-        }
-        m->set_location(attr.value.charlist.list, attr.value.charlist.count);
-        m->clear_hostifs();
-        for ( auto i = 0; i < module.hostifs.count; i++ ) {
-            auto hostif = m->add_hostifs();
-            hostif->set_index(i);
-            hostif->set_oid(module.hostifs.list[i]);
-        }
-        m->clear_netifs();
-        for ( auto i = 0; i < module.netifs.count; i++ ) {
-            auto netif = m->add_netifs();
-            netif->set_index(i);
-            netif->set_oid(module.netifs.list[i]);
+        if ( module.id != TAI_NULL_OBJECT_ID ) {
+            ret = m_api->module_api->get_module_attribute(module.id, &attr);
+            if ( ret != TAI_STATUS_SUCCESS ) {
+                goto err;
+            }
+            m->set_location(attr.value.charlist.list, attr.value.charlist.count);
+            m->clear_hostifs();
+            for ( auto i = 0; i < module.hostifs.count; i++ ) {
+                auto hostif = m->add_hostifs();
+                hostif->set_index(i);
+                hostif->set_oid(module.hostifs.list[i]);
+            }
+            m->clear_netifs();
+            for ( auto i = 0; i < module.netifs.count; i++ ) {
+                auto netif = m->add_netifs();
+                netif->set_index(i);
+                netif->set_oid(module.netifs.list[i]);
+            }
         }
         writer->Write(res);
     }
@@ -594,6 +599,113 @@ void monitor_callback(void* context, tai_object_id_t oid, tai_attribute_t const 
     auto ret = tai_log_set(static_cast<tai_api_t>(request->api()), static_cast<tai_log_level_t>(request->level()), nullptr);
     if ( ret != TAI_STATUS_SUCCESS ) {
         return Status(StatusCode::UNKNOWN, "failed to set loglevel");
+    }
+    return Status::OK;
+}
+
+::grpc::Status TAIServiceImpl::Create(::grpc::ServerContext* context, const ::tai::CreateRequest* request, ::tai::CreateResponse* response) {
+    auto object_type = request->object_type();
+    auto mid = static_cast<tai_object_id_t>(request->module_id());
+    tai_object_type_t type;
+    std::function<tai_status_t(tai_object_id_t*, uint32_t, const tai_attribute_t*)> create;
+
+    switch (object_type) {
+    case ::tai::MODULE:
+        type = TAI_OBJECT_TYPE_MODULE;
+        create = m_api->module_api->create_module;
+        break;
+    case ::tai::NETIF:
+        type = TAI_OBJECT_TYPE_NETWORKIF;
+        create = std::bind(m_api->netif_api->create_network_interface, std::placeholders::_1, mid, std::placeholders::_2, std::placeholders::_3);
+        break;
+    case ::tai::HOSTIF:
+        type = TAI_OBJECT_TYPE_HOSTIF;
+        create = std::bind(m_api->hostif_api->create_host_interface, std::placeholders::_1, mid, std::placeholders::_2, std::placeholders::_3);
+        break;
+    default:
+        return Status(StatusCode::INVALID_ARGUMENT, "unsupported object type");
+    }
+
+    std::vector<tai_attribute_t> attrs;
+    ::grpc::Status status = Status::OK;
+    tai_status_t ret;
+
+    for ( auto i = 0; i < request->attrs_size(); i++ ) {
+        auto a = request->attrs(i);
+        auto id = a.attr_id();
+        auto v = a.value();
+        auto meta = tai_metadata_get_attr_metadata(type, id);
+        tai_attribute_t attr = {0}, reference = {0};
+        attr.id = id;
+        tai_serialize_option_t option{true};
+        tai_alloc_info_t alloc_info = { .list_size = 16 };
+    again:
+        if( tai_metadata_alloc_attr_value(meta, &attr, &alloc_info) != TAI_STATUS_SUCCESS ) {
+            status = Status(StatusCode::UNKNOWN, "failed to alloc value");
+            goto err;
+        }
+        ret = tai_deserialize_attribute_value(v.c_str(), meta, &attr.value, &option);
+        if ( ret == TAI_STATUS_BUFFER_OVERFLOW && alloc_info.reference == nullptr ) {
+            reference = attr;
+            alloc_info.reference = &reference;
+            goto again;
+        }
+
+        if ( alloc_info.reference != nullptr ) {
+            if ( tai_metadata_free_attr_value(meta, &reference, nullptr) != TAI_STATUS_SUCCESS ) {
+                status = Status(StatusCode::UNKNOWN, "failed to free value");
+                goto err;
+            }
+        }
+
+        if ( ret < 0 ) {
+            status = Status(StatusCode::UNKNOWN, "failed to deserialize value");
+            goto err;
+        }
+
+        attrs.emplace_back(attr);
+    }
+
+    tai_object_id_t oid;
+    ret = create(&oid, attrs.size(), attrs.data());
+    if ( ret != TAI_STATUS_SUCCESS ) {
+        status = Status(StatusCode::UNKNOWN, "failed to create object");
+    } else {
+        m_api->object_update(type, oid, true);
+    }
+err:
+    for ( auto& attr : attrs ) {
+        auto meta = tai_metadata_get_attr_metadata(type, attr.id);
+        if ( tai_metadata_free_attr_value(meta, &attr, nullptr) != TAI_STATUS_SUCCESS ) {
+            status = Status(StatusCode::UNKNOWN, "failed to free value");
+        }
+    }
+    return status;
+}
+
+::grpc::Status TAIServiceImpl::Remove(::grpc::ServerContext* context, const ::tai::RemoveRequest* request, ::tai::RemoveResponse* response) {
+    auto oid = request->oid();
+    auto type = tai_object_type_query(oid);
+    tai_status_t ret;
+
+    switch (type) {
+    case TAI_OBJECT_TYPE_MODULE:
+        ret = m_api->module_api->remove_module(oid);
+        break;
+    case TAI_OBJECT_TYPE_NETWORKIF:
+        ret = m_api->netif_api->remove_network_interface(oid);
+        break;
+    case TAI_OBJECT_TYPE_HOSTIF:
+        ret = m_api->hostif_api->remove_host_interface(oid);
+        break;
+    default:
+        return Status(StatusCode::INVALID_ARGUMENT, "unsupported object type");
+    }
+
+    if ( ret != TAI_STATUS_SUCCESS ) {
+        return Status(StatusCode::UNKNOWN, "failed to remove object");
+    } else {
+        m_api->object_update(type, oid, false);
     }
     return Status::OK;
 }

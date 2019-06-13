@@ -10,6 +10,8 @@ service TAI {
     rpc SetAttribute(SetAttributeRequest) returns (SetAttributeResponse);
     rpc Monitor(MonitorRequest) returns (stream MonitorResponse);
     rpc SetLogLevel(SetLogLevelRequest) returns (SetLogLevelResponse);
+    rpc Create(CreateRequest) returns (CreateResponse);
+    rpc Remove(RemoveRequest) returns (RemoveResponse);
 }
 
 enum TAIObjectType {
@@ -95,6 +97,23 @@ message SetLogLevelRequest {
 message SetLogLevelResponse {
 }
 
+message CreateRequest {
+    TAIObjectType object_type = 1;
+    repeated Attribute attrs = 2;
+    uint64 module_id = 3;
+}
+
+message CreateResponse {
+    uint64 oid = 1;
+}
+
+message RemoveRequest {
+    uint64 oid = 1;
+}
+
+message RemoveResponse {
+}
+
 message Attribute {
     uint64 attr_id = 1;
     string value = 2;
@@ -128,4 +147,5 @@ message Module {
     string location = 2;
     repeated HostInterface hostifs = 3;
     repeated NetworkInterface netifs = 4;
+    bool present = 5;
 }

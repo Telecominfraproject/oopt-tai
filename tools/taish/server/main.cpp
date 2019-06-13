@@ -41,7 +41,7 @@ std::mutex m;
 
 class module;
 
-std::map<tai_object_id_t, module*> g_modules;
+std::map<std::string, module*> g_modules;
 
 static int load_config(const json& config, std::vector<tai_attribute_t>& list, tai_object_type_t t) {
     int32_t attr_id;
@@ -99,9 +99,13 @@ static int load_config(const json& config, std::vector<tai_attribute_t>& list, t
 
 class module {
     public:
-        module(std::string location, const json& config) : m_location(location) {
+        module(std::string location, const json& config, bool auto_creation) : m_location(location), m_id(0) {
             std::vector<tai_attribute_t> list;
             tai_attribute_t attr;
+
+            if (!auto_creation) {
+                return;
+            }
 
             attr.id = TAI_MODULE_ATTR_LOCATION;
             attr.value.charlist.count = location.size();
@@ -139,8 +143,15 @@ class module {
             return m_id;
         }
 
+        void set_id(tai_object_id_t id) {
+            m_id = id;
+            return;
+        }
+
         std::vector<tai_object_id_t> netifs;
         std::vector<tai_object_id_t> hostifs;
+
+        bool present;
     private:
         tai_object_id_t m_id;
         std::string m_location;
@@ -231,6 +242,60 @@ int start_grpc_server(std::string addr) {
     th.detach();
 }
 
+void object_update(tai_object_type_t type, tai_object_id_t oid, bool is_create) {
+    if ( type == TAI_OBJECT_TYPE_MODULE ) {
+        if ( is_create ) {
+            tai_attribute_t attr;
+            char l[32];
+            attr.id = TAI_MODULE_ATTR_LOCATION;
+            attr.value.charlist.list = l;
+            attr.value.charlist.count = 32;
+            if ( g_api.module_api->get_module_attribute(oid, &attr) != TAI_STATUS_SUCCESS ) {
+                return;
+            }
+            std::string loc(l, attr.value.charlist.count);
+            auto m = g_modules[loc];
+            if ( m == nullptr ) {
+                return;
+            }
+            m->set_id(oid);
+        } else {
+            for ( auto& m : g_modules ) {
+                if ( m.second->id() == oid ) {
+                    m.second->set_id(TAI_NULL_OBJECT_ID);
+                    break;
+                }
+            }
+        }
+        return;
+    }
+
+    auto mid = tai_module_id_query(oid);
+
+    std::vector<tai_object_id_t> *v;
+
+    for ( auto& m : g_modules ) {
+        if ( type == TAI_OBJECT_TYPE_HOSTIF ) {
+            v = &m.second->hostifs;
+        } else if ( type == TAI_OBJECT_TYPE_NETWORKIF ) {
+            v = &m.second->netifs;
+        }
+
+        if ( is_create ) {
+            if ( m.second->id() == mid ) {
+                v->emplace_back(oid);
+                return;
+            }
+        } else {
+            auto it = std::find(v->begin(), v->end(), oid);
+            if ( it != v->end() ) {
+                v->erase(it);
+                return;
+            }
+        }
+    }
+}
+
 tai_status_t list_module(tai_api_module_list_t* const l) {
     std::lock_guard<std::mutex> g(m);
     if ( l->count < g_modules.size() ) {
@@ -241,8 +306,10 @@ tai_status_t list_module(tai_api_module_list_t* const l) {
     auto list = l->list;
     int i = 0;
     for ( auto v : g_modules ) {
-        list[i].id = v.first;
+        list[i].location = v.first;
         auto m = v.second;
+        list[i].present = m->present;
+        list[i].id =  m->id();
         if ( list[i].hostifs.count < m->hostifs.size() ) {
             list[i].hostifs.count = m->hostifs.size();
             return TAI_STATUS_BUFFER_OVERFLOW;
@@ -272,8 +339,9 @@ int main(int argc, char *argv[]) {
     std::string config_file;
     char c;
     tai_log_level_t level = TAI_LOG_LEVEL_INFO;
+    auto auto_creation = true;
 
-    while ((c = getopt (argc, argv, "i:p:f:v")) != -1) {
+    while ((c = getopt (argc, argv, "i:p:f:vn")) != -1) {
       switch (c) {
       case 'i':
         ip = std::string(optarg);
@@ -291,8 +359,12 @@ int main(int argc, char *argv[]) {
         level = TAI_LOG_LEVEL_DEBUG;
         break;
 
+      case 'n':
+        auto_creation = false;
+        break;
+
       default:
-        std::cerr << "Usage: taish -i <IP address> -p <Port number> -f <Config file> -v" << std::endl;
+        std::cerr << "Usage: taish -i <IP address> -p <Port number> -f <Config file> -v -n" << std::endl;
         return 1;
       }
     }
@@ -332,6 +404,7 @@ int main(int argc, char *argv[]) {
     }
 
     g_api.list_module = list_module;
+    g_api.object_update = object_update;
 
     std::stringstream ss;
     ss << ip << ":" << port;
@@ -363,10 +436,11 @@ int main(int argc, char *argv[]) {
                 auto p = q.front();
                 auto loc = p.second;
                 std::cout << "present: " << p.first << ", loc: " << loc << std::endl;
-                if ( p.first ) {
-                    auto m = new module(loc, config[loc]);
-                    g_modules[m->id()] = m;
+                if ( g_modules.find(loc) == g_modules.end() ) {
+                    auto m = new module(loc, config[loc], auto_creation);
+                    g_modules[loc] = m;
                 }
+                g_modules[loc]->present = p.first;
                 q.pop();
             }
         }
