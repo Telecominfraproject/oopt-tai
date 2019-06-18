@@ -319,6 +319,8 @@ typedef enum _tai_network_interface_attr_t
     /**
      * @brief The total current RX input power in dBm
      *
+     * @reference CFP MSA B4E0
+     *
      * @type #tai_float_t
      * @flags READ_ONLY
      */
@@ -327,6 +329,8 @@ typedef enum _tai_network_interface_attr_t
     /**
      * @brief The total current post-VOA RX input power in dBm
      *
+     * @reference CFP MSA BBF8
+     *
      * @type #tai_float_t
      * @flags READ_ONLY
      */
@@ -334,6 +338,8 @@ typedef enum _tai_network_interface_attr_t
 
     /**
      * @brief The current RX input power in the provisioned channel in dBm
+     *
+     * @reference CFP MSA BBF4
      *
      * @type #tai_float_t
      * @flags READ_ONLY
@@ -519,6 +525,14 @@ typedef enum _tai_network_interface_attr_t
      * @default NULL
      */
     TAI_NETWORK_INTERFACE_ATTR_ALARM_NOTIFICATION,
+
+    /**
+     * @brief The current post-VOA RX input power in the provisioned channel in dBm
+     *
+     * @type #tai_float_t
+     * @flags READ_ONLY
+     */
+    TAI_NETWORK_INTERFACE_ATTR_CURRENT_POST_VOA_PROVISIONED_CHANNEL_POWER,
 
     /**
      * @brief End of attributes
