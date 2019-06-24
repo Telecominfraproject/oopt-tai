@@ -41,15 +41,15 @@ typedef enum _tai_host_interface_tx_align_status_t
 } tai_host_interface_tx_align_status_t;
 
 /** @brief The host interface signal rate */
-typedef enum _tai_host_interface_client_signal_rate_t
+typedef enum _tai_host_interface_signal_rate_t
 {
-    TAI_HOST_INTERFACE_CLIENT_SIGNAL_RATE_UNKNOWN,
-    TAI_HOST_INTERFACE_CLIENT_SIGNAL_RATE_100_GbE,
-    TAI_HOST_INTERFACE_CLIENT_SIGNAL_RATE_200_GbE,
-    TAI_HOST_INTERFACE_CLIENT_SIGNAL_RATE_400_GbE,
-    TAI_HOST_INTERFACE_CLIENT_SIGNAL_RATE_OTU4,
-    TAI_HOST_INTERFACE_CLIENT_SIGNAL_RATE_MAX
-} tai_host_interface_client_signal_rate_t;
+    TAI_HOST_INTERFACE_SIGNAL_RATE_UNKNOWN,
+    TAI_HOST_INTERFACE_SIGNAL_RATE_100_GbE,
+    TAI_HOST_INTERFACE_SIGNAL_RATE_200_GbE,
+    TAI_HOST_INTERFACE_SIGNAL_RATE_400_GbE,
+    TAI_HOST_INTERFACE_SIGNAL_RATE_OTU4,
+    TAI_HOST_INTERFACE_SIGNAL_RATE_MAX
+} tai_host_interface_signal_rate_t;
 
 /** @brief The host interface FEC type */
 typedef enum _tai_host_interface_fec_type_t
@@ -110,11 +110,11 @@ typedef enum _tai_host_interface_attr_t
     /**
      * @brief signal rate
      *
-     * @type #tai_host_interface_client_signal_rate_t
+     * @type #tai_host_interface_signal_rate_t
      * @flags CREATE_AND_SET
      * @default vendor-specific
      */
-    TAI_HOST_INTERFACE_ATTR_CLIENT_SIGNAL_RATE,
+    TAI_HOST_INTERFACE_ATTR_SIGNAL_RATE,
 
     /**
      * @brief FEC type
