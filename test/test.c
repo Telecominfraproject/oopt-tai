@@ -142,9 +142,9 @@ int main() {
         printf("failed to initialize TAI\n");
         return 1;
     }
-    tai_log_set(TAI_API_MODULE, TAI_LOG_LEVEL_INFO);
-    tai_log_set(TAI_API_HOSTIF, TAI_LOG_LEVEL_INFO);
-    tai_log_set(TAI_API_NETWORKIF, TAI_LOG_LEVEL_INFO);
+    tai_log_set(TAI_API_MODULE, TAI_LOG_LEVEL_INFO, NULL);
+    tai_log_set(TAI_API_HOSTIF, TAI_LOG_LEVEL_INFO, NULL);
+    tai_log_set(TAI_API_NETWORKIF, TAI_LOG_LEVEL_INFO, NULL);
 
     status = tai_api_query(TAI_API_MODULE, (void**)&module_api);
     if ( status != TAI_STATUS_SUCCESS ) {

@@ -66,6 +66,27 @@ typedef enum _tai_log_level_t
 } tai_log_level_t;
 
 /**
+ * @brief Log level function definition.
+ *
+ * User can specify his own function that will be called when message log level
+ * will be greater or equal to #tai_log_level_t.
+ *
+ * @param[in] log_level Log level
+ * @param[in] file Source file
+ * @param[in] line Line number in file
+ * @param[in] function Function name
+ * @param[in] format Format of logging
+ * @param[in] ... Variable parameters
+ */
+typedef void (*tai_log_fn)(
+        _In_ tai_log_level_t log_level,
+        _In_ const char *file,
+        _In_ int line,
+        _In_ const char *function,
+        _In_ const char *format,
+        _In_ ...);
+
+/**
  * @brief The adapter calls this function, whose address is provided by the
  *        adapter host, whenever there is a change in an optical module's
  *        presence. This function will be called once for each module present
@@ -140,12 +161,14 @@ tai_status_t tai_api_uninitialize(void);
  *
  * @param[in] tai_api_id The API ID whose logging level is being set
  * @param[in] log_level Log level
+ * @param[in] log_fn    Log callback (when null, the default log handler is used)
  *
  * @return #TAI_STATUS_SUCCESS on success, failure status code on error
  */
 tai_status_t tai_log_set(
         _In_ tai_api_t tai_api_id,
-        _In_ tai_log_level_t log_level);
+        _In_ tai_log_level_t log_level,
+        _In_ tai_log_fn);
 
 /**
  * @brief Query TAI object type.

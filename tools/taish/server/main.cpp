@@ -307,7 +307,7 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    status = tai_log_set(TAI_API_UNSPECIFIED, level);
+    status = tai_log_set(TAI_API_UNSPECIFIED, level, nullptr);
     if ( status != TAI_STATUS_SUCCESS ) {
         std::cout << "failed to set log level" << std::endl;
         return -1;
