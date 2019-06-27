@@ -567,7 +567,7 @@ void TAIServiceImpl::notify(tai_object_id_t oid, tai_attribute_t const * const a
 }
 
 ::grpc::Status TAIServiceImpl::SetLogLevel(::grpc::ServerContext* context, const ::tai::SetLogLevelRequest* request, ::tai::SetLogLevelResponse* response) {
-    auto ret = tai_log_set(static_cast<tai_api_t>(request->api()), static_cast<tai_log_level_t>(request->level()));
+    auto ret = tai_log_set(static_cast<tai_api_t>(request->api()), static_cast<tai_log_level_t>(request->level()), nullptr);
     if ( ret != TAI_STATUS_SUCCESS ) {
         return Status(StatusCode::UNKNOWN, "failed to set loglevel");
     }

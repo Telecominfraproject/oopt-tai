@@ -1136,11 +1136,13 @@ tai_object_id_t tai_module_id_query(_In_ tai_object_id_t tai_object_id)
  *
  * @param [in] tai_api_id - TAI api ID 
  * @param [in] log_level - log level
+ * @param [in] log_fn - log fn
  *
  * @return #TAI_STATUS_SUCCESS on success, failure status code on error
  */
 tai_status_t tai_log_set(_In_ tai_api_t tai_api_id,
-                         _In_ tai_log_level_t log_level)
+                         _In_ tai_log_level_t log_level,
+                         _In_ tai_log_fn log_fn)
 {
     if ((TAI_API_UNSPECIFIED > tai_api_id) || (TAI_API_MAX <= tai_api_id)) {
         TAI_SYSLOG_ERROR("Invalid API type %d", tai_api_id);
@@ -1149,6 +1151,11 @@ tai_status_t tai_log_set(_In_ tai_api_t tai_api_id,
 
     if ((TAI_LOG_LEVEL_DEBUG > log_level) || (TAI_LOG_LEVEL_MAX <= log_level)) {
         TAI_SYSLOG_ERROR("Invalid log level %d\n", log_level);
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+
+    if ( log_fn != NULL ) {
+        TAI_SYSLOG_ERROR("setting log handler is not supported");
         return TAI_STATUS_INVALID_PARAMETER;
     }
 
