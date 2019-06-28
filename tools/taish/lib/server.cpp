@@ -371,6 +371,27 @@ err:
     return Status::OK;
 }
 
+::grpc::Status TAIServiceImpl::ClearAttribute(::grpc::ServerContext* context, const ::tai::ClearAttributeRequest* request, ::tai::ClearAttributeResponse* response) {
+    auto oid = request->oid();
+    auto id = request->attr_id();
+    auto type = tai_object_type_query(oid);
+    tai_status_t ret;
+
+    switch (type) {
+    case TAI_OBJECT_TYPE_HOSTIF:
+        ret = m_api->hostif_api->clear_host_interface_attribute(oid, id);
+        break;
+    default:
+        ret = TAI_STATUS_FAILURE;
+    }
+    if ( ret < 0 ) {
+        return _status("failed to set attribute", ret);
+    }
+    return Status::OK;
+}
+
+
+
 TAINotifier::~TAINotifier() {
     std::unique_lock<std::mutex> lk(mtx);
     for ( auto& s : m ) {

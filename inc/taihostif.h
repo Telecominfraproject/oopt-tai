@@ -234,6 +234,32 @@ typedef tai_status_t (*tai_get_host_interface_attributes_fn)(
         _Inout_ tai_attribute_t *attr_list);
 
 /**
+ * @brief Clear host interface attribute
+ *
+ * @param[in] host_interface_id Host interface id
+ * @param[in] attr_id Attribute
+ *
+ * @return #TAI_STATUS_SUCCESS on success, failure status code on error
+ */
+typedef tai_status_t (*tai_clear_host_interface_attribute_fn)(
+        _In_ tai_object_id_t host_interface_id,
+        _In_ tai_attr_id_t attr_id);
+
+/**
+ * @brief Clear multiple host interface attribute values
+ *
+ * @param[in] host_interface_id Host interface id
+ * @param[in] attr_id_count Number of attribute ids
+ * @param[in] attr_id_list Array of attribute ids
+ *
+ * @return #TAI_STATUS_SUCCESS on success, failure status code on error
+ */
+typedef tai_status_t (*tai_clear_host_interface_attributes_fn)(
+        _In_ tai_object_id_t host_interface_id,
+        _In_ uint32_t attr_id_count,
+        _In_ tai_attr_id_t *attr_id);
+
+/**
  * @brief Host interface methods table retrieved with tai_api_query()
  */
 typedef struct _tai_host_interface_api_t
@@ -244,7 +270,8 @@ typedef struct _tai_host_interface_api_t
     tai_set_host_interface_attributes_fn        set_host_interface_attributes;
     tai_get_host_interface_attribute_fn         get_host_interface_attribute;
     tai_get_host_interface_attributes_fn        get_host_interface_attributes;
-
+    tai_clear_host_interface_attribute_fn       clear_host_interface_attribute;
+    tai_clear_host_interface_attributes_fn      clear_host_interface_attributes;
 } tai_host_interface_api_t;
 
 /**
