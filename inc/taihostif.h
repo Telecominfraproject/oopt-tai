@@ -135,6 +135,54 @@ typedef enum _tai_host_interface_attr_t
     TAI_HOST_INTERFACE_ATTR_LOOPBACK_TYPE,
 
     /**
+     * @type #tai_uint32_t
+     * @flags READ_ONLY | CLEARABLE
+     */
+    TAI_HOST_INTERFACE_ATTR_ETHERNET_IN_OCTETS,
+
+    /**
+     * @type #tai_uint32_t
+     * @flags READ_ONLY | CLEARABLE
+     */
+    TAI_HOST_INTERFACE_ATTR_ETHERNET_IN_PACKETS,
+
+    /**
+     * @type #tai_uint32_t
+     * @flags READ_ONLY | CLEARABLE
+     */
+    TAI_HOST_INTERFACE_ATTR_ETHERNET_IN_FCS_ERRORS,
+
+    /**
+     * @type #tai_uint32_t
+     * @flags READ_ONLY | CLEARABLE
+     */
+    TAI_HOST_INTERFACE_ATTR_ETHERNET_IN_MAC_ERRORS,
+
+    /**
+     * @type #tai_uint32_t
+     * @flags READ_ONLY | CLEARABLE
+     */
+    TAI_HOST_INTERFACE_ATTR_ETHERNET_OUT_OCTETS,
+
+    /**
+     * @type #tai_uint32_t
+     * @flags READ_ONLY | CLEARABLE
+     */
+    TAI_HOST_INTERFACE_ATTR_ETHERNET_OUT_PACKETS,
+
+    /**
+     * @type #tai_uint32_t
+     * @flags READ_ONLY | CLEARABLE
+     */
+    TAI_HOST_INTERFACE_ATTR_ETHERNET_OUT_FCS_ERRORS,
+
+    /**
+     * @type #tai_uint32_t
+     * @flags READ_ONLY | CLEARABLE
+     */
+    TAI_HOST_INTERFACE_ATTR_ETHERNET_OUT_MAC_ERRORS,
+
+    /**
      * @brief End of attributes
      */
     TAI_HOST_INTERFACE_ATTR_END,
