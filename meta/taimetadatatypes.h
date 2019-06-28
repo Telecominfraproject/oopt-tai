@@ -258,6 +258,14 @@ typedef enum _tai_attr_flags_t
      */
     TAI_ATTR_FLAGS_SPECIAL             = (1 << 6),
 
+    /**
+     * @brief Clearable flag.
+     *
+     * Attribute with this flag can be cleared by clear API.
+     */
+
+    TAI_ATTR_FLAGS_CLEARABLE           = (1 << 7),
+
 } tai_attr_flags_t;
 
 /**
@@ -734,6 +742,11 @@ typedef struct _tai_attr_metadata_t
      * @brief Determines whether attribute is key
      */
     bool                                        iskey;
+
+    /**
+     * @brief Determines whether attribute is clearable
+     */
+    bool                                        isclearable;
 
     /**
      * @brief Determines whether attribute value is primitive.

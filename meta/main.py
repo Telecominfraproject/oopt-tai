@@ -23,6 +23,7 @@ class TAIAttributeFlag(Enum):
     KEY                 = 4
     DYNAMIC             = 5
     SPECIAL             = 6
+    CLEARABLE           = 7
 
 class TAIDefaultValueType(Enum):
     NONE = 0
@@ -304,6 +305,7 @@ const tai_attr_metadata_t tai_metadata_attr_{{ typename }} = {
     .iscreateonly        = {{ iscreateonly }},
     .iscreateandset      = {{ iscreateandset }},
     .isreadonly          = {{ isreadonly }},
+    .isclearable         = {{ isclearable }},
     .iskey               = {{ iskey }},
     .defaultvaluetype    = {{ defaultvaluetype }},
 {%- if defaultvalue %}
@@ -347,11 +349,12 @@ const tai_attr_metadata_t tai_metadata_attr_{{ typename }} = {
                      'is_enum': is_enum,
                      'enum_meta_data': enum_meta_data,
                      'isoidattribute': 'true' if attr.is_oid_attribute else 'false',
-                     'ismandatoryoncreate': 'true' if TAIAttributeFlag.MANDATORY_ON_CREATE in attr.flags else 'false',
-                     'iscreateonly': 'true' if TAIAttributeFlag.CREATE_ONLY in attr.flags else 'false',
-                     'iscreateandset': 'true' if TAIAttributeFlag.CREATE_AND_SET in attr.flags else 'false',
-                     'isreadonly': 'true' if TAIAttributeFlag.READ_ONLY in attr.flags else 'false',
-                     'iskey': 'true' if TAIAttributeFlag.KEY in attr.flags else 'false',
+                     'ismandatoryoncreate': 'true' if attr.flags and TAIAttributeFlag.MANDATORY_ON_CREATE in attr.flags else 'false',
+                     'iscreateonly': 'true' if attr.flags and TAIAttributeFlag.CREATE_ONLY in attr.flags else 'false',
+                     'iscreateandset': 'true' if attr.flags and TAIAttributeFlag.CREATE_AND_SET in attr.flags else 'false',
+                     'isreadonly': 'true' if attr.flags and TAIAttributeFlag.READ_ONLY in attr.flags else 'false',
+                     'iskey': 'true' if attr.flags and TAIAttributeFlag.KEY in attr.flags else 'false',
+                     'isclearable': 'true' if attr.flags and TAIAttributeFlag.CLEARABLE in attr.flags else 'false',
                      'defaultvaluetype': 'TAI_DEFAULT_VALUE_TYPE_{}'.format(attr.default_type.name),
                      'defaultvalue': default_value,
                      }
