@@ -68,6 +68,19 @@ typedef enum _tai_host_interface_loopback_type_t
     TAI_HOST_INTERFACE_LOOPBACK_TYPE_MAX
 } tai_host_interface_loopback_type_t;
 
+/** @brief The PCS alarm */
+typedef enum _tai_host_interface_pcs_alarm_t
+{
+    TAI_HOST_INTERFACE_PCS_ALARM_LOSS_OF_SIGNAL,
+    TAI_HOST_INTERFACE_PCS_ALARM_LOSS_OF_FRAME,
+    TAI_HOST_INTERFACE_PCS_ALARM_ILLEGAL_ALIGNMENT_MARKER,
+    TAI_HOST_INTERFACE_PCS_ALARM_REMOTE_FAULT,
+    TAI_HOST_INTERFACE_PCS_ALARM_LOCAL_FAULT,
+    TAI_HOST_INTERFACE_PCS_ALARM_HI_BER,
+    TAI_HOST_INTERFACE_PCS_ALARM_BIP_ERROR,
+    TAI_HOST_INTERFACE_PCS_ALARM_DESKEW_ERROR,
+} tai_host_interface_pcs_alarm_t;
+
 /**
  * @brief Host interface Attribute Ids
  */
@@ -181,6 +194,22 @@ typedef enum _tai_host_interface_attr_t
      * @flags READ_ONLY | CLEARABLE
      */
     TAI_HOST_INTERFACE_ATTR_ETHERNET_OUT_MAC_ERRORS,
+
+    /**
+     * @brief TX Ethernet PCS Alarm
+     *
+     * @type #tai_s32_list_t #tai_host_interface_pcs_alarm_t
+     * @flags READ_ONLY
+     */
+    TAI_HOST_INTERFACE_ATTR_TX_PCS_ALARM,
+
+    /**
+     * @brief RX Ethernet PCS Alarm
+     *
+     * @type #tai_s32_list_t #tai_host_interface_pcs_alarm_t
+     * @flags READ_ONLY
+     */
+    TAI_HOST_INTERFACE_ATTR_RX_PCS_ALARM,
 
     /**
      * @brief End of attributes
