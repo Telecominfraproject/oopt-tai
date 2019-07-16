@@ -110,6 +110,11 @@ typedef enum _tai_module_attr_t
 
     /**
      * @brief The module vendor's name
+     *
+     * If the module is composed of several components, this attribute
+     * contains the vendor name of all components with '/' used as
+     * the delimiter
+     *
      * @type #tai_char_list_t
      * @flags READ_ONLY
      */
@@ -117,6 +122,11 @@ typedef enum _tai_module_attr_t
 
     /**
      * @brief The module vendor's part number
+     *
+     * If the module is composed of several components, this attribute
+     * contains the part number of all components with '/' used as
+     * the delimiter
+     *
      * @type #tai_char_list_t
      * @flags READ_ONLY
      */
@@ -124,21 +134,25 @@ typedef enum _tai_module_attr_t
 
     /**
      * @brief The module vendor's serial number
+     *
+     * If there are several serial number exists inside the module, '/' is
+     * used as the delimiter
+     *
      * @type #tai_char_list_t
      * @flags READ_ONLY
      */
     TAI_MODULE_ATTR_VENDOR_SERIAL_NUMBER,
 
     /**
-     * @brief The module firmware versions
+     * @brief The module firmware version
      *
-     * The firmware versions for firmware A (list index 0) and firmware B (list
-     * index 1) in x.y format.
+     * If there are several firmware exists inside the module, '/' is used
+     * as the delimiter
      *
-     * @type #tai_float_list_t
+     * @type #tai_char_list_t
      * @flags READ_ONLY
      */
-    TAI_MODULE_ATTR_FIRMWARE_VERSIONS,
+    TAI_MODULE_ATTR_FIRMWARE_VERSION,
 
     /**
      * @brief The operational state of the module
