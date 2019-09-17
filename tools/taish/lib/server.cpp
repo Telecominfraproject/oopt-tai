@@ -390,8 +390,6 @@ err:
     return Status::OK;
 }
 
-
-
 TAINotifier::~TAINotifier() {
     std::unique_lock<std::mutex> lk(mtx);
     for ( auto& s : m ) {
@@ -462,6 +460,14 @@ void monitor_callback(void* context, tai_object_id_t oid, tai_attribute_t const 
             attr.id = TAI_NETWORK_INTERFACE_ATTR_NOTIFY;
             ret = m_api->netif_api->get_network_interface_attribute(oid, &attr);
             break;
+        case TAI_OBJECT_TYPE_HOSTIF:
+            attr.id = TAI_HOST_INTERFACE_ATTR_NOTIFY;
+            ret = m_api->hostif_api->get_host_interface_attribute(oid, &attr);
+            break;
+        case TAI_OBJECT_TYPE_MODULE:
+            attr.id = TAI_MODULE_ATTR_NOTIFY;
+            ret = m_api->module_api->get_module_attribute(oid, &attr);
+            break;
         default:
             return Status(StatusCode::UNKNOWN, "unsupported object type");
         }
@@ -477,7 +483,19 @@ void monitor_callback(void* context, tai_object_id_t oid, tai_attribute_t const 
         if ( attr.value.notification.notify == nullptr ) {
             attr.value.notification.notify = monitor_callback;
             attr.value.notification.context = notifier.get();
-            ret = m_api->netif_api->set_network_interface_attribute(oid, &attr);
+            switch (type) {
+            case TAI_OBJECT_TYPE_NETWORKIF:
+                ret = m_api->netif_api->set_network_interface_attribute(oid, &attr);
+                break;
+            case TAI_OBJECT_TYPE_HOSTIF:
+                ret = m_api->hostif_api->set_host_interface_attribute(oid, &attr);
+                break;
+            case TAI_OBJECT_TYPE_MODULE:
+                ret = m_api->module_api->set_module_attribute(oid, &attr);
+                break;
+            default:
+                return Status(StatusCode::UNKNOWN, "unsupported object type");
+            }
             if ( ret != TAI_STATUS_SUCCESS ) {
                 std::stringstream ss;
                 ss << "failed to set notify attribute: ret:" << std::hex << -ret;
@@ -546,7 +564,19 @@ void monitor_callback(void* context, tai_object_id_t oid, tai_attribute_t const 
         if ( notifier->size() == 1 ) {
             attr.value.notification.notify = nullptr;
             attr.value.notification.context = nullptr;
-            ret = m_api->netif_api->set_network_interface_attribute(oid, &attr);
+            switch (type) {
+            case TAI_OBJECT_TYPE_NETWORKIF:
+                ret = m_api->netif_api->set_network_interface_attribute(oid, &attr);
+                break;
+            case TAI_OBJECT_TYPE_HOSTIF:
+                ret = m_api->hostif_api->set_host_interface_attribute(oid, &attr);
+                break;
+            case TAI_OBJECT_TYPE_MODULE:
+                ret = m_api->module_api->set_module_attribute(oid, &attr);
+                break;
+            default:
+                return Status(StatusCode::UNKNOWN, "unsupported object type");
+            }
             if ( ret != TAI_STATUS_SUCCESS ) {
                 std::stringstream ss;
                 ss << "failed to clear notify attribute: ret:" << std::hex << -ret;
