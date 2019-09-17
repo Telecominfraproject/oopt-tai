@@ -235,6 +235,15 @@ typedef enum _tai_module_attr_t
     TAI_MODULE_ATTR_MODULE_STATE_CHANGE_NOTIFY,
 
     /**
+     * @brief Module generic notification
+     *
+     * @type #tai_notification_handler_t
+     * @flags CREATE_AND_SET
+     * @default NULL
+     */
+    TAI_MODULE_ATTR_NOTIFY,
+
+    /**
      * @brief End of attributes
      */
     TAI_MODULE_ATTR_END,

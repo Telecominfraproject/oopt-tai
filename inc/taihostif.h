@@ -212,6 +212,15 @@ typedef enum _tai_host_interface_attr_t
     TAI_HOST_INTERFACE_ATTR_RX_PCS_ALARM,
 
     /**
+     * @brief Host interface generic notification
+     *
+     * @type #tai_notification_handler_t
+     * @flags CREATE_AND_SET
+     * @default NULL
+     */
+    TAI_HOST_INTERFACE_ATTR_NOTIFY,
+
+    /**
      * @brief End of attributes
      */
     TAI_HOST_INTERFACE_ATTR_END,
