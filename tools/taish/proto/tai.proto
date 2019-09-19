@@ -96,7 +96,7 @@ message MonitorRequest {
 }
 
 message MonitorResponse {
-    Attribute attribute = 1;
+    repeated Attribute attrs = 1;
 }
 
 message SetLogLevelRequest {

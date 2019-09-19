@@ -390,58 +390,52 @@ err:
     return Status::OK;
 }
 
-TAINotifier::~TAINotifier() {
-    std::unique_lock<std::mutex> lk(mtx);
-    for ( auto& s : m ) {
-        auto v = s.second;
-        while ( v->q.size() > 0 ) {
-            auto n = v->q.front();
-            v->q.pop();
-            tai_attribute_t *attr = const_cast<tai_attribute_t*>(n.attr);
-            auto type = tai_object_type_query(n.oid);
-            auto meta = tai_metadata_get_attr_metadata(type, attr->id);
-            tai_metadata_free_attr_value(meta, attr, nullptr);
-            delete attr;
-        }
-    }
-}
-
 int TAINotifier::notify(const tai_notification_t& n) {
-    auto oid = n.oid;
-    auto type = tai_object_type_query(oid);
-    auto meta = tai_metadata_get_attr_metadata(type, n.attr->id);
-    tai_alloc_info_t alloc_info;
-    alloc_info.reference = n.attr;
-
     std::unique_lock<std::mutex> lk(mtx);
     for ( auto& s : m ) {
-        tai_attribute_t *attr = new tai_attribute_t();
-        attr->id = n.attr->id;
-
-        if ( tai_metadata_alloc_attr_value(meta, attr, &alloc_info) != TAI_STATUS_SUCCESS ) {
-            return -1;
-        }
-
-        if ( tai_metadata_deepcopy_attr_value(meta, n.attr, attr) != TAI_STATUS_SUCCESS ) {
-            return -1;
-        }
-
-        tai_notification_t nn{ oid, attr };
-
         auto v = s.second;
         std::unique_lock<std::mutex> lk(v->mtx);
-        v->q.push(nn);
+        v->q.push(n);
         v->cv.notify_one();
     }
     return 0;
 }
 
-void monitor_callback(void* context, tai_object_id_t oid, tai_attribute_t const * const attribute) {
+void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, tai_attribute_t const * const attr_list) {
     if ( context == nullptr ) {
         return;
     }
+    tai_notification_t notification;
+    notification.oid = oid;
+    auto type = tai_object_type_query(oid);
+
+    for ( int i = 0; i < attr_count; i++ ) {
+        auto a = attr_list[i];
+        auto meta = tai_metadata_get_attr_metadata(type, a.id);
+        if ( meta == nullptr ) {
+            continue;
+        }
+        std::shared_ptr<tai_notification_elem_t> ptr(new tai_notification_elem_t, [](tai_notification_elem_t* n) {
+            tai_metadata_free_attr_value(n->meta, &n->attr, nullptr);
+        });
+        ptr->meta = meta;
+        ptr->attr.id = a.id;
+        tai_alloc_info_t alloc_info;
+        alloc_info.reference = &a;
+
+        if ( tai_metadata_alloc_attr_value(meta, &ptr->attr, &alloc_info) != TAI_STATUS_SUCCESS ) {
+            continue;
+        }
+
+        if ( tai_metadata_deepcopy_attr_value(meta, &a, &ptr->attr) != TAI_STATUS_SUCCESS ) {
+            continue;
+        }
+
+        notification.attrs.emplace_back(ptr);
+    }
+
     auto n = static_cast<TAINotifier*>(context);
-    n->notify(tai_notification_t{oid, attribute});
+    n->notify(notification);
 }
 
 ::grpc::Status TAIServiceImpl::Monitor(::grpc::ServerContext* context, const ::tai::MonitorRequest* request, ::grpc::ServerWriter< ::tai::MonitorResponse>* writer) {
@@ -544,19 +538,13 @@ void monitor_callback(void* context, tai_object_id_t oid, tai_attribute_t const 
             s.q.pop();
 
             ::tai::MonitorResponse res;
-            auto a = res.mutable_attribute();
-            auto meta = tai_metadata_get_attr_metadata(type, n.attr->id);
-
-            a->set_attr_id(n.attr->id);
-            std::string value;
-            _serialize_attribute(meta, n.attr, value);
-            a->set_value(value);
-
-            tai_attribute_t *attr = const_cast<tai_attribute_t*>(n.attr);
-            if ( tai_metadata_free_attr_value(meta, attr, nullptr) < 0 ) {
-                return Status(StatusCode::UNKNOWN, "failed to free attribute");
+            for ( auto e : n.attrs ) {
+                auto a = res.add_attrs();
+                a->set_attr_id(e->attr.id);
+                std::string value;
+                _serialize_attribute(e->meta, &e->attr, value);
+                a->set_value(value);
             }
-            delete attr;
 
             if (!writer->Write(res)) {
                 break;
