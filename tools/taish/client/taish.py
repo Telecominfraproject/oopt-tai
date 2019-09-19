@@ -24,7 +24,7 @@ def show_help(hidden=False):
     ['list-attr', 'list attributes of the selected TAI object'],
     ['set <attr-name> <attr-value>', 'set an attribute'],
     ['get <attr-name> [<attr-value>]', 'get an attribute'],
-    ['monitor', 'monitor state change'],
+    ['monitor [<attr-name>]', 'monitor state change'],
     ['log-level <level> [<api-type>]', 'set log level']]
     print(tabulate(d, headers=['command', 'description']))
 
@@ -58,11 +58,22 @@ def list_attr(stub, module, netif, hostif):
         d.append([m.short_name, 'ro' if m.is_readonly else 'r/w', m.usage, 'custom' if m.attr_id > TAI_ATTR_CUSTOM_RANGE_START else 'official'])
     print(tabulate(d, headers=['name', 'type', 'value', 'range']))
 
-def monitor(stub, module, netif, hostif):
+def monitor(stub, module, netif, hostif, cmds):
     req = tai_pb2.MonitorRequest()
-    req.oid = netif.oid
+    req.oid = module.oid
+    if netif:
+        req.oid = netif.oid
+    elif hostif:
+        req.oid = hostif.oid
 
     m = get_attribute_metadata(stub, module, netif, hostif)
+
+    nattrname = 'notify' if len(cmds) < 2 else cmds[1]
+    n = [ v.attr_id for v in m if v.short_name == nattrname ]
+    if len(n) != 1:
+        print('error: failed to find metadata of notification attribute {}'.format(nattrname))
+
+    req.notification_attr_id = n[0]
 
     try:
         for res in stub.Monitor(req):
@@ -224,9 +235,11 @@ class TAIShellCompleter(Completer):
                     yield Completion(c, start_position=-len(t[0]))
 
         elif len(t) == 2:
-            if t[0] in ['set', 'get']:
+            if t[0] in ['set', 'get', 'monitor']:
                 for m in self.metadata:
                     if t[0] == 'set' and m.is_readonly:
+                        continue
+                    elif t[0] == 'monitor' and m.usage != '<notification>':
                         continue
                     if m.short_name.startswith(t[1]):
                         yield Completion(m.short_name, start_position=-len(t[1]))
@@ -326,7 +339,7 @@ def loop(stub, modules, module, netif, hostif):
             elif cmd == 'set':
                 set_attr(stub, module, netif, hostif, cmds)
             elif cmd == 'monitor':
-                monitor(stub, module, netif, hostif)
+                monitor(stub, module, netif, hostif, cmds)
             elif cmd == 'log-level':
                 set_log_level(stub, cmds)
             elif cmd in ['exit', 'quit', 'q']:
@@ -413,7 +426,7 @@ def main():
         elif args[0] == 'help':
             show_help()
         elif args[0] == 'monitor':
-            monitor(stub, module, netif, hostif)
+            monitor(stub, module, netif, hostif, args)
         elif args[0] == 'log-level':
             set_log_level(stub, args)
         else:
