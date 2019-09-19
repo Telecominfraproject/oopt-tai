@@ -446,26 +446,37 @@ void monitor_callback(void* context, tai_object_id_t oid, tai_attribute_t const 
 
 ::grpc::Status TAIServiceImpl::Monitor(::grpc::ServerContext* context, const ::tai::MonitorRequest* request, ::grpc::ServerWriter< ::tai::MonitorResponse>* writer) {
     auto oid = request->oid();
+    auto nid = request->notification_attr_id();
     auto type = tai_object_type_query(oid);
     tai_attribute_t attr = {0};
     tai_status_t ret;
     tai_subscription_t s;
     std::shared_ptr<TAINotifier> notifier = nullptr;
+    auto key = std::pair<tai_object_id_t, tai_attr_id_t>(oid, nid);
+
+    auto meta = tai_metadata_get_attr_metadata(type, nid);
+    if ( meta == nullptr ) {
+        return Status(StatusCode::NOT_FOUND, "not found metadata");
+    }
+
+    if ( meta->attrvaluetype != TAI_ATTR_VALUE_TYPE_NOTIFICATION ) {
+        return Status(StatusCode::INVALID_ARGUMENT, "value type is not notification");
+    }
+
 
     {
         std::unique_lock<std::mutex> lk(m_mtx);
 
+        attr.id = nid;
+
         switch (type) {
         case TAI_OBJECT_TYPE_NETWORKIF:
-            attr.id = TAI_NETWORK_INTERFACE_ATTR_NOTIFY;
             ret = m_api->netif_api->get_network_interface_attribute(oid, &attr);
             break;
         case TAI_OBJECT_TYPE_HOSTIF:
-            attr.id = TAI_HOST_INTERFACE_ATTR_NOTIFY;
             ret = m_api->hostif_api->get_host_interface_attribute(oid, &attr);
             break;
         case TAI_OBJECT_TYPE_MODULE:
-            attr.id = TAI_MODULE_ATTR_NOTIFY;
             ret = m_api->module_api->get_module_attribute(oid, &attr);
             break;
         default:
@@ -473,12 +484,10 @@ void monitor_callback(void* context, tai_object_id_t oid, tai_attribute_t const 
         }
 
         if ( ret != TAI_STATUS_SUCCESS ) {
-            std::stringstream ss;
-            ss << "failed to get notify attribute: ret:" << std::hex << -ret;
-            return Status(StatusCode::UNKNOWN, ss.str());
+            return _status("failed to get notification attribute", ret);
         }
 
-        notifier = get_notifier(oid);
+        notifier = get_notifier(oid, nid);
 
         if ( attr.value.notification.notify == nullptr ) {
             attr.value.notification.notify = monitor_callback;
@@ -497,9 +506,7 @@ void monitor_callback(void* context, tai_object_id_t oid, tai_attribute_t const 
                 return Status(StatusCode::UNKNOWN, "unsupported object type");
             }
             if ( ret != TAI_STATUS_SUCCESS ) {
-                std::stringstream ss;
-                ss << "failed to set notify attribute: ret:" << std::hex << -ret;
-                return Status(StatusCode::UNKNOWN, ss.str());
+                return _status("failed to set notification attribute", ret);
             }
         } else if ( attr.value.notification.notify != nullptr && notifier->size() == 0 ) {
             return Status(StatusCode::UNKNOWN, "notify attribute is set by others");
@@ -524,7 +531,7 @@ void monitor_callback(void* context, tai_object_id_t oid, tai_attribute_t const 
 
             {
                 std::unique_lock<std::mutex> lk(m_mtx);
-                if ( m_notifiers.find(oid) == m_notifiers.end() ) {
+                if ( m_notifiers.find(key) == m_notifiers.end() ) {
                     return Status(StatusCode::UNKNOWN, "object is removed");
                 }
             }
@@ -578,9 +585,7 @@ void monitor_callback(void* context, tai_object_id_t oid, tai_attribute_t const 
                 return Status(StatusCode::UNKNOWN, "unsupported object type");
             }
             if ( ret != TAI_STATUS_SUCCESS ) {
-                std::stringstream ss;
-                ss << "failed to clear notify attribute: ret:" << std::hex << -ret;
-                return Status(StatusCode::UNKNOWN, ss.str());
+                return _status("failed to clear notification attribute", ret);
             }
         }
 
@@ -589,7 +594,7 @@ void monitor_callback(void* context, tai_object_id_t oid, tai_attribute_t const 
         }
 
         if ( notifier->size() == 0 ) {
-            m_notifiers.erase(oid);
+            m_notifiers.erase(key);
         }
 
     }
@@ -710,8 +715,13 @@ err:
 
         {
             std::unique_lock<std::mutex> lk(m_mtx);
-            if ( m_notifiers.find(oid) != m_notifiers.end() ) {
-                m_notifiers.erase(oid);
+            auto it = m_notifiers.begin();
+            while  ( it != m_notifiers.end() ) {
+                if ( it->first.first == oid ) {
+                    it = m_notifiers.erase(it);
+                } else {
+                    it++;
+                }
             }
         }
 
