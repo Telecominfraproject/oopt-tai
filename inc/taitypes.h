@@ -215,12 +215,14 @@ typedef struct _tai_attribute_t tai_attribute_t;
  *
  * @param[in] context User context
  * @param[in] oid object ID
- * @param[in] attribute Updated attribute
+ * @param[in] attr_count Number of attributes
+ * @param[in] attr_list List of updated attributes
  */
 typedef void (*tai_notification_fn)(
         _In_ void* context,
         _In_ tai_object_id_t oid,
-        _In_ tai_attribute_t const * const attribute);
+        _In_ uint32_t attr_count,
+        _In_ tai_attribute_t const * const attr_list);
 
 /**
  * @brief TAI notification handler

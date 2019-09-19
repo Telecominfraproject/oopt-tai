@@ -14,6 +14,7 @@
 
 #include "tai.h"
 #include "tai.grpc.pb.h"
+#include "taimetadata.h"
 #include <grpcpp/grpcpp.h>
 #include <mutex>
 #include <condition_variable>
@@ -22,6 +23,7 @@
 #include <iostream>
 #include <string>
 #include <memory>
+#include <vector>
 
 struct tai_api_module_t
 {
@@ -68,9 +70,14 @@ class TAIAPIModuleList {
         uint32_t m_netif_size;
 };
 
+struct tai_notification_elem_t {
+    tai_attribute_t attr;
+    const tai_attr_metadata_t* meta;
+};
+
 struct tai_notification_t {
     tai_object_id_t oid;
-    tai_attribute_t const * const attr;
+    std::vector<std::shared_ptr<const tai_notification_elem_t>> attrs;
 };
 
 struct tai_subscription_t {
@@ -82,7 +89,6 @@ struct tai_subscription_t {
 class TAINotifier {
     public:
         TAINotifier() {};
-        ~TAINotifier();
         int notify(const tai_notification_t& n);
         int subscribe(void* id, tai_subscription_t* s) {
             std::unique_lock<std::mutex> lk(mtx);

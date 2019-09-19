@@ -77,13 +77,14 @@ def monitor(stub, module, netif, hostif, cmds):
 
     try:
         for res in stub.Monitor(req):
-            a = [ v.short_name for v in m if v.attr_id == res.attribute.attr_id ]
-            if len(a) == 1:
-                print('{} | {}'.format(a[0], res.attribute.value))
-            elif len(a) == 0:
-                print('0x{:x} | {}'.format(res.attribute.attr_id, res.attribute.value))
-            else:
-                print('error: more than one metadata matched for id 0x{:x}: {}'.format(res.attribute.attr_id, a))
+            for attr in res.attrs:
+                a = [ v.short_name for v in m if v.attr_id == attr.attr_id ]
+                if len(a) == 1:
+                    print('{} | {}'.format(a[0], attr.value))
+                elif len(a) == 0:
+                    print('0x{:x} | {}'.format(attr.attr_id, attr.value))
+                else:
+                    print('error: more than one metadata matched for id 0x{:x}: {}'.format(attr.attr_id, a))
     except KeyboardInterrupt:
         pass
 
