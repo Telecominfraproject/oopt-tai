@@ -512,6 +512,15 @@ typedef enum _tai_network_interface_attr_t
     TAI_NETWORK_INTERFACE_ATTR_NOTIFY,
 
     /**
+     * @brief Network interface alarm notification
+     *
+     * @type #tai_notification_handler_t
+     * @flags CREATE_AND_SET
+     * @default NULL
+     */
+    TAI_NETWORK_INTERFACE_ATTR_ALARM_NOTIFICATION,
+
+    /**
      * @brief End of attributes
      */
     TAI_NETWORK_INTERFACE_ATTR_END,
