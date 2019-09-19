@@ -345,6 +345,26 @@ bool tai_metadata_is_condition_met(
     out->valuename.count = in->valuename.count;\
     memcpy(out->valuename.list, in->valuename.list, sizeof(type) * in->valuename.count);
 
+#define _TAI_META_CMP(result, valuename)                       \
+    *result = ( lhs->value.valuename == rhs->value.valuename );\
+    break;
+
+#define _TAI_META_CMP_LIST(result, valuename)                                 \
+    {                                                                         \
+    if( lhs->value.valuename.count != rhs->value.valuename.count ) {          \
+        *result = false;                                                      \
+        break;                                                                \
+    }                                                                         \
+    for ( int i = 0; i < lhs->value.valuename.count; i++ ) {                  \
+        if ( lhs->value.valuename.list[i] != rhs->value.valuename.list[i] ) { \
+            *result = false;                                                  \
+            break;                                                            \
+        }                                                                     \
+    }                                                                         \
+    *result = true;                                                           \
+    }                                                                         \
+    break;
+
 tai_status_t _tai_metadata_free_attr_value(
         _In_ const tai_attr_metadata_t* const metadata,
         _In_ tai_attribute_value_t* const value,
@@ -701,4 +721,85 @@ tai_status_t tai_metadata_deepcopy_attr_value(
     }
     out->id = in->id;
     return _tai_metadata_deepcopy_attr_value(metadata, &in->value, &out->value);
+}
+
+tai_status_t tai_metadata_deepequal_attr_value(
+        _In_ const tai_attr_metadata_t* const metadata,
+        _In_ const tai_attribute_t* const lhs,
+        _In_ const tai_attribute_t* const rhs,
+        _Out_ bool* result) {
+    if ( metadata == NULL || result == NULL ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    if ( (lhs == NULL && rhs != NULL) || (lhs != NULL && rhs == NULL) ) {
+        *result = false;
+        return TAI_STATUS_SUCCESS;
+    } else if ( lhs == NULL && rhs == NULL ) {
+        *result = true;
+        return TAI_STATUS_SUCCESS;
+    }
+    if ( lhs->id != rhs->id ) {
+        *result = false;
+        return TAI_STATUS_SUCCESS;
+    }
+    switch( metadata->attrvaluetype ) {
+    case TAI_ATTR_VALUE_TYPE_BOOLDATA:
+        _TAI_META_CMP(result, booldata)
+    case TAI_ATTR_VALUE_TYPE_CHARDATA:
+        *result = !memcmp(lhs->value.chardata, rhs->value.chardata, 32);
+        break;
+    case TAI_ATTR_VALUE_TYPE_U8:
+        _TAI_META_CMP(result, u8)
+    case TAI_ATTR_VALUE_TYPE_S8:
+        _TAI_META_CMP(result, s8)
+    case TAI_ATTR_VALUE_TYPE_U16:
+        _TAI_META_CMP(result, u16)
+    case TAI_ATTR_VALUE_TYPE_S16:
+        _TAI_META_CMP(result, s16)
+    case TAI_ATTR_VALUE_TYPE_U32:
+        _TAI_META_CMP(result, u32)
+    case TAI_ATTR_VALUE_TYPE_S32:
+        _TAI_META_CMP(result, s32)
+    case TAI_ATTR_VALUE_TYPE_U64:
+        _TAI_META_CMP(result, u64)
+    case TAI_ATTR_VALUE_TYPE_S64:
+        _TAI_META_CMP(result, s64)
+    case TAI_ATTR_VALUE_TYPE_FLT:
+        _TAI_META_CMP(result, flt)
+    case TAI_ATTR_VALUE_TYPE_PTR:
+        _TAI_META_CMP(result, ptr)
+    case TAI_ATTR_VALUE_TYPE_OID:
+        _TAI_META_CMP(result, oid)
+    case TAI_ATTR_VALUE_TYPE_U32RANGE:
+        *result = !memcmp(&lhs->value, &rhs->value, sizeof(tai_u32_range_t));
+        break;
+    case TAI_ATTR_VALUE_TYPE_S32RANGE:
+        *result = !memcmp(&lhs->value, &rhs->value, sizeof(tai_s32_range_t));
+        break;
+    case TAI_ATTR_VALUE_TYPE_NOTIFICATION:
+        *result = !memcmp(&lhs->value, &rhs->value, sizeof(tai_notification_handler_t));
+        break;
+    case TAI_ATTR_VALUE_TYPE_OBJLIST:
+        _TAI_META_CMP_LIST(result, objlist)
+    case TAI_ATTR_VALUE_TYPE_CHARLIST:
+        _TAI_META_CMP_LIST(result, charlist)
+    case TAI_ATTR_VALUE_TYPE_U8LIST:
+        _TAI_META_CMP_LIST(result, u8list)
+    case TAI_ATTR_VALUE_TYPE_S8LIST:
+        _TAI_META_CMP_LIST(result, s8list)
+    case TAI_ATTR_VALUE_TYPE_U16LIST:
+        _TAI_META_CMP_LIST(result, u16list)
+    case TAI_ATTR_VALUE_TYPE_S16LIST:
+        _TAI_META_CMP_LIST(result, s16list)
+    case TAI_ATTR_VALUE_TYPE_U32LIST:
+        _TAI_META_CMP_LIST(result, u32list)
+    case TAI_ATTR_VALUE_TYPE_S32LIST:
+        _TAI_META_CMP_LIST(result, s32list)
+    case TAI_ATTR_VALUE_TYPE_FLOATLIST:
+        _TAI_META_CMP_LIST(result, floatlist)
+    default:
+        TAI_META_LOG_ERROR("unsupported value type: %d", metadata->attrvaluetype);
+        return TAI_STATUS_NOT_SUPPORTED;
+    }
+    return TAI_STATUS_SUCCESS;
 }
