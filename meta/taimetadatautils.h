@@ -210,6 +210,23 @@ extern tai_status_t tai_metadata_deepcopy_attr_value(
         _Out_ tai_attribute_t* const out);
 
 /**
+ * @brief Deep equal tai_attribute_t value
+ *
+ * @param[in] metadata Attribute metadata
+ * @param[in] lhs
+ * @param[in] rhs
+ * @param[out] result
+ *
+ * @return TAI_STATUS_SUCCESS on success,
+ * TAI_STATUS_INVALID_PARAMETER on failure
+ */
+extern tai_status_t tai_metadata_deepequal_attr_value(
+        _In_ const tai_attr_metadata_t* const metadata,
+        _In_ const tai_attribute_t* const lhs,
+        _In_ const tai_attribute_t* const rhs,
+        _Out_ bool* result);
+
+/**
  * @}
  */
 #endif /** __TAIMETADATAUTILS_H_ */
