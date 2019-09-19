@@ -123,14 +123,15 @@ class TAIServiceImpl final : public tai::TAI::Service {
         ::grpc::Status Create(::grpc::ServerContext* context, const ::tai::CreateRequest* request, ::tai::CreateResponse* response);
         ::grpc::Status Remove(::grpc::ServerContext* context, const ::tai::RemoveRequest* request, ::tai::RemoveResponse* response);
     private:
-        std::shared_ptr<TAINotifier> get_notifier(tai_object_id_t oid) {
-            if ( m_notifiers.find(oid) == m_notifiers.end() ) {
-                m_notifiers[oid] = std::make_shared<TAINotifier>();
+        std::shared_ptr<TAINotifier> get_notifier(tai_object_id_t oid, tai_attr_id_t nid) {
+            auto key = std::pair<tai_object_id_t, tai_attr_id_t>(oid, nid);
+            if ( m_notifiers.find(key) == m_notifiers.end() ) {
+                m_notifiers[key] = std::make_shared<TAINotifier>();
             }
-            return m_notifiers[oid];
+            return m_notifiers[key];
         }
         const tai_api_method_table_t* const m_api;
-        std::map<tai_object_id_t, std::shared_ptr<TAINotifier>> m_notifiers;
+        std::map<std::pair<tai_object_id_t, tai_attr_id_t>, std::shared_ptr<TAINotifier>> m_notifiers;
         std::mutex m_mtx; // mutex for m_notifiers
 };
 

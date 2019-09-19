@@ -92,6 +92,7 @@ message ClearAttributeResponse {
 
 message MonitorRequest {
     uint64 oid = 1;
+    uint64 notification_attr_id = 2;
 }
 
 message MonitorResponse {
