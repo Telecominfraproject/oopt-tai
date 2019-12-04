@@ -617,6 +617,72 @@ int testSerializeAttrValueType() {
     }
 }
 
+int testDeepequalAttrValue() {
+    const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORKIF, TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS);
+    tai_attribute_t src, dst = {0};
+    tai_status_t status;
+    status = tai_metadata_alloc_attr_value(meta, &src, NULL);
+    if ( status != TAI_STATUS_SUCCESS ) {
+        printf("failed to alloc attr value: %d\n", status);
+        return -1;
+    }
+    status = tai_metadata_alloc_attr_value(meta, &dst, NULL);
+    if ( status != TAI_STATUS_SUCCESS ) {
+        printf("failed to alloc attr value: %d\n", status);
+        return -1;
+    }
+    src.value.s32list.count = 2;
+    src.value.s32list.list[0] = TAI_NETWORK_INTERFACE_TX_ALIGN_STATUS_TIMING;
+    src.value.s32list.list[1] = TAI_NETWORK_INTERFACE_TX_ALIGN_STATUS_OUT;
+
+    bool result;
+
+    status = tai_metadata_deepequal_attr_value(meta, &src, &dst, &result);
+    if ( status != TAI_STATUS_SUCCESS ) {
+        return -1;
+    }
+    if ( result != false ) {
+        return -1;
+    }
+
+    dst.value.s32list.count = 2;
+    status = tai_metadata_deepequal_attr_value(meta, &src, &dst, &result);
+    if ( status != TAI_STATUS_SUCCESS ) {
+        return -1;
+    }
+    if ( result != false ) {
+        return -1;
+    }
+
+    dst.value.s32list.list[0] = TAI_NETWORK_INTERFACE_TX_ALIGN_STATUS_TIMING;
+    status = tai_metadata_deepequal_attr_value(meta, &src, &dst, &result);
+    if ( status != TAI_STATUS_SUCCESS ) {
+        return -1;
+    }
+    if ( result != false ) {
+        return -1;
+    }
+
+    dst.value.s32list.list[1] = TAI_NETWORK_INTERFACE_TX_ALIGN_STATUS_TIMING;
+    status = tai_metadata_deepequal_attr_value(meta, &src, &dst, &result);
+    if ( status != TAI_STATUS_SUCCESS ) {
+        return -1;
+    }
+    if ( result != false ) {
+        return -1;
+    }
+
+    dst.value.s32list.list[1] = TAI_NETWORK_INTERFACE_TX_ALIGN_STATUS_OUT;
+    status = tai_metadata_deepequal_attr_value(meta, &src, &dst, &result);
+    if ( status != TAI_STATUS_SUCCESS ) {
+        return -1;
+    }
+    if ( result != true ) {
+        return -1;
+    }
+    return 0;
+}
+
 typedef int (*testF)();
 
 testF tests[] = {
@@ -644,6 +710,7 @@ testF tests[] = {
     testDeserializeJSONBufferOverflow2,
     testSerializeStatus,
     testSerializeAttrValueType,
+    testDeepequalAttrValue,
     NULL,
 };
 
