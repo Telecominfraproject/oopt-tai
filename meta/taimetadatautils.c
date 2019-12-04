@@ -353,12 +353,12 @@ bool tai_metadata_is_condition_met(
     {                                                                         \
     if( lhs->value.valuename.count != rhs->value.valuename.count ) {          \
         *result = false;                                                      \
-        break;                                                                \
+        return TAI_STATUS_SUCCESS;                                            \
     }                                                                         \
     for ( int i = 0; i < lhs->value.valuename.count; i++ ) {                  \
         if ( lhs->value.valuename.list[i] != rhs->value.valuename.list[i] ) { \
             *result = false;                                                  \
-            break;                                                            \
+            return TAI_STATUS_SUCCESS;                                        \
         }                                                                     \
     }                                                                         \
     *result = true;                                                           \
