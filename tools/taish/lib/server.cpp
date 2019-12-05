@@ -153,8 +153,7 @@ static void usage(const tai_attr_metadata_t* meta, std::string* str) {
         return;
     }
     char buf[32] = {0};
-    tai_serialize_option_t option;
-    option.human = true;
+    tai_serialize_option_t option = {true};
     auto ret = tai_serialize_attr_value_type(buf, 32, meta->attrvaluetype, &option);
     if ( ret < 0 ) {
         *str = "<unknown>";
