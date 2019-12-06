@@ -13,6 +13,7 @@ service TAI {
     rpc SetLogLevel(SetLogLevelRequest) returns (SetLogLevelResponse);
     rpc Create(CreateRequest) returns (CreateResponse);
     rpc Remove(RemoveRequest) returns (RemoveResponse);
+    rpc ListAttribute(ListAttributeRequest) returns (ListAttributeResponse);
 }
 
 enum TAIObjectType {
@@ -68,6 +69,7 @@ message GetAttributeMetadataResponse {
 message GetAttributeRequest {
     uint64 oid = 1;
     Attribute attribute = 2;
+    bool with_metadata = 3;
 }
 
 message GetAttributeResponse {
@@ -124,9 +126,21 @@ message RemoveRequest {
 message RemoveResponse {
 }
 
+message ListAttributeRequest {
+    uint64 oid = 1;
+    repeated uint64 attr_ids = 2; // when len == 0, return all supported attributes
+    bool best_effort = 3; // ignore attribute which can't be get
+    bool with_metadata = 4;
+}
+
+message ListAttributeResponse {
+    repeated Attribute attrs = 1;
+}
+
 message Attribute {
     uint64 attr_id = 1;
     string value = 2;
+    AttributeMetadata metadata = 3;
 }
 
 message AttributeMetadata {

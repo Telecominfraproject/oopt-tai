@@ -301,6 +301,12 @@ again:
     res = response->mutable_attribute();
     res->set_attr_id(id);
     res->set_value(value);
+
+    if ( request->with_metadata() ) {
+        auto m = res->mutable_metadata();
+        convert_metadata(meta, m);
+    }
+
 err:
     if ( tai_metadata_free_attr_value(meta, &attr, &alloc_info) != TAI_STATUS_SUCCESS ) {
         return Status(StatusCode::UNKNOWN, "failed to free value");
@@ -716,4 +722,100 @@ err:
 
     }
     return Status::OK;
+}
+
+::grpc::Status TAIServiceImpl::ListAttribute(::grpc::ServerContext* context, const ::tai::ListAttributeRequest* request, ::tai::ListAttributeResponse* response) {
+    auto oid = request->oid();
+    auto type = tai_object_type_query(oid);
+    tai_status_t ret;
+
+    std::vector<tai_attribute_t> attrs;
+
+    if ( request->attr_ids_size() == 0 ) {
+        auto info = tai_metadata_all_object_type_infos[type];
+        for ( auto i = 0; i < info->attrmetadatalength; i++ ) {
+            attrs.emplace_back(tai_attribute_t{static_cast<tai_attr_id_t>(info->attrmetadata[i]->attrid)});
+        }
+    } else {
+        for ( auto i = 0; i < request->attr_ids_size(); i++ ) {
+            attrs.emplace_back(tai_attribute_t{static_cast<tai_attr_id_t>(request->attr_ids(i))});
+        }
+    }
+
+    if ( request->best_effort() ) {
+        for ( auto& attr : attrs ) {
+            switch (type) {
+            case TAI_OBJECT_TYPE_MODULE:
+                ret = m_api->module_api->get_module_attribute(oid, &attr);
+                break;
+            case TAI_OBJECT_TYPE_NETWORKIF:
+                ret = m_api->netif_api->get_network_interface_attribute(oid, &attr);
+                break;
+            case TAI_OBJECT_TYPE_HOSTIF:
+                ret = m_api->hostif_api->get_host_interface_attribute(oid, &attr);
+                break;
+            default:
+                ret = TAI_STATUS_FAILURE;
+            }
+
+            std::cout << "ret: " << ret << std::endl;
+
+            if ( ret != TAI_STATUS_SUCCESS ) {
+                continue;
+            }
+
+            auto meta = tai_metadata_get_attr_metadata(type, attr.id);
+            std::string value;
+            if ( _serialize_attribute(meta, &attr, value) != 0 ) {
+                continue;
+            }
+            auto a = response->add_attrs();
+            a->set_attr_id(attr.id);
+            a->set_value(value);
+
+            if ( request->with_metadata() ) {
+                auto m = a->mutable_metadata();
+                convert_metadata(meta, m);
+            }
+        }
+    } else {
+        switch (type) {
+        case TAI_OBJECT_TYPE_MODULE:
+            ret = m_api->module_api->get_module_attributes(oid, attrs.size(), attrs.data());
+            break;
+        case TAI_OBJECT_TYPE_NETWORKIF:
+            ret = m_api->netif_api->get_network_interface_attributes(oid, attrs.size(), attrs.data());
+            break;
+        case TAI_OBJECT_TYPE_HOSTIF:
+            ret = m_api->hostif_api->get_host_interface_attributes(oid, attrs.size(), attrs.data());
+            break;
+        default:
+            ret = TAI_STATUS_FAILURE;
+        }
+
+        if ( ret != TAI_STATUS_SUCCESS ) {
+            goto err;
+        }
+
+        for (auto& attr : attrs ) {
+            auto meta = tai_metadata_get_attr_metadata(type, attr.id);
+            std::string value;
+            if ( _serialize_attribute(meta, &attr, value) != 0 ) {
+                ret = TAI_STATUS_FAILURE;
+                goto err;
+            }
+            auto a = response->add_attrs();
+            a->set_attr_id(attr.id);
+            a->set_value(value);
+
+            if ( request->with_metadata() ) {
+                auto m = a->mutable_metadata();
+                convert_metadata(meta, m);
+            }
+        }
+    }
+
+    return Status::OK;
+err:
+    return _status("failed to get attributes", ret);
 }

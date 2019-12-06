@@ -128,6 +128,7 @@ class TAIServiceImpl final : public tai::TAI::Service {
         ::grpc::Status SetLogLevel(::grpc::ServerContext* context, const ::tai::SetLogLevelRequest* request, ::tai::SetLogLevelResponse* response);
         ::grpc::Status Create(::grpc::ServerContext* context, const ::tai::CreateRequest* request, ::tai::CreateResponse* response);
         ::grpc::Status Remove(::grpc::ServerContext* context, const ::tai::RemoveRequest* request, ::tai::RemoveResponse* response);
+        ::grpc::Status ListAttribute(::grpc::ServerContext* context, const ::tai::ListAttributeRequest* request, ::tai::ListAttributeResponse* response);
     private:
         std::shared_ptr<TAINotifier> get_notifier(tai_object_id_t oid, tai_attr_id_t nid) {
             auto key = std::pair<tai_object_id_t, tai_attr_id_t>(oid, nid);
