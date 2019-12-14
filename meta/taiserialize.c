@@ -918,15 +918,10 @@ int tai_serialize_attribute_value(
                 _SERIALIZE(tai_serialize_enum(ptr, n, meta->enummetadata, value->s32list.list[i], option), count, ptr, n);
                 if ( i + 1 < value->s32list.count ) {
                     if ( option->json ) {
-                        count = snprintf(ptr, n, ",");
+                        _SERIALIZE(snprintf(ptr, n, ","), count, ptr, n);
                     } else {
-                        count = snprintf(ptr, n, "|");
+                        _SERIALIZE(snprintf(ptr, n, "|"), count, ptr, n);
                     }
-                    if ( count < 0 || count > ( n - (ptr - buffer)) ) {
-                        return (ptr - buffer) + count;
-                    }
-                    ptr += count;
-                    n -= count;
                 }
             }
         } else {
@@ -1044,6 +1039,9 @@ int tai_serialize_attribute(
         return ret;
     }
     char *tmp = NULL, *tmp2;
+    if ( n == 0 ) {
+        n = 16;
+    }
     for ( int i = 0; i < 16; i++ ) {
         n = n*2;
         tmp2 = realloc(tmp, n);

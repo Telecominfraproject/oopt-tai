@@ -2,6 +2,7 @@
 #include "taimetadata.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 int testSerializeModuleOperStatus() {
     int ret;
@@ -683,6 +684,35 @@ int testDeepequalAttrValue() {
     return 0;
 }
 
+int testSerializeJSONEnumList() {
+    tai_serialize_option_t option = {true, true, true};
+    const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_HOSTIF, TAI_HOST_INTERFACE_ATTR_TX_PCS_ALARM);
+    tai_attribute_t attr = {0};
+    tai_status_t status = tai_metadata_alloc_attr_value(meta, &attr, NULL);
+    if ( status != TAI_STATUS_SUCCESS ) {
+        printf("failed to alloc attr value: %d\n", status);
+        return -1;
+    }
+    attr.id = TAI_HOST_INTERFACE_ATTR_TX_PCS_ALARM;
+    attr.value.s32list.count = 8;
+    for ( int i = 0; i < 8; i++ ) {
+        attr.value.s32list.list[i] = i;
+    }
+    // check how much buf size we need;
+    int ret = tai_serialize_attribute(NULL, 0, meta, &attr, &option);
+    if ( ret < 0 ) {
+        return -1;
+    }
+    char *p = malloc(ret+1);
+    int ret2 = tai_serialize_attribute(p, ret+1, meta, &attr, &option);
+    if ( ret != ret2 ) {
+        free(p);
+        return -1;
+    }
+    free(p);
+    return 0;
+}
+
 typedef int (*testF)();
 
 testF tests[] = {
@@ -711,6 +741,7 @@ testF tests[] = {
     testSerializeStatus,
     testSerializeAttrValueType,
     testDeepequalAttrValue,
+    testSerializeJSONEnumList,
     NULL,
 };
 
