@@ -75,7 +75,7 @@ tai_status_t create_modules() {
 
             status = network_interface_api->create_network_interface(
                &g_netif_ids[g_module_location_tail][i],
-               g_module_ids[g_module_location_tail], 5, &attr[0]); 
+               g_module_ids[g_module_location_tail], 4, &attr[0]); 
             if ( status != TAI_STATUS_SUCCESS ) {
                 return status;
             }
