@@ -1,8 +1,12 @@
 .PHONY: proto
 
+TAI_DIR := ../../
+TAI_META_DIR := $(TAI_DIR)/meta
+TAI_BASIC_LIB_DIR := $(TAI_DIR)/tools/framework/examples/basic/
+
 CFLAGS := -std=c++17 -g3 -fPIC
 LIB := `pkg-config --libs protobuf grpc++ grpc` -L ../../meta/ -lmetatai -L . -ltai
-INCLUDE := -I ../../meta -I ../../inc -I ./include -I ./lib
+INCLUDE := -I $(TAI_META_DIR) -I $(TAI_DIR)/inc -I ./include -I ./lib
 
 LIB_OBJS = lib/taish.grpc.pb.o lib/taish.pb.o lib/server.o
 OBJS = server/main.o $(LIB_OBJS)
@@ -10,8 +14,15 @@ OBJS = server/main.o $(LIB_OBJS)
 PROG := taish_server
 LIB_PROG := libtaigrpc.so
 
-${PROG}: proto $(OBJS)
+${PROG}: proto $(TAI_META_DIR)/taimetadata.h $(TAI_META_DIR)/libmetatai.so libtai.so $(OBJS)
 	$(CXX) $(CFLAGS) $(INCLUDE) -o $@ $(OBJS) $(LIB) -lgrpc++_reflection -lpthread
+
+$(TAI_META_DIR)/taimetadata.h $(TAI_META_DIR)/libmetatai.so:
+	$(MAKE) -C $(TAI_META_DIR)
+
+libtai.so:
+	$(MAKE) -C $(TAI_BASIC_LIB_DIR)
+	ln -s $(TAI_BASIC_LIB_DIR)/$@ $@
 
 lib: proto $(LIB_OBJS)
 	$(CXX) -shared $(CFLAGS) $(INCLUDE) -o $(LIB_PROG) $(LIB_OBJS) $(LIB) -lgrpc++_reflection -lpthread
