@@ -39,6 +39,7 @@ namespace tai {
                     return -1;
                 }
                 m_th = std::thread(&FSM::loop, this);
+                return 0;
             }
 
             // configured() returns if the FSM state can go beyond WAITING_CONFIGURATION
@@ -81,6 +82,7 @@ namespace tai {
                     m_current_state = next;
 
                 }
+                return 0;
             }
 
             int transite(FSMState state) {
