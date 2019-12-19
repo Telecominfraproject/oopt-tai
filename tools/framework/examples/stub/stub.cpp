@@ -135,28 +135,28 @@ namespace tai::stub {
     using H = AttributeInfo<TAI_OBJECT_TYPE_HOSTIF>;
 
     // sadly 'auto' can't be used here
-    template <> const tai::AttributeInfoMap<TAI_OBJECT_TYPE_NETWORKIF> tai::Config<TAI_OBJECT_TYPE_MODULE>::m_info {
-        tai::stub::M(TAI_MODULE_ATTR_LOCATION),
-        tai::stub::M(TAI_MODULE_ATTR_VENDOR_NAME)
+    template <> const tai::AttributeInfoMap<TAI_OBJECT_TYPE_MODULE> tai::Config<TAI_OBJECT_TYPE_MODULE>::m_info {
+        stub::M(TAI_MODULE_ATTR_LOCATION),
+        stub::M(TAI_MODULE_ATTR_VENDOR_NAME)
             .set_default(&tai::stub::default_tai_module_vendor_name_value),
-        tai::stub::M(TAI_MODULE_ATTR_NUM_NETWORK_INTERFACES)
+        stub::M(TAI_MODULE_ATTR_NUM_NETWORK_INTERFACES)
             .set_default(&tai::stub::default_tai_module_num_network_interfaces),
-        tai::stub::M(TAI_MODULE_ATTR_NUM_HOST_INTERFACES)
+        stub::M(TAI_MODULE_ATTR_NUM_HOST_INTERFACES)
             .set_default(&tai::stub::default_tai_module_num_host_interfaces),
-        tai::stub::M(TAI_MODULE_ATTR_ADMIN_STATUS)
+        stub::M(TAI_MODULE_ATTR_ADMIN_STATUS)
             .set_validator(EnumValidator({TAI_MODULE_ADMIN_STATUS_DOWN, TAI_MODULE_ADMIN_STATUS_UP})),
-        tai::stub::M(TAI_MODULE_ATTR_MODULE_SHUTDOWN_REQUEST_NOTIFY),
-        tai::stub::M(TAI_MODULE_ATTR_MODULE_STATE_CHANGE_NOTIFY),
+        stub::M(TAI_MODULE_ATTR_MODULE_SHUTDOWN_REQUEST_NOTIFY),
+        stub::M(TAI_MODULE_ATTR_MODULE_STATE_CHANGE_NOTIFY),
     };
 
     template <> const tai::AttributeInfoMap<TAI_OBJECT_TYPE_NETWORKIF> tai::Config<TAI_OBJECT_TYPE_NETWORKIF>::m_info {
-        tai::stub::N(TAI_NETWORK_INTERFACE_ATTR_INDEX),
-        tai::stub::N(TAI_NETWORK_INTERFACE_ATTR_TX_DIS),
-        tai::stub::N(TAI_NETWORK_INTERFACE_ATTR_TX_LASER_FREQ),
-        tai::stub::N(TAI_NETWORK_INTERFACE_ATTR_OUTPUT_POWER),
+        stub::N(TAI_NETWORK_INTERFACE_ATTR_INDEX),
+        stub::N(TAI_NETWORK_INTERFACE_ATTR_TX_DIS),
+        stub::N(TAI_NETWORK_INTERFACE_ATTR_TX_LASER_FREQ),
+        stub::N(TAI_NETWORK_INTERFACE_ATTR_OUTPUT_POWER),
     };
 
     template <> const tai::AttributeInfoMap<TAI_OBJECT_TYPE_HOSTIF> tai::Config<TAI_OBJECT_TYPE_HOSTIF>::m_info {
-        tai::stub::H(TAI_HOST_INTERFACE_ATTR_INDEX),
+        stub::H(TAI_HOST_INTERFACE_ATTR_INDEX),
     };
 }

@@ -145,6 +145,7 @@ namespace tai::basic {
             return -1;
         }
         m_module  = module;
+        return 0;
     }
 
     // returns 0 on success. otherwise -1
@@ -154,6 +155,7 @@ namespace tai::basic {
             return -1;
         }
         m_netif = netif;
+        return 0;
     }
 
     // returns 0 on success. otherwise -1
@@ -166,6 +168,7 @@ namespace tai::basic {
             return -1;
         }
         m_hostif[index] = hostif;
+        return 0;
     }
 
     tai_status_t FSM::set_tx_dis(const tai_attribute_t* const attribute) {
@@ -381,20 +384,20 @@ namespace tai::basic {
     using H = AttributeInfo<TAI_OBJECT_TYPE_HOSTIF>;
 
     template <> const tai::AttributeInfoMap<TAI_OBJECT_TYPE_MODULE> tai::Config<TAI_OBJECT_TYPE_MODULE>::m_info {
-        tai::basic::M(TAI_MODULE_ATTR_LOCATION),
-        tai::basic::M(TAI_MODULE_ATTR_VENDOR_NAME)
+        basic::M(TAI_MODULE_ATTR_LOCATION),
+        basic::M(TAI_MODULE_ATTR_VENDOR_NAME)
             .set_default(&tai::basic::default_tai_module_vendor_name_value),
-        tai::basic::M(TAI_MODULE_ATTR_OPER_STATUS),
-        tai::basic::M(TAI_MODULE_ATTR_NUM_NETWORK_INTERFACES)
+        basic::M(TAI_MODULE_ATTR_OPER_STATUS),
+        basic::M(TAI_MODULE_ATTR_NUM_NETWORK_INTERFACES)
             .set_default(&tai::basic::default_tai_module_num_network_interfaces),
-        tai::basic::M(TAI_MODULE_ATTR_NUM_HOST_INTERFACES)
+        basic::M(TAI_MODULE_ATTR_NUM_HOST_INTERFACES)
             .set_default(&tai::basic::default_tai_module_num_host_interfaces),
-        tai::basic::M(TAI_MODULE_ATTR_ADMIN_STATUS)
+        basic::M(TAI_MODULE_ATTR_ADMIN_STATUS)
             .set_validator(EnumValidator({TAI_MODULE_ADMIN_STATUS_DOWN, TAI_MODULE_ADMIN_STATUS_UP}))
             .set_fsm_state(FSM_STATE_WAITING_CONFIGURATION),
-        tai::basic::M(TAI_MODULE_ATTR_MODULE_SHUTDOWN_REQUEST_NOTIFY),
-        tai::basic::M(TAI_MODULE_ATTR_MODULE_STATE_CHANGE_NOTIFY),
-        tai::basic::M(TAI_MODULE_ATTR_NOTIFY),
+        basic::M(TAI_MODULE_ATTR_MODULE_SHUTDOWN_REQUEST_NOTIFY),
+        basic::M(TAI_MODULE_ATTR_MODULE_STATE_CHANGE_NOTIFY),
+        basic::M(TAI_MODULE_ATTR_NOTIFY),
     };
 
     tai_status_t netif_tx_dis_setter(const tai_attribute_t* const attribute, FSMState* state, void* user) {
@@ -408,16 +411,16 @@ namespace tai::basic {
     }
 
     template <> const tai::AttributeInfoMap<TAI_OBJECT_TYPE_NETWORKIF> tai::Config<TAI_OBJECT_TYPE_NETWORKIF>::m_info {
-        tai::basic::N(TAI_NETWORK_INTERFACE_ATTR_INDEX),
-        tai::basic::N(TAI_NETWORK_INTERFACE_ATTR_TX_DIS)
+        basic::N(TAI_NETWORK_INTERFACE_ATTR_INDEX),
+        basic::N(TAI_NETWORK_INTERFACE_ATTR_TX_DIS)
             .set_setter(tai::basic::netif_tx_dis_setter)
             .set_getter(tai::basic::netif_tx_dis_getter),
-        tai::basic::N(TAI_NETWORK_INTERFACE_ATTR_TX_LASER_FREQ),
-        tai::basic::N(TAI_NETWORK_INTERFACE_ATTR_OUTPUT_POWER),
+        basic::N(TAI_NETWORK_INTERFACE_ATTR_TX_LASER_FREQ),
+        basic::N(TAI_NETWORK_INTERFACE_ATTR_OUTPUT_POWER),
     };
 
     template <> const tai::AttributeInfoMap<TAI_OBJECT_TYPE_HOSTIF> tai::Config<TAI_OBJECT_TYPE_HOSTIF>::m_info {
-        tai::basic::H(TAI_HOST_INTERFACE_ATTR_INDEX),
+        basic::H(TAI_HOST_INTERFACE_ATTR_INDEX),
     };
 
 }
