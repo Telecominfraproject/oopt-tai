@@ -11,7 +11,7 @@ CFLAGS := -std=c++17 -g3 -shared -fPIC -DTAI_EXPOSE_PLATFORM -fno-inline
 LIBS := -L $(TAI_DIR)/meta -lmetatai -lpthread
 
 ${PROG}: ${SRCS} Makefile
-	g++ ${CFLAGS} -o $@ ${INCLUDE} ${SRCS} ${LIBS}
+	$(CXX) ${CFLAGS} -o $@ ${INCLUDE} ${SRCS} ${LIBS}
 
 clean:
 	$(RM) ${PROG}
