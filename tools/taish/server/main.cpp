@@ -241,6 +241,7 @@ void grpc_thread(std::string addr) {
 int start_grpc_server(std::string addr) {
     std::thread th(grpc_thread, addr);
     th.detach();
+    return 0;
 }
 
 void object_update(tai_object_type_t type, tai_object_id_t oid, bool is_create) {

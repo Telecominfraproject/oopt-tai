@@ -1,7 +1,6 @@
 .PHONY: proto
 
-CC := g++
-CFLAGS := -std=c++11 -g3 -fPIC
+CFLAGS := -std=c++17 -g3 -fPIC
 LIB := `pkg-config --libs protobuf grpc++ grpc` -L ../../meta/ -lmetatai -L . -ltai
 INCLUDE := -I ../../meta -I ../../inc -I ./include -I ./lib
 
@@ -12,16 +11,16 @@ PROG := taish_server
 LIB_PROG := libtaigrpc.so
 
 ${PROG}: proto $(OBJS)
-	$(CC) $(CFLAGS) $(INCLUDE) -o $@ $(OBJS) $(LIB) -lgrpc++_reflection -lpthread
+	$(CXX) $(CFLAGS) $(INCLUDE) -o $@ $(OBJS) $(LIB) -lgrpc++_reflection -lpthread
 
 lib: proto $(LIB_OBJS)
-	$(CC) -shared $(CFLAGS) $(INCLUDE) -o $(LIB_PROG) $(LIB_OBJS) $(LIB) -lgrpc++_reflection -lpthread
+	$(CXX) -shared $(CFLAGS) $(INCLUDE) -o $(LIB_PROG) $(LIB_OBJS) $(LIB) -lgrpc++_reflection -lpthread
 
 .cc.o:
-	$(CC) $(CFLAGS) $(INCLUDE) -c -o $@ $<
+	$(CXX) $(CFLAGS) $(INCLUDE) -c -o $@ $<
 
 .cpp.o:
-	$(CC) $(CFLAGS) $(INCLUDE) -c -o $@ $<
+	$(CXX) $(CFLAGS) $(INCLUDE) -c -o $@ $<
 
 proto: lib/taish.grpc.pb.cc lib/taish.grpc.pb.h lib/taish.pb.cc lib/taish.pb.h
 
@@ -30,17 +29,6 @@ lib/taish.pb.cc lib/taish.pb.h: proto/taish.proto
 
 lib/taish.grpc.pb.cc lib/taish.grpc.pb.h: proto/taish.proto
 	protoc --grpc_out=./lib --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` -I proto taish.proto
-
-docker:
-	# realpath doesn't work on travis use cd and pwd instead
-	cd ../../ && docker run -u `id -u`:`id -g` -w /data/tools/taish --rm -v `pwd`:/data -it libtai-grpc-builder make
-
-docker-image:
-	docker build -t libtai-grpc-builder .
-
-bash:
-	# realpath doesn't work on travis use cd and pwd instead
-	cd ../../ && docker run --net=host -it -v `pwd`:/data -w /data/tools/taish libtai-grpc-builder bash
 
 clean:
 	-rm -f ${OBJS} */*.pb\.* ${PROG} ${LIB_PROG}
