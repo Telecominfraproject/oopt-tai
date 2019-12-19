@@ -5,7 +5,7 @@ CFLAGS := -std=c++11 -g3 -fPIC
 LIB := `pkg-config --libs protobuf grpc++ grpc` -L ../../meta/ -lmetatai -L . -ltai
 INCLUDE := -I ../../meta -I ../../inc -I ./include -I ./lib
 
-LIB_OBJS = lib/tai.grpc.pb.o lib/tai.pb.o lib/server.o
+LIB_OBJS = lib/taish.grpc.pb.o lib/taish.pb.o lib/server.o
 OBJS = server/main.o $(LIB_OBJS)
 
 PROG := taish_server
@@ -23,13 +23,13 @@ lib: proto $(LIB_OBJS)
 .cpp.o:
 	$(CC) $(CFLAGS) $(INCLUDE) -c -o $@ $<
 
-proto: lib/tai.grpc.pb.cc lib/tai.grpc.pb.h lib/tai.pb.cc lib/tai.pb.h
+proto: lib/taish.grpc.pb.cc lib/taish.grpc.pb.h lib/taish.pb.cc lib/taish.pb.h
 
-lib/tai.pb.cc lib/tai.pb.h: proto/tai.proto
-	protoc --cpp_out=./lib -I proto tai.proto
+lib/taish.pb.cc lib/taish.pb.h: proto/taish.proto
+	protoc --cpp_out=./lib -I proto taish.proto
 
-lib/tai.grpc.pb.cc lib/tai.grpc.pb.h: proto/tai.proto
-	protoc --grpc_out=./lib --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` -I proto tai.proto
+lib/taish.grpc.pb.cc lib/taish.grpc.pb.h: proto/taish.proto
+	protoc --grpc_out=./lib --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` -I proto taish.proto
 
 docker:
 	# realpath doesn't work on travis use cd and pwd instead

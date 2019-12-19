@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package tai;
+package taish;
 
 service TAI {
     rpc ListModule(ListModuleRequest) returns (stream ListModuleResponse);
