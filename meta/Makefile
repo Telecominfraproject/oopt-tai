@@ -4,13 +4,7 @@ all: taimetadata.c taimetadata.h taiserialize.c taimetadatautils.c
 	gcc -shared -fPIC -I ../inc taiserialize.c taimetadatautils.c taimetadata.c cJSON.c -o libmetatai.so
 
 taimetadata.c taimetadata.h: main.py
-	python3 main.py ../inc/tai.h
-
-docker-image:
-	docker build --build-arg http_proxy=${http_proxy} --build-arg https_proxy=${https_proxy} -t taimeta-builder .
-
-docker:
-	cd ../; docker run -v `pwd`:/data -w /data -u `id -u`:`id -g` taimeta-builder make -C meta
+	python main.py ../inc/tai.h
 
 test:
 	make -C test

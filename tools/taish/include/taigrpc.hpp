@@ -15,7 +15,7 @@
 #include "tai.h"
 #include "taish.grpc.pb.h"
 #include "taimetadata.h"
-#include <grpcpp/grpcpp.h>
+#include <grpc++/grpc++.h>
 #include <mutex>
 #include <condition_variable>
 #include <queue>
