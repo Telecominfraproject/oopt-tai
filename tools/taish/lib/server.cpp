@@ -85,7 +85,7 @@ TAIAPIModuleList::~TAIAPIModuleList() {
     delete[] m_list.list;
 }
 
-::grpc::Status TAIServiceImpl::ListModule(::grpc::ServerContext* context, const ::tai::ListModuleRequest* request, ::grpc::ServerWriter< ::tai::ListModuleResponse>* writer) {
+::grpc::Status TAIServiceImpl::ListModule(::grpc::ServerContext* context, const taish::ListModuleRequest* request, ::grpc::ServerWriter< taish::ListModuleResponse>* writer) {
 
     TAIAPIModuleList l;
     auto list = l.list();
@@ -101,7 +101,7 @@ TAIAPIModuleList::~TAIAPIModuleList() {
     }
 
     for ( auto i = 0; i < list->count; i++ ) {
-        auto res = ::tai::ListModuleResponse();
+        auto res = taish::ListModuleResponse();
         auto m = res.mutable_module();
         auto module = list->list[i];
         m->set_location(module.location);
@@ -163,11 +163,11 @@ static void usage(const tai_attr_metadata_t* meta, std::string* str) {
     *str = ss.str();
 }
 
-static void convert_metadata(const tai_attr_metadata_t* const src, ::tai::AttributeMetadata* const dst) {
+static void convert_metadata(const tai_attr_metadata_t* const src, taish::AttributeMetadata* const dst) {
     dst->set_attr_id(src->attrid);
     dst->set_name(src->attridname);
     dst->set_short_name(src->attridshortname);
-    dst->set_object_type(static_cast<tai::TAIObjectType>(src->objecttype));
+    dst->set_object_type(static_cast<taish::TAIObjectType>(src->objecttype));
     auto u = dst->mutable_usage();
     usage(src, u);
     dst->set_is_readonly(src->isreadonly);
@@ -177,8 +177,8 @@ static void convert_metadata(const tai_attr_metadata_t* const src, ::tai::Attrib
     dst->set_is_key(src->iskey);
 }
 
-::grpc::Status TAIServiceImpl::ListAttributeMetadata(::grpc::ServerContext* context, const ::tai::ListAttributeMetadataRequest* request, ::grpc::ServerWriter< ::tai::ListAttributeMetadataResponse>* writer) {
-    auto res = ::tai::ListAttributeMetadataResponse();
+::grpc::Status TAIServiceImpl::ListAttributeMetadata(::grpc::ServerContext* context, const taish::ListAttributeMetadataRequest* request, ::grpc::ServerWriter< taish::ListAttributeMetadataResponse>* writer) {
+    auto res = taish::ListAttributeMetadataResponse();
     auto object_type = request->object_type();
     auto info = tai_metadata_all_object_type_infos[object_type];
     if ( info == nullptr ) {
@@ -199,7 +199,7 @@ static void convert_metadata(const tai_attr_metadata_t* const src, ::tai::Attrib
     return Status::OK;
 }
 
-::grpc::Status TAIServiceImpl::GetAttributeMetadata(::grpc::ServerContext* context, const ::tai::GetAttributeMetadataRequest* request, ::tai::GetAttributeMetadataResponse* response) {
+::grpc::Status TAIServiceImpl::GetAttributeMetadata(::grpc::ServerContext* context, const taish::GetAttributeMetadataRequest* request, taish::GetAttributeMetadataResponse* response) {
     auto object_type = request->object_type();
     int32_t attr_id = 0;
     if ( request->attr_name() != "" ) {
@@ -207,13 +207,13 @@ static void convert_metadata(const tai_attr_metadata_t* const src, ::tai::Attrib
         int ret;
         tai_serialize_option_t option{true};
         switch (object_type) {
-        case ::tai::MODULE:
+        case taish::MODULE:
             ret = tai_deserialize_module_attr(attr_name.c_str(), &attr_id, &option);
             break;
-        case ::tai::NETIF:
+        case taish::NETIF:
             ret = tai_deserialize_network_interface_attr(attr_name.c_str(), &attr_id, &option);
             break;
-        case ::tai::HOSTIF:
+        case taish::HOSTIF:
             ret = tai_deserialize_host_interface_attr(attr_name.c_str(), &attr_id, &option);
             break;
         default:
@@ -236,10 +236,10 @@ static void convert_metadata(const tai_attr_metadata_t* const src, ::tai::Attrib
     return Status::OK;
 }
 
-::grpc::Status TAIServiceImpl::GetAttribute(::grpc::ServerContext* context, const ::tai::GetAttributeRequest* request, ::tai::GetAttributeResponse* response) {
+::grpc::Status TAIServiceImpl::GetAttribute(::grpc::ServerContext* context, const taish::GetAttributeRequest* request, taish::GetAttributeResponse* response) {
     auto oid = request->oid();
-    ::tai::Attribute a = request->attribute();
-    ::tai::Attribute* res;
+    taish::Attribute a = request->attribute();
+    taish::Attribute* res;
     auto id = a.attr_id();
     auto v = a.value();
     auto type = tai_object_type_query(oid);
@@ -316,7 +316,7 @@ err:
     return Status::OK;
 }
 
-::grpc::Status TAIServiceImpl::SetAttribute(::grpc::ServerContext* context, const ::tai::SetAttributeRequest* request, ::tai::SetAttributeResponse* response) {
+::grpc::Status TAIServiceImpl::SetAttribute(::grpc::ServerContext* context, const taish::SetAttributeRequest* request, taish::SetAttributeResponse* response) {
     auto oid = request->oid();
     auto a = request->attribute();
     auto id = a.attr_id();
@@ -370,7 +370,7 @@ err:
     return Status::OK;
 }
 
-::grpc::Status TAIServiceImpl::ClearAttribute(::grpc::ServerContext* context, const ::tai::ClearAttributeRequest* request, ::tai::ClearAttributeResponse* response) {
+::grpc::Status TAIServiceImpl::ClearAttribute(::grpc::ServerContext* context, const taish::ClearAttributeRequest* request, taish::ClearAttributeResponse* response) {
     auto oid = request->oid();
     auto id = request->attr_id();
     auto type = tai_object_type_query(oid);
@@ -437,7 +437,7 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
     n->notify(notification);
 }
 
-::grpc::Status TAIServiceImpl::Monitor(::grpc::ServerContext* context, const ::tai::MonitorRequest* request, ::grpc::ServerWriter< ::tai::MonitorResponse>* writer) {
+::grpc::Status TAIServiceImpl::Monitor(::grpc::ServerContext* context, const taish::MonitorRequest* request, ::grpc::ServerWriter< taish::MonitorResponse>* writer) {
     auto oid = request->oid();
     auto nid = request->notification_attr_id();
     auto type = tai_object_type_query(oid);
@@ -536,7 +536,7 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
             auto n = s.q.front();
             s.q.pop();
 
-            ::tai::MonitorResponse res;
+            taish::MonitorResponse res;
             for ( auto e : n.attrs ) {
                 auto a = res.add_attrs();
                 a->set_attr_id(e->attr.id);
@@ -589,7 +589,7 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
     return Status::OK;
 }
 
-::grpc::Status TAIServiceImpl::SetLogLevel(::grpc::ServerContext* context, const ::tai::SetLogLevelRequest* request, ::tai::SetLogLevelResponse* response) {
+::grpc::Status TAIServiceImpl::SetLogLevel(::grpc::ServerContext* context, const taish::SetLogLevelRequest* request, taish::SetLogLevelResponse* response) {
     auto ret = tai_log_set(static_cast<tai_api_t>(request->api()), static_cast<tai_log_level_t>(request->level()), nullptr);
     if ( ret != TAI_STATUS_SUCCESS ) {
         return Status(StatusCode::UNKNOWN, "failed to set loglevel");
@@ -597,22 +597,22 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
     return Status::OK;
 }
 
-::grpc::Status TAIServiceImpl::Create(::grpc::ServerContext* context, const ::tai::CreateRequest* request, ::tai::CreateResponse* response) {
+::grpc::Status TAIServiceImpl::Create(::grpc::ServerContext* context, const taish::CreateRequest* request, taish::CreateResponse* response) {
     auto object_type = request->object_type();
     auto mid = static_cast<tai_object_id_t>(request->module_id());
     tai_object_type_t type;
     std::function<tai_status_t(tai_object_id_t*, uint32_t, const tai_attribute_t*)> create;
 
     switch (object_type) {
-    case ::tai::MODULE:
+    case taish::MODULE:
         type = TAI_OBJECT_TYPE_MODULE;
         create = m_api->module_api->create_module;
         break;
-    case ::tai::NETIF:
+    case taish::NETIF:
         type = TAI_OBJECT_TYPE_NETWORKIF;
         create = std::bind(m_api->netif_api->create_network_interface, std::placeholders::_1, mid, std::placeholders::_2, std::placeholders::_3);
         break;
-    case ::tai::HOSTIF:
+    case taish::HOSTIF:
         type = TAI_OBJECT_TYPE_HOSTIF;
         create = std::bind(m_api->hostif_api->create_host_interface, std::placeholders::_1, mid, std::placeholders::_2, std::placeholders::_3);
         break;
@@ -677,7 +677,7 @@ err:
     return status;
 }
 
-::grpc::Status TAIServiceImpl::Remove(::grpc::ServerContext* context, const ::tai::RemoveRequest* request, ::tai::RemoveResponse* response) {
+::grpc::Status TAIServiceImpl::Remove(::grpc::ServerContext* context, const taish::RemoveRequest* request, taish::RemoveResponse* response) {
     auto oid = request->oid();
     auto type = tai_object_type_query(oid);
     tai_status_t ret;

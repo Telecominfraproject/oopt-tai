@@ -8,8 +8,8 @@
 import grpc
 import sys
 
-import tai_pb2
-import tai_pb2_grpc
+import taish_pb2
+import taish_pb2_grpc
 
 from optparse import OptionParser
 
@@ -42,13 +42,13 @@ def get_attribute_metadata(stub, module, netif, hostif):
     if not module:
         return []
 
-    object_type = tai_pb2.MODULE
+    object_type = taish_pb2.MODULE
     if netif:
-        object_type = tai_pb2.NETIF
+        object_type = taish_pb2.NETIF
     elif hostif:
-        object_type = tai_pb2.HOSTIF
+        object_type = taish_pb2.HOSTIF
 
-    req = tai_pb2.ListAttributeMetadataRequest()
+    req = taish_pb2.ListAttributeMetadataRequest()
     req.object_type = object_type
     return [res.metadata for res in stub.ListAttributeMetadata(req)]
 
@@ -59,7 +59,7 @@ def list_attr(stub, module, netif, hostif):
     print(tabulate(d, headers=['name', 'type', 'value', 'range']))
 
 def monitor(stub, module, netif, hostif, cmds):
-    req = tai_pb2.MonitorRequest()
+    req = taish_pb2.MonitorRequest()
     req.oid = module.oid
     if netif:
         req.oid = netif.oid
@@ -95,16 +95,16 @@ def get_attr(stub, module, netif, hostif, cmds):
     if len(cmds) < 2:
         print ('invalid input: get <attr-name> [<attr-value>]')
         return
-    object_type = tai_pb2.MODULE
+    object_type = taish_pb2.MODULE
     obj = module
     if netif:
-        object_type = tai_pb2.NETIF
+        object_type = taish_pb2.NETIF
         obj = netif
     elif hostif:
-        object_type = tai_pb2.HOSTIF
+        object_type = taish_pb2.HOSTIF
         obj = hostif
 
-    req = tai_pb2.GetAttributeMetadataRequest()
+    req = taish_pb2.GetAttributeMetadataRequest()
     req.object_type = object_type
     req.attr_name = cmds[1]
 
@@ -119,7 +119,7 @@ def get_attr(stub, module, netif, hostif, cmds):
         print('failed to find metadata for {}'.format(cmds[1]))
         return
 
-    req = tai_pb2.GetAttributeRequest()
+    req = taish_pb2.GetAttributeRequest()
     req.oid = obj.oid
     req.attribute.attr_id = m.attr_id
     if len(cmds) > 2:
@@ -139,16 +139,16 @@ def set_attr(stub, module, netif, hostif, cmds):
         print('invalid input: set <attr-name> <attr-value>')
         return
 
-    object_type = tai_pb2.MODULE
+    object_type = taish_pb2.MODULE
     obj = module
     if netif:
-        object_type = tai_pb2.NETIF
+        object_type = taish_pb2.NETIF
         obj = netif
     elif hostif:
-        object_type = tai_pb2.HOSTIF
+        object_type = taish_pb2.HOSTIF
         obj = hostif
 
-    req = tai_pb2.GetAttributeMetadataRequest()
+    req = taish_pb2.GetAttributeMetadataRequest()
     req.object_type = object_type
     req.attr_name = cmds[1]
     res = stub.GetAttributeMetadata(req)
@@ -166,7 +166,7 @@ def set_attr(stub, module, netif, hostif, cmds):
         print('usage: set {} {}'.format(cmds[1], m.usage))
         return
 
-    req = tai_pb2.SetAttributeRequest()
+    req = taish_pb2.SetAttributeRequest()
     req.oid = obj.oid
     req.attribute.attr_id = m.attr_id
     req.attribute.value = cmds[2]
@@ -182,34 +182,34 @@ def set_log_level(stub, cmds):
         print('invalid input: log-level <level> [<api-type>]')
         return
     if cmds[1] == 'debug':
-        level = tai_pb2.DEBUG
+        level = taish_pb2.DEBUG
     elif cmds[1] == 'info':
-        level = tai_pb2.INFO
+        level = taish_pb2.INFO
     elif cmds[1] == 'notice':
-        level = tai_pb2.NOTICE
+        level = taish_pb2.NOTICE
     elif cmds[1] == 'warn':
-        level = tai_pb2.WARN
+        level = taish_pb2.WARN
     elif cmds[1] == 'error':
-        level = tai_pb2.ERROR
+        level = taish_pb2.ERROR
     elif cmds[1] == 'critical':
-        level = tai_pb2.CRITICAL
+        level = taish_pb2.CRITICAL
     else:
         print('invalid log level. choose from [debug, info, notice, warn, error, critical]')
         return
 
-    api = tai_pb2.UNSPECIFIED_API
+    api = taish_pb2.UNSPECIFIED_API
     if len(cmds) > 2:
         if cmds[2] == 'module':
-            api = tai_pb2.MODULE_API
+            api = taish_pb2.MODULE_API
         elif cmds[2] == 'netif':
-            api = tai_pb2.NETIF_API
+            api = taish_pb2.NETIF_API
         elif cmds[2] == 'hostif':
-            api = tai_pb2.HOSTIF_API
+            api = taish_pb2.HOSTIF_API
         else:
             print('invalid api type. choose from [module, netif, hostif]')
             return
 
-    req = tai_pb2.SetLogLevelRequest()
+    req = taish_pb2.SetLogLevelRequest()
     req.level = level
     req.api = api
     return stub.SetLogLevel(req)
@@ -370,9 +370,9 @@ def main():
     (options, args) = parser.parse_args()
 
     with grpc.insecure_channel('{}:50051'.format(options.addr)) as channel:
-        stub = tai_pb2_grpc.TAIStub(channel)
+        stub = taish_pb2_grpc.TAIStub(channel)
 
-        req = tai_pb2.ListModuleRequest()
+        req = taish_pb2.ListModuleRequest()
         try:
             modules = { res.module.location: res.module for res in stub.ListModule(req) }
         except grpc._channel._Rendezvous as e:
