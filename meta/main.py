@@ -6,11 +6,12 @@
 # LICENSE file in the root directory of this source tree.
 
 import sys
+import os
 
 import clang.cindex
 from clang.cindex import Index
 from clang.cindex import Config
-from optparse import OptionParser
+from argparse import ArgumentParser
 from enum import Enum
 from jinja2 import Environment
 
@@ -106,6 +107,7 @@ class TAIEnum(object):
         value_nodes = list(node.get_children())
         value_nodes.sort(key = lambda l : l.enum_value)
         self.value_nodes = value_nodes
+        self.range_indicators = [v for v in self.value_nodes if v.displayname.endswith('_START') or v.displayname.endswith('_END')]
         if exclude_range_indicator:
             self.value_nodes = [v for v in self.value_nodes if not v.displayname.endswith('_START') and not v.displayname.endswith('_END')]
         # displayname starts with '_'. remove it
@@ -167,6 +169,12 @@ class TAIObject(object):
         self.object_type = self.OBJECT_MAP.get(name, None)
         a = self.taiheader.get_enum('tai_{}_attr_t'.format(self.name))
         self.attrs = [ TAIAttribute(e, self) for e in a.value_nodes ]
+        self.custom_range = [0,0]
+        for i in a.range_indicators:
+            if i.spelling == 'TAI_{}_ATTR_CUSTOM_RANGE_START'.format(self.name.upper()):
+                self.custom_range[0] = i.enum_value
+            elif i.spelling == 'TAI_{}_ATTR_CUSTOM_RANGE_END'.format(self.name.upper()):
+                self.custom_range[1] = i.enum_value
 
     def get_attributes(self):
         return self.attrs
@@ -174,11 +182,22 @@ class TAIObject(object):
     def get_enums(self):
         return set(self.taiheader.enum_map[a.enum_type] for a in self.attrs if a.enum_type)
 
+    def add_custom_attribute(self, name, header):
+        a = header.get_enum(name)
+        for node in a.value_nodes:
+            if node.enum_value < self.custom_range[0] or node.enum_value > self.custom_range[1]:
+                raise Exception("custom attribute enum value out of range ({}, {}) : {}".format(self.custom_range[0], self.custom_range[1], node.enum_value))
 
-class TAIHeader(object):
-    def __init__(self, header):
+        self.attrs = self.attrs + [ TAIAttribute(e, self) for e in a.value_nodes ]
+
+
+
+
+class Header(object):
+    def __init__(self, filename, args=[]):
+        self.filename = filename
         index = Index.create()
-        tu = index.parse(header)
+        tu = index.parse(filename, args)
         self.tu = tu
 
         self.enum_map = {}
@@ -186,23 +205,14 @@ class TAIHeader(object):
             e = TAIEnum(v)
             self.enum_map[e.typename] = e
 
-        v = self.get_name('_tai_attribute_value_t')
-        self.attr_value_map = {}
-        for f in v.get_children():
-            # bool needs special handling since its type.spelling appears as 'int'
-            key = 'bool' if f.displayname == 'booldata' else f.type.spelling
-            self.attr_value_map[key] = f.displayname
-
-        self.objects = [TAIObject(name, self) for name in ['module', 'host_interface', 'network_interface']]
-
-    def kinds(self, kind):
-        node = self.tu.cursor
+    def kinds(self, kind, tu=None):
+        node = tu.cursor if tu else self.tu.cursor
         out = []
         self.get_kinds(node, kind, out)
         return out
 
-    def get_name(self, name):
-        node = self.tu.cursor
+    def get_name(self, name, tu=None):
+        node = tu.cursor if tu else self.tu.cursor
         return self._get_name(node, name)
 
     def _get_name(self, node, name):
@@ -228,6 +238,52 @@ class TAIHeader(object):
 
     def get_enum(self, name):
         return self.enum_map.get(name, None)
+
+
+class TAIHeader(Header):
+    def __init__(self, header):
+        super(TAIHeader, self).__init__(header)
+
+        v = self.get_name('_tai_attribute_value_t')
+        self.attr_value_map = {}
+        for f in v.get_children():
+            # bool needs special handling since its type.spelling appears as 'int'
+            key = 'bool' if f.displayname == 'booldata' else f.type.spelling
+            self.attr_value_map[key] = f.displayname
+
+        self.objects = [TAIObject(name, self) for name in ['module', 'host_interface', 'network_interface']]
+        self.custom_headers = []
+
+    def add_custom(self, filename):
+        h = Header(filename, args=['-I{}'.format(os.path.dirname(self.filename))])
+
+        idx = Index.create()
+        tu = idx.parse(filename, options=clang.cindex.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD)
+        guard = [node.displayname for node in tu.cursor.get_children() if (node.location.file and node.kind == clang.cindex.CursorKind.MACRO_DEFINITION)]
+        if len(guard) == 0:
+            Exception("malformed custom header. couldn't find include guard")
+
+        h.include_guard_name = guard[0]
+        with open(filename, 'r') as f:
+            h.content = f.read()
+
+        self.custom_headers.append(h)
+
+        object_attributes = []
+        for k, v in h.enum_map.items():
+            if k.endswith('_attr_t') and not k.startswith('tai_'):
+                object_attributes.append((k, v))
+            elif k not in self.enum_map:
+                # update enum_map
+                self.enum_map[k] = v
+
+        for k, v in object_attributes:
+            for obj in self.objects:
+                if k.endswith('_{}_attr_t'.format(obj.name)):
+                    obj.add_custom_attribute(k, h)
+                    break
+            else:
+                raise Exception("unsupported attribute type: {}".format(k))
 
 
 class Generator(object):
@@ -445,6 +501,10 @@ extern "C" {
 #endif
 
 #include <tai.h>
+{% for c in custom_headers -%}
+{{ c.content }}
+{% endfor -%}
+
 #include "taimetadatatypes.h"
 #include "taimetadatautils.h"
 #include "taimetadatalogger.h"
@@ -538,21 +598,26 @@ const size_t tai_metadata_attr_sorted_by_id_name_count = {{ attrs | count }};
         self.data = {'impls': [g.implementation() for g in generators],
                      'headers': [x for x in [g.header() for g in generators] if len(x) > 0],
                      'object_names': [o.name for o in h.objects],
-                     'attrs': sorted(all_attrs)}
-
+                     'attrs': sorted(all_attrs),
+                     'custom_headers': header.custom_headers }
 
 if __name__ == '__main__':
-    parser = OptionParser()
-    parser.add_option('--clang-lib', default='/usr/lib/llvm-6.0/lib/libclang.so.1')
-    (options, args) = parser.parse_args()
+    parser = ArgumentParser()
+    parser.add_argument('--clang-lib', default='/usr/lib/llvm-6.0/lib/libclang.so.1')
+    parser.add_argument('--out-dir', default='.')
+    parser.add_argument('header')
+    parser.add_argument('custom', nargs='*', default=[])
+    args = parser.parse_args()
 
-    Config.set_library_file(options.clang_lib)
+    Config.set_library_file(args.clang_lib)
 
-    h = TAIHeader(args[0])
+    h = TAIHeader(args.header)
+    for c in args.custom:
+        h.add_custom(c)
 
     g = TAIMetadataGenerator(h)
-    with open('taimetadata.h', 'w') as f:
+    with open('{}/taimetadata.h'.format(args.out_dir), 'w') as f:
         f.write(g.header())
 
-    with open('taimetadata.c', 'w') as f:
+    with open('{}/taimetadata.c'.format(args.out_dir), 'w') as f:
         f.write(g.implementation())
