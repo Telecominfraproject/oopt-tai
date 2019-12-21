@@ -183,14 +183,14 @@ class TAIObject(object):
         return set(self.taiheader.enum_map[a.enum_type] for a in self.attrs if a.enum_type)
 
     def add_custom_attribute(self, name, header):
-        a = header.get_enum(name)
-        for node in a.value_nodes:
+        custom_attr = header.get_enum(name)
+        for node in custom_attr.value_nodes:
             if node.enum_value < self.custom_range[0] or node.enum_value > self.custom_range[1]:
                 raise Exception("custom attribute enum value out of range ({}, {}) : {}".format(self.custom_range[0], self.custom_range[1], node.enum_value))
 
-        self.attrs = self.attrs + [ TAIAttribute(e, self) for e in a.value_nodes ]
-
-
+        self.attrs = self.attrs + [ TAIAttribute(e, self) for e in custom_attr.value_nodes ]
+        a = self.taiheader.get_enum('tai_{}_attr_t'.format(self.name))
+        a.value_nodes = a.value_nodes + custom_attr.value_nodes
 
 
 class Header(object):
