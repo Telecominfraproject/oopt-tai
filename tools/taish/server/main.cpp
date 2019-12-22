@@ -19,6 +19,7 @@
 #include <cstdlib>
 #include <sstream>
 #include <fstream>
+#include <cstdarg>
 
 #include "json.hpp"
 
@@ -334,6 +335,31 @@ tai_status_t list_module(tai_api_module_list_t* const l) {
     return TAI_STATUS_SUCCESS;
 }
 
+static const std::string to_string(tai_log_level_t level) {
+    switch (level) {
+    case TAI_LOG_LEVEL_DEBUG:
+        return "DEBUG";
+    case TAI_LOG_LEVEL_INFO:
+        return "INFO";
+    case TAI_LOG_LEVEL_WARN:
+        return "WARN";
+    case TAI_LOG_LEVEL_ERROR:
+        return "ERROR";
+    case TAI_LOG_LEVEL_CRITICAL:
+        return "CRITICAL";
+    }
+    return std::to_string(static_cast<int>(level));
+}
+
+static void log_cb(tai_log_level_t lvl, const char *file, int line, const char *function, const char *format, ...) {
+    std::cout << to_string(lvl) << " [" << function << "@" << std::dec << line << "] ";
+    std::va_list va;
+    va_start(va, format);
+    std::vprintf(format, va);
+    va_end(va);
+    std::cout << std::endl;
+}
+
 int main(int argc, char *argv[]) {
 
     auto ip = TAI_RPC_DEFAULT_IP;
@@ -381,7 +407,7 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    status = tai_log_set(TAI_API_UNSPECIFIED, level, nullptr);
+    status = tai_log_set(TAI_API_UNSPECIFIED, level, log_cb);
     if ( status != TAI_STATUS_SUCCESS ) {
         std::cout << "failed to set log level" << std::endl;
         return -1;
