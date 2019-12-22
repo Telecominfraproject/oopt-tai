@@ -3,14 +3,22 @@ PROG := libtai.so
 TAI_DIR := ../../../../
 TAI_LIB_DIR := $(TAI_DIR)/tools/framework
 
-SRCS := stub.cpp $(TAI_LIB_DIR)/tai.cpp $(TAI_LIB_DIR)/attribute.cpp
+SRCS := stub.cpp $(shell ls $(TAI_LIB_DIR)/*.cpp)
+HEADERS := stub.hpp $(shell ls $(TAI_LIB_DIR)/*.hpp)
 
 INCLUDE := -I $(TAI_DIR)/inc -I $(TAI_DIR)/meta -I $(TAI_LIB_DIR) -include stub.hpp
-CFLAGS := -std=c++17 -g3 -shared -fPIC -DTAI_EXPOSE_PLATFORM
+# -fno-gnu-unique
+# tai::Logger::get_instance() is an inline method of Logger and it returns a static Logger.
+# when the library is used under tai-mux which uses dlopen(), we want to make the logger per library not globally unique
+# hence we need -fno-gnu-unique option
+# ref) https://stackoverflow.com/questions/38510621/destructor-of-a-global-static-variable-in-a-shared-library-is-not-called-on-dlcl
+#
+# Alternative solution is to make tai::Logger::get_instance() non-inline ( implement it in a cpp file )
+CFLAGS := -std=c++17 -g3 -shared -fPIC -DTAI_EXPOSE_PLATFORM -fno-gnu-unique
 
 LIBS := -L $(TAI_DIR)/meta -lmetatai -lpthread
 
-${PROG}: ${SRCS}
+${PROG}: ${SRCS} ${HEADERS} Makefile
 	$(CXX) ${CFLAGS} -o $@ ${INCLUDE} ${SRCS} ${LIBS}
 
 clean:

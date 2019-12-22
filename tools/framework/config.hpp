@@ -14,6 +14,7 @@
 
 #include "attribute.hpp"
 #include "fsm.hpp"
+#include "logger.hpp"
 
 namespace tai {
 
@@ -189,7 +190,7 @@ namespace tai {
                 }
 
                 if ( diff.size() == 0 ) {
-                    std::cout << "already configured with the same configuration" << std::endl;
+                    INFO("already configured with the same configuration");
                     return TAI_STATUS_SUCCESS;
                 }
 
@@ -230,7 +231,7 @@ namespace tai {
                         return convert_tai_error_to_list(TAI_STATUS_ATTR_NOT_SUPPORTED_0, i);
                     }
                     if ( !force && !info->second.meta->isclearable ) {
-                        std::cout << "can't clear non-clearable attribute" << std::hex << id << std::endl;
+                        WARN("can't clear non-clearable attribute: 0x%x", id);
                         return convert_tai_error_to_list(TAI_STATUS_INVALID_ATTR_VALUE_0, i);
                     }
                     auto it = m_config.find(id);
@@ -317,11 +318,11 @@ namespace tai {
             tai_status_t _set(S_Attribute src, bool readonly, bool without_hook, FSMState* fsm = nullptr) {
                 auto it = m_info.find(src->id());
                 if ( it == m_info.end() ) {
-                    std::cout << "no meta:" << std::hex << src->id() << std::endl;
+                    WARN("no meta: 0x%x", src->id());
                     return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
                 }
                 if ( !readonly && it->second.meta->isreadonly) {
-                    std::cout << "read only" << std::hex << src->id() << std::endl;
+                    WARN("read only: 0x%x", src->id());
                     return TAI_STATUS_INVALID_ATTR_VALUE_0;
                 }
                 int ret = 0;
@@ -347,7 +348,7 @@ namespace tai {
             tai_status_t _set(const tai_attribute_t& src, bool readonly, bool without_hook, FSMState* fsm = nullptr) {
                 auto it = m_info.find(src.id);
                 if ( it == m_info.end() ) {
-                    std::cout << "no meta:" << std::hex << src.id << std::endl;
+                    WARN("no meta: 0x%x", src.id);
                     return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
                 }
                 auto attr = std::make_shared<Attribute>(it->second.meta, src);
