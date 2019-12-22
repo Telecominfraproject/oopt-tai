@@ -1,7 +1,7 @@
 #include "basic.hpp"
+#include "logger.hpp"
 
 #include <sys/timerfd.h>
-#include <iostream>
 
 namespace tai::basic {
 
@@ -176,12 +176,12 @@ namespace tai::basic {
         // in this example, it doesn't do anything.
         // by default, the attribute gets stored to config structure
         // after calling this callback.
-        std::cout << "setting tx-dis to " << std::boolalpha << attribute->value.booldata << std::endl;
+        INFO("setting tx-dis to %s", attribute->value.booldata ? "true" : "false");
         return TAI_STATUS_SUCCESS;
     }
 
     tai_status_t FSM::get_tx_dis(tai_attribute_t* const attribute) {
-        std::cout << "getting tx-dis" << std::endl;
+        INFO("getting tx-dis");
         // you will access hardware here to get tx-dis
         // in this example, we get the attribute from the netif config.
         auto& config = m_netif->config();
@@ -222,7 +222,7 @@ namespace tai::basic {
                     TAI_MODULE_ATTR_OPER_STATUS,
             });
         }
-        std::cout << to_string(current) << " -> " << to_string(next) << std::endl;
+        INFO("%s -> %s", to_string(current).c_str(), to_string(next).c_str());
         return next;
     }
 

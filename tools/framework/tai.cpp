@@ -1,6 +1,7 @@
 #include <iostream>
 #include <memory>
 #include "tai.h"
+#include "logger.hpp"
 
 static std::unique_ptr<tai::Platform> g_platform;
 
@@ -359,10 +360,7 @@ tai_status_t tai_api_uninitialize(void) {
 }
 
 tai_status_t tai_log_set(tai_api_t tai_api_id, tai_log_level_t log_level, tai_log_fn log_fn) {
-    if ( g_platform == nullptr ) {
-        return TAI_STATUS_FAILURE;
-    }
-    return TAI_STATUS_SUCCESS;
+    return tai::Logger::get_instance().set_log(tai_api_id, log_level, log_fn);
 }
 
 tai_status_t tai_api_query(tai_api_t tai_api_id, void** api_method_table) {

@@ -1,9 +1,7 @@
 #ifndef __FSM_HPP__
 #define __FSM_HPP__
 
-#include <iostream>
 #include <thread>
-#include <climits>
 
 #include <unistd.h>
 #include <sys/eventfd.h>

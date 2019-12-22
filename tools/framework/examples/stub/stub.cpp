@@ -1,4 +1,5 @@
 #include "stub.hpp"
+#include "logger.hpp"
 
 namespace tai::stub {
 
