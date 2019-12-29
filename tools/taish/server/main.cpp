@@ -402,7 +402,7 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    tai_service_method_table_t services;
+    tai_service_method_table_t services = {0};
     services.module_presence = module_presence;
     event_fd = eventfd(0, 0);
 
