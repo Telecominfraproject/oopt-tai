@@ -87,6 +87,16 @@ typedef void (*tai_log_fn)(
         _In_ ...);
 
 /**
+ * @brief Module I/O handler
+ */
+typedef struct _tai_module_io_handler_t {
+    void* context;
+    int (*read)(void* context, uint32_t addr, uint32_t* value);
+    int (*write)(void* context, uint32_t addr, uint32_t value);
+    int (*close)(void* context);
+} tai_module_io_handler_t;
+
+/**
  * @brief The adapter calls this function, whose address is provided by the
  *        adapter host, whenever there is a change in an optical module's
  *        presence. This function will be called once for each module present
@@ -103,6 +113,13 @@ typedef void (*tai_module_presence_event_fn)(
         _In_ char * module_location);
 
 /**
+ * @brief A callback to get module I/O handler
+ */
+typedef int (*tai_get_module_io_handler_fn)(
+        _In_ const char * module_location,
+        _Out_ tai_module_io_handler_t * handler);
+
+/**
  * @brief Method table that contains function pointers for services exposed by
  * the adapter host for the adapter. This is currently a single service: module
  * presence, which is called whenever a module is inserted or removed.
@@ -111,8 +128,15 @@ typedef struct _tai_service_method_table_t
 {
     /**
      * @brief Notification of module insertion/removal
+     * When NULL, TAI adapter won't do module detection.
      */
     tai_module_presence_event_fn    module_presence;
+
+    /**
+     * @brief get module I/O handler
+     * When NULL, the default handler will be used
+     */
+    tai_get_module_io_handler_fn    get_module_io_handler;
 
 } tai_service_method_table_t;
 
