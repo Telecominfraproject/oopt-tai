@@ -43,8 +43,11 @@ $ make
 - docker
 
 ```
-$ make docker-image
-$ make docker
+$ cd $(TAI_TOP_DIR)
+$ make docker-image # build container image for building TAI components
+$ make bash # run bash in the container
+root@ubuntu-bionic:/data# cd tools/taish/
+root@ubuntu-bionic:/data/tools/taish# make
 ```
 
 ## Usage
@@ -129,17 +132,14 @@ module was selected.
 As same as `module` command, the prompt will change to show you which netif/hostif
 is selected after executing the command.
 
-#### `exit`, `quit`, `q` command
+#### `quit` command
 
 ```
 module(1)/hostif(1)> q
 module(1)> q
-> q
 ```
 
-`exit`, `quit` and `q` commands have the exactly same behavior. You can use
-what you like. This command is used to exit the taish command or unselect module, 
-netif, hostif which is now selected.
+This command is used to unselect the current selected TAI objected.
 
 #### `list-attr` command
 
