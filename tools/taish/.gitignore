@@ -3,3 +3,5 @@
 *.pb.h
 taish_server
 *.so
+build
+dist

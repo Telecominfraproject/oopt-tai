@@ -5,7 +5,7 @@ TAI_META_DIR := $(TAI_DIR)/meta
 TAI_BASIC_LIB_DIR := $(TAI_DIR)/tools/framework/examples/basic/
 
 CFLAGS := -std=c++17 -g3 -fPIC
-LIB := `pkg-config --libs protobuf grpc++ grpc` -L ../../meta/ -lmetatai -L . -ltai
+LIB := `pkg-config --libs protobuf grpc++ grpc` -L ../../meta/ -lmetatai -L. -ltai
 INCLUDE := -I $(TAI_META_DIR) -I $(TAI_DIR)/inc -I ./include -I ./lib
 
 LIB_OBJS = lib/taish.grpc.pb.o lib/taish.pb.o lib/server.o
@@ -14,7 +14,7 @@ OBJS = server/main.o $(LIB_OBJS)
 PROG := taish_server
 LIB_PROG := libtaigrpc.so
 
-${PROG}: proto $(TAI_META_DIR)/taimetadata.h $(TAI_META_DIR)/libmetatai.so libtai.so $(OBJS)
+${PROG}: proto $(TAI_META_DIR)/taimetadata.h $(TAI_META_DIR)/libmetatai.so $(OBJS) libtai.so
 	$(CXX) $(CFLAGS) $(INCLUDE) -o $@ $(OBJS) $(LIB) -lgrpc++_reflection -lpthread
 
 $(TAI_META_DIR)/taimetadata.h $(TAI_META_DIR)/libmetatai.so:
@@ -35,11 +35,14 @@ lib: proto $(LIB_OBJS)
 
 proto: lib/taish.grpc.pb.cc lib/taish.grpc.pb.h lib/taish.pb.cc lib/taish.pb.h
 
-lib/taish.pb.cc lib/taish.pb.h: proto/taish.proto
-	protoc --cpp_out=./lib -I proto taish.proto
+lib/taish.pb.cc lib/taish.pb.h: proto/taish/taish.proto
+	protoc --cpp_out=./lib -I proto/taish taish.proto
 
-lib/taish.grpc.pb.cc lib/taish.grpc.pb.h: proto/taish.proto
-	protoc --grpc_out=./lib --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` -I proto taish.proto
+lib/taish.grpc.pb.cc lib/taish.grpc.pb.h: proto/taish/taish.proto
+	protoc --grpc_out=./lib --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` -I proto/taish taish.proto
+
+python:
+	python setup.py install
 
 clean:
 	-rm -f ${OBJS} */*.pb\.* ${PROG} ${LIB_PROG}
