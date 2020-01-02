@@ -5,7 +5,7 @@
 
 namespace tai::basic {
 
-    const uint8_t BASIC_NUM_MODULE = 4;
+    const uint8_t BASIC_NUM_MODULE = 1;
     const uint8_t BASIC_NUM_NETIF = 1;
     const uint8_t BASIC_NUM_HOSTIF = 2;
 
@@ -93,11 +93,44 @@ namespace tai::basic {
 
     using S_FSM = std::shared_ptr<FSM>;
 
-    class Module : public tai::Object<TAI_OBJECT_TYPE_MODULE> {
+    template<tai_object_type_t T>
+    class Object : public tai::Object<T> {
+        public:
+            Object(uint32_t count, const tai_attribute_t *list, S_FSM fsm) : tai::Object<T>(count, list, fsm, reinterpret_cast<void*>(fsm.get()), std::bind(&Object::setter, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), std::bind(&Object::getter, this, std::placeholders::_1, std::placeholders::_2)) {}
+
+        private:
+            tai_status_t setter(const tai_attribute_t* const attribute, FSMState* fsm, void* const user) {
+                auto meta = tai_metadata_get_attr_metadata(T, attribute->id);
+                m_config[attribute->id] = std::make_shared<Attribute>(meta, *attribute);
+                return TAI_STATUS_SUCCESS;
+            }
+
+            tai_status_t getter(tai_attribute_t* const attribute, void* const user) {
+                auto it = m_config.find(attribute->id);
+                auto meta = tai_metadata_get_attr_metadata(T, attribute->id);
+                if ( it != m_config.end() ) {
+                    return tai_metadata_deepcopy_attr_value(meta, it->second->raw(), attribute);
+                }
+
+                if ( meta == nullptr || meta->isreadonly ) {
+                    return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
+                } else if ( meta->defaultvaluetype == TAI_DEFAULT_VALUE_TYPE_NONE ) {
+                    return tai_metadata_clear_attr_value(meta, attribute);
+                } else if ( meta->defaultvalue != NULL ) {
+                    tai_attribute_t in = {attribute->id, *meta->defaultvalue};
+                    return tai_metadata_deepcopy_attr_value(meta, &in, attribute);
+                }
+                return TAI_STATUS_UNINITIALIZED;
+            }
+
+            std::map<tai_attr_id_t, S_Attribute> m_config;
+    };
+
+    class Module : public Object<TAI_OBJECT_TYPE_MODULE> {
         public:
             // 4th argument to the Object constructor is a user context which is passed in getter()/setter() callbacks
             // getter()/setter() callbacks is explained in basic.hpp
-            Module(uint32_t count, const tai_attribute_t *list, S_FSM fsm) : m_fsm(fsm), Object(count, list, fsm, reinterpret_cast<void*>(fsm.get())) {
+            Module(uint32_t count, const tai_attribute_t *list, S_FSM fsm) : m_fsm(fsm), Object(count, list, fsm) {
                 std::string loc;
                 for ( auto i = 0; i < count; i++ ) {
                     if ( list[i].id == TAI_MODULE_ATTR_LOCATION ) {
@@ -111,6 +144,7 @@ namespace tai::basic {
                 auto i = std::stoi(loc);
                 m_id = static_cast<tai_object_id_t>(uint64_t(TAI_OBJECT_TYPE_MODULE) << OBJECT_TYPE_SHIFT | i);
             }
+
             tai_object_id_t id() {
                 return m_id;
             }
@@ -123,9 +157,9 @@ namespace tai::basic {
     };
 
 
-    class NetIf : public tai::Object<TAI_OBJECT_TYPE_NETWORKIF> {
+    class NetIf : public Object<TAI_OBJECT_TYPE_NETWORKIF> {
         public:
-            NetIf(S_Module module, uint32_t count, const tai_attribute_t *list) : Object(count, list, module->fsm(), reinterpret_cast<void*>(module->fsm().get())) {
+            NetIf(S_Module module, uint32_t count, const tai_attribute_t *list) : Object(count, list, module->fsm()) {
                 int index = -1;
                 for ( auto i = 0; i < count; i++ ) {
                     if ( list[i].id == TAI_NETWORK_INTERFACE_ATTR_INDEX ) {
@@ -141,13 +175,14 @@ namespace tai::basic {
             tai_object_id_t id() {
                 return m_id;
             }
+
         private:
             tai_object_id_t m_id;
     };
 
-    class HostIf : public tai::Object<TAI_OBJECT_TYPE_HOSTIF> {
+    class HostIf : public Object<TAI_OBJECT_TYPE_HOSTIF> {
         public:
-            HostIf(S_Module module, uint32_t count, const tai_attribute_t *list) : Object(count, list, module->fsm(), reinterpret_cast<void*>(module->fsm().get())) {
+            HostIf(S_Module module, uint32_t count, const tai_attribute_t *list) : Object(count, list, module->fsm()) {
                 int index = -1;
                 for ( auto i = 0; i < count; i++ ) {
                     if ( list[i].id == TAI_HOST_INTERFACE_ATTR_INDEX ) {
@@ -160,6 +195,7 @@ namespace tai::basic {
                 }
                 m_id = static_cast<tai_object_id_t>(uint64_t(TAI_OBJECT_TYPE_HOSTIF) << OBJECT_TYPE_SHIFT | (module->id() & 0xff) << 8 | index);
             }
+
             tai_object_id_t id() {
                 return m_id;
             }
