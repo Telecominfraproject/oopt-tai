@@ -21,7 +21,7 @@ namespace tai {
     template<tai_object_type_t T>
     class Object : public BaseObject {
         public:
-            Object(uint32_t attr_count = 0 , const tai_attribute_t* const attr_list = nullptr, S_FSM fsm = std::make_shared<FSM>(), void* user = nullptr) : m_fsm(fsm), m_config(attr_count, attr_list, user) {}
+            Object(uint32_t attr_count = 0 , const tai_attribute_t* const attr_list = nullptr, S_FSM fsm = std::make_shared<FSM>(), void* user = nullptr, setter_f setter = nullptr, getter_f getter = nullptr) : m_fsm(fsm), m_config(attr_count, attr_list, user, setter, getter) {}
 
             bool configured() {
                 return m_fsm->configured();

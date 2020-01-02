@@ -55,7 +55,7 @@ namespace tai {
                         it->second.second(log_level, file.c_str(), line, function.c_str(), format.c_str(), args...);
                     } else {
                     def:
-                        std::fprintf(stderr, ("%s [%s@%d] [%p] " + format + "\n").c_str(), to_string(log_level).c_str(), function, line, this, args...);
+                        std::fprintf(stderr, ("%s [%s@%d]" + format + "\n").c_str(), to_string(log_level).c_str(), function.c_str(), line, args...);
                     }
                 }
             }
