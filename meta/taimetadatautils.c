@@ -332,10 +332,9 @@ bool tai_metadata_is_condition_met(
     }\
 
 #define _TAI_META_FREE_LIST(valuename)\
-    if ( value->valuename.count != 0 ) {\
-        value->valuename.count = 0;\
-        free(value->valuename.list);\
-    }
+    value->valuename.count = 0;\
+    free(value->valuename.list);\
+    value->valuename.list = NULL;\
 
 #define _TAI_META_COPY_LIST(valuename, type)\
     if( out->valuename.count < in->valuename.count ) {\
@@ -428,6 +427,7 @@ tai_status_t _tai_metadata_free_attr_value(
         for ( i = 0; i < value->objmaplist._alloced; i++ ) {
             value->objmaplist.list[i].value.count = 0;
             free(value->objmaplist.list[i].value.list);
+            value->objmaplist.list[i].value.list = NULL;
         }
         _TAI_META_FREE_LIST(objmaplist);
         break;
@@ -440,6 +440,71 @@ tai_status_t _tai_metadata_free_attr_value(
             }
         }
         _TAI_META_FREE_LIST(attrlist);
+        break;
+    default:
+        TAI_META_LOG_ERROR("unsupported value type: %d", metadata->attrvaluetype);
+        return TAI_STATUS_NOT_SUPPORTED;
+    }
+    return TAI_STATUS_SUCCESS;
+}
+
+static tai_status_t _tai_metadata_clear_attr_value(
+        _In_ const tai_attr_metadata_t* const metadata,
+        _In_ tai_attribute_value_t* const value) {
+    if ( metadata == NULL || value == NULL ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    switch( metadata->attrvaluetype ) {
+    case TAI_ATTR_VALUE_TYPE_BOOLDATA:
+    case TAI_ATTR_VALUE_TYPE_CHARDATA:
+    case TAI_ATTR_VALUE_TYPE_U8:
+    case TAI_ATTR_VALUE_TYPE_S8:
+    case TAI_ATTR_VALUE_TYPE_U16:
+    case TAI_ATTR_VALUE_TYPE_S16:
+    case TAI_ATTR_VALUE_TYPE_U32:
+    case TAI_ATTR_VALUE_TYPE_S32:
+    case TAI_ATTR_VALUE_TYPE_U64:
+    case TAI_ATTR_VALUE_TYPE_S64:
+    case TAI_ATTR_VALUE_TYPE_FLT:
+    case TAI_ATTR_VALUE_TYPE_PTR:
+    case TAI_ATTR_VALUE_TYPE_OID:
+    case TAI_ATTR_VALUE_TYPE_U32RANGE:
+    case TAI_ATTR_VALUE_TYPE_S32RANGE:
+    case TAI_ATTR_VALUE_TYPE_NOTIFICATION:
+        memset(value, 0, sizeof(tai_attribute_value_t));
+        break;
+    case TAI_ATTR_VALUE_TYPE_OBJLIST:
+        value->objlist.count = 0;
+        break;
+    case TAI_ATTR_VALUE_TYPE_CHARLIST:
+        value->charlist.count = 0;
+        break;
+    case TAI_ATTR_VALUE_TYPE_U8LIST:
+        value->u8list.count = 0;
+        break;
+    case TAI_ATTR_VALUE_TYPE_S8LIST:
+        value->s8list.count = 0;
+        break;
+    case TAI_ATTR_VALUE_TYPE_U16LIST:
+        value->u16list.count = 0;
+        break;
+    case TAI_ATTR_VALUE_TYPE_S16LIST:
+        value->s16list.count = 0;
+        break;
+    case TAI_ATTR_VALUE_TYPE_U32LIST:
+        value->u32list.count = 0;
+        break;
+    case TAI_ATTR_VALUE_TYPE_S32LIST:
+        value->s32list.count = 0;
+        break;
+    case TAI_ATTR_VALUE_TYPE_FLOATLIST:
+        value->floatlist.count = 0;
+        break;
+    case TAI_ATTR_VALUE_TYPE_OBJMAPLIST:
+        value->objmaplist.count = 0;
+        break;
+    case TAI_ATTR_VALUE_TYPE_ATTRLIST:
+        value->attrlist.count = 0;
         break;
     default:
         TAI_META_LOG_ERROR("unsupported value type: %d", metadata->attrvaluetype);
@@ -574,6 +639,7 @@ static tai_status_t _tai_metadata_alloc_attr_value(
             if ( value->objmaplist.list[i].value.list == NULL ) {
                 for ( j = 0; j < i; j++ ) {
                     free(value->objmaplist.list[j].value.list);
+                    value->objmaplist.list[j].value.list = NULL;
                 }
                 _TAI_META_FREE_LIST(objmaplist);
                 return TAI_STATUS_NO_MEMORY;
@@ -621,6 +687,15 @@ tai_status_t tai_metadata_free_attr_value(
         return TAI_STATUS_INVALID_PARAMETER;
     }
     return _tai_metadata_free_attr_value(metadata, &attr->value, info);
+}
+
+tai_status_t tai_metadata_clear_attr_value(
+        _In_ const tai_attr_metadata_t* const metadata,
+        _In_ tai_attribute_t* const attr) {
+    if ( attr == NULL ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    return _tai_metadata_clear_attr_value(metadata, &attr->value);
 }
 
 static tai_status_t _tai_metadata_deepcopy_attr_value(

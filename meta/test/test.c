@@ -743,6 +743,45 @@ int testDeserializeJSONCharlist() {
     return 0;
 }
 
+int testClearAttrValue() {
+    const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORKIF, TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS);
+    tai_attribute_t attr = {0};
+    tai_status_t status;
+    tai_alloc_info_t info = { .list_size = 5 };
+    if ( attr.value.s32list.list != NULL || attr.value.s32list.count != 0 ) {
+        printf("failed initialization\n");
+        return -1;
+    }
+    status = tai_metadata_alloc_attr_value(meta, &attr, &info);
+    if ( status != TAI_STATUS_SUCCESS ) {
+        printf("failed to alloc attr value: %d\n", status);
+        return -1;
+    }
+    if ( attr.value.s32list.list == NULL || attr.value.s32list.count != 5 ) {
+        printf("failed alloc_attr_value() list = %p, count = %d\n", attr.value.s32list.list, attr.value.s32list.count);
+        return -1;
+    }
+    status = tai_metadata_clear_attr_value(meta, &attr);
+    if ( status != TAI_STATUS_SUCCESS ) {
+        printf("failed to clear attr value: %d\n", status);
+        return -1;
+    }
+    if ( attr.value.s32list.list == NULL || attr.value.s32list.count != 0 ) {
+        printf("failed clear_attr_value()\n");
+        return -1;
+    }
+    status = tai_metadata_free_attr_value(meta, &attr, NULL);
+    if ( status != TAI_STATUS_SUCCESS ) {
+        printf("failed to free attr value: %d\n", status);
+        return -1;
+    }
+    if ( attr.value.s32list.list != NULL || attr.value.s32list.count != 0 ) {
+        printf("failed free_attr_value()\n");
+        return -1;
+    }
+    return 0;
+}
+
 typedef int (*testF)();
 
 struct testCase {
@@ -780,6 +819,7 @@ struct testCase tests[] = {
     D(testDeepequalAttrValue),
     D(testSerializeJSONEnumList),
     D(testDeserializeJSONCharlist),
+    D(testClearAttrValue),
     D(NULL),
 };
 

@@ -195,6 +195,19 @@ extern tai_status_t tai_metadata_free_attr_value(
         _In_ const tai_alloc_info_t* const info);
 
 /**
+ * @brief Clear tai_attribute_t value
+ *
+ * @param[in] metadata Attribute metadata
+ * @param[in] attr Attribute to clear
+ *
+ * @return TAI_STATUS_SUCCESS on success,
+ * TAI_STATUS_INVALID_PARAMETER on failure
+ */
+extern tai_status_t tai_metadata_clear_attr_value(
+        _In_ const tai_attr_metadata_t* const metadata,
+        _In_ tai_attribute_t* const attr);
+
+/**
  * @brief Deep copy tai_attribute_t value
  *
  * @param[in] metadata Attribute metadata
