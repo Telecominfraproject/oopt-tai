@@ -5,6 +5,8 @@
 #include "tai.h"
 #include "taimetadata.h"
 
+#include "exception.hpp"
+
 #include <iostream>
 #include <functional>
 
@@ -19,33 +21,33 @@ namespace tai {
     class Attribute {
         public:
             Attribute(const tai_attr_metadata_t* const meta, getter getter) : m_meta(meta) {
-                m_attr.id = meta->attrid;
-                int ret = tai_metadata_alloc_attr_value(meta, &m_attr, nullptr);
-                if ( ret < 0 ) {
-                    throw ret;
+                auto ret = tai_metadata_alloc_attr_value(meta, &m_attr, nullptr);
+                if ( ret != TAI_STATUS_SUCCESS ) {
+                    throw Exception(ret);
                 }
                 ret = getter(&m_attr);
-                if ( ret < 0 ) {
-                    throw ret;
+                if ( ret != TAI_STATUS_SUCCESS ) {
+                    throw Exception(ret);
                 }
+                m_attr.id = meta->attrid;
             }
 
             Attribute(const tai_attr_metadata_t* const meta, const tai_attribute_t* const src) : m_meta(meta) {
                 if ( meta == nullptr || src == nullptr ) {
-                    throw -1;
+                    throw Exception(TAI_STATUS_INVALID_PARAMETER);
                 }
                 m_attr.id = src->id;
                 tai_alloc_info_t info{
                     .list_size=0,
                     .reference=src,
                 };
-                int ret = tai_metadata_alloc_attr_value(meta, &m_attr, &info);
-                if ( ret < 0 ) {
-                    throw ret;
+                auto ret = tai_metadata_alloc_attr_value(meta, &m_attr, &info);
+                if ( ret != TAI_STATUS_SUCCESS ) {
+                    throw Exception(ret);
                 }
                 ret = tai_metadata_deepcopy_attr_value(meta, src, &m_attr);
-                if ( ret < 0 ) {
-                    throw ret;
+                if ( ret != TAI_STATUS_SUCCESS ) {
+                    throw Exception(ret);
                 }
             }
 

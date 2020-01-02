@@ -2,6 +2,7 @@
 #include <memory>
 #include "tai.h"
 #include "logger.hpp"
+#include "exception.hpp"
 
 static std::unique_ptr<tai::Platform> g_platform;
 
@@ -347,7 +348,11 @@ tai_status_t tai_api_initialize(uint64_t flags, const tai_service_method_table_t
     if ( g_platform != nullptr ) {
         return TAI_STATUS_FAILURE;
     }
-    g_platform.reset(new ::Platform(services));
+    try {
+        g_platform.reset(new ::Platform(services));
+    } catch ( tai::Exception& e ) {
+        return e.err();
+    }
     return TAI_STATUS_SUCCESS;
 }
 
