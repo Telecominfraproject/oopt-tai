@@ -43,6 +43,11 @@ namespace tai {
                 return m_config;
             }
 
+        protected:
+            S_FSM fsm() {
+                return m_fsm;
+            }
+
         private:
 
             std::mutex m_mtx;
