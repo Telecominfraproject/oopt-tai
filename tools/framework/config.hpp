@@ -99,7 +99,7 @@ namespace tai {
                 for ( auto i = 0; i < attr_count; i++) {
                     auto ret = _set(attr_list[i], true, false);
                     if ( ret != TAI_STATUS_SUCCESS ) {
-                        throw convert_tai_error_to_list(ret, i);
+                        throw Exception(convert_tai_error_to_list(ret, i));
                     }
                 }
             }

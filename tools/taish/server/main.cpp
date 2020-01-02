@@ -115,10 +115,12 @@ class module {
 
             load_config(config, list, TAI_OBJECT_TYPE_MODULE);
 
-            if ( g_api.module_api->create_module(&m_id, list.size(), list.data()) != TAI_STATUS_SUCCESS ) {
-                std::cout << "failed to create module whose location is " << location << std::endl;
+            auto status = g_api.module_api->create_module(&m_id, list.size(), list.data());
+            if ( status != TAI_STATUS_SUCCESS ) {
+                std::cout << "failed to create module whose location is " << location << ", err: " << status << std::endl;
                 return;
             }
+
             std::cout << "created module id: 0x" << std::hex << m_id << std::endl;
 
             list.clear();
@@ -127,7 +129,7 @@ class module {
             list.push_back(attr);
             attr.id = TAI_MODULE_ATTR_NUM_NETWORK_INTERFACES;
             list.push_back(attr);
-            auto status = g_api.module_api->get_module_attributes(m_id, list.size(), list.data());
+            status = g_api.module_api->get_module_attributes(m_id, list.size(), list.data());
             if ( status != TAI_STATUS_SUCCESS ) {
                 throw std::runtime_error("faile to get attribute");
             }

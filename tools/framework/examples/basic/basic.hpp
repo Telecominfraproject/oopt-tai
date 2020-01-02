@@ -106,7 +106,7 @@ namespace tai::basic {
                     }
                 }
                 if ( loc == "" ) {
-                    throw TAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
+                    throw Exception(TAI_STATUS_MANDATORY_ATTRIBUTE_MISSING);
                 }
                 auto i = std::stoi(loc);
                 m_id = static_cast<tai_object_id_t>(uint64_t(TAI_OBJECT_TYPE_MODULE) << OBJECT_TYPE_SHIFT | i);
@@ -134,7 +134,7 @@ namespace tai::basic {
                     }
                 }
                 if ( index < 0 ) {
-                    throw TAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
+                    throw Exception(TAI_STATUS_MANDATORY_ATTRIBUTE_MISSING);
                 }
                 m_id = static_cast<tai_object_id_t>(uint64_t(TAI_OBJECT_TYPE_NETWORKIF) << OBJECT_TYPE_SHIFT | (module->id() & 0xff) << 8 | index);
             }
@@ -156,7 +156,7 @@ namespace tai::basic {
                     }
                 }
                 if ( index < 0 ) {
-                    throw TAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
+                    throw Exception(TAI_STATUS_MANDATORY_ATTRIBUTE_MISSING);
                 }
                 m_id = static_cast<tai_object_id_t>(uint64_t(TAI_OBJECT_TYPE_HOSTIF) << OBJECT_TYPE_SHIFT | (module->id() & 0xff) << 8 | index);
             }

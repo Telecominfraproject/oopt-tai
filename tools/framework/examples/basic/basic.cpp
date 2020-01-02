@@ -28,7 +28,7 @@ namespace tai::basic {
                         }
                     }
                     if ( loc == "" ) {
-                        throw TAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
+                        return TAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
                     }
                     auto fsm = std::make_shared<FSM>();
                     auto it = m_fsms.find(loc);
@@ -38,7 +38,7 @@ namespace tai::basic {
                     m_fsms[loc] = fsm;
                     auto m = std::make_shared<Module>(count, list, fsm);
                     if ( fsm->start() < 0 ) {
-                        throw TAI_STATUS_FAILURE;
+                        return TAI_STATUS_FAILURE;
                     }
                     fsm->set_module(m);
                     obj = m;
