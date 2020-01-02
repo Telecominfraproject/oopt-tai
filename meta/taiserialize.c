@@ -456,8 +456,17 @@ int tai_deserialize_s32range(
 
 int tai_deserialize_charlist(
         _In_ const char *buffer,
-        _Out_ tai_char_list_t *value)
+        _Out_ tai_char_list_t *value,
+        _In_ const tai_serialize_option_t *option)
 {
+    if ( option != NULL && option->json ) {
+        cJSON *j = cJSON_Parse(buffer);
+        if ( !cJSON_IsString(j) ) {
+            TAI_META_LOG_WARN("failed to parse buffer as a json string");
+            return TAI_SERIALIZE_ERROR;
+        }
+        buffer = j->valuestring;
+    }
     int count = strlen(buffer);
     if ( count > value->count ) {
         value->count = count;
@@ -465,7 +474,7 @@ int tai_deserialize_charlist(
     }
     value->count = count;
     memcpy(value->list, buffer, count);
-    return count;
+    return count + (( option != NULL && option->json ) ? 2 : 0);
 }
 
 int tai_serialize_float(
@@ -894,7 +903,7 @@ int tai_serialize_attribute_value(
     case TAI_ATTR_VALUE_TYPE_OBJLIST:
         _TAI_SERIALIZE_LIST(objlist, object_id);
     case TAI_ATTR_VALUE_TYPE_CHARLIST:
-        if ( option->json ) {
+        if ( option != NULL && option->json ) {
             _SERIALIZE(snprintf(ptr, n, "\""), count, ptr, n);
         }
         if ( value->charlist.count > n ) {
@@ -903,7 +912,7 @@ int tai_serialize_attribute_value(
         memcpy(ptr, value->charlist.list, value->charlist.count);
         ptr += value->charlist.count;
         n -= value->charlist.count;
-        if ( option->json ) {
+        if ( option != NULL && option->json ) {
             _SERIALIZE(snprintf(ptr, n, "\""), count, ptr, n);
         }
         return ptr - buffer;
@@ -918,7 +927,7 @@ int tai_serialize_attribute_value(
     case TAI_ATTR_VALUE_TYPE_U32LIST:
         _TAI_SERIALIZE_LIST(u32list, int32);
     case TAI_ATTR_VALUE_TYPE_S32LIST:
-        if ( option->json ) {
+        if ( option != NULL && option->json ) {
             _SERIALIZE(snprintf(ptr, n, "["), count, ptr, n);
         }
         if ( meta->isenum ) {
@@ -940,7 +949,7 @@ int tai_serialize_attribute_value(
                 }
             }
         }
-        if ( option->json ) {
+        if ( option != NULL && option->json ) {
             _SERIALIZE(snprintf(ptr, n, "]"), count, ptr, n);
         }
         return ptr - buffer;
@@ -974,7 +983,7 @@ int tai_serialize_attribute_value(
         _SERIALIZE(snprintf(ptr, n, "]"), count, ptr, n);
         return ptr - buffer;
     case TAI_ATTR_VALUE_TYPE_ATTRLIST:
-        if ( option->json ) {
+        if ( option != NULL && option->json ) {
             _SERIALIZE(snprintf(ptr, n, "["), count, ptr, n);
         }
         for ( i = 0; i < value->attrlist.count; i++ ) {
@@ -983,7 +992,7 @@ int tai_serialize_attribute_value(
                 _SERIALIZE(snprintf(ptr, n, ", "), count, ptr, n);
             }
         }
-        if ( option->json ) {
+        if ( option != NULL && option->json ) {
             _SERIALIZE(snprintf(ptr, n, "]"), count, ptr, n);
         }
         return ptr - buffer;
@@ -1118,7 +1127,7 @@ int tai_deserialize_attribute_value(
     case TAI_ATTR_VALUE_TYPE_S32RANGE:
         return tai_deserialize_s32range(buffer, &value->s32range);
     case TAI_ATTR_VALUE_TYPE_CHARLIST:
-        return tai_deserialize_charlist(buffer, &value->charlist);
+        return tai_deserialize_charlist(buffer, &value->charlist, option);
     case TAI_ATTR_VALUE_TYPE_U8LIST:
         return tai_deserialize_u8list(buffer, &value->u8list, option);
     case TAI_ATTR_VALUE_TYPE_S8LIST:

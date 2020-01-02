@@ -443,6 +443,10 @@ typedef struct _tai_serialize_option_t
 
 } tai_serialize_option_t;
 
+int tai_deserialize_charlist(
+        _In_ const char *buffer,
+        _Out_ tai_char_list_t *value,
+        _In_ const tai_serialize_option_t *option);
 
 int tai_deserialize_u8list(
         _In_ const char *buffer,
