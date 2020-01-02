@@ -36,12 +36,12 @@ namespace tai {
     // attribute : the attribute to be set
     // fsm : the FSM state which we need to transit
     // user : context
-    using setter_f = std::function< tai_status_t(const tai_attribute_t* const attribute, FSMState* fsm, void* user) >;
+    using setter_f = std::function< tai_status_t(const tai_attribute_t* const attribute, FSMState* fsm, void* const user) >;
 
     // getter_f : the callback function which gets called when setting the attribute
     // attribute : the attribute to be get
     // user : context
-    using getter_f = std::function< tai_status_t(tai_attribute_t* const attribute, void* user) >;
+    using getter_f = std::function< tai_status_t(tai_attribute_t* const attribute, void* const user) >;
 
     class EnumValidator {
         public:
@@ -95,7 +95,7 @@ namespace tai {
     template<tai_object_type_t T>
     class Config {
         public:
-            Config(uint32_t attr_count = 0, const tai_attribute_t* attr_list = nullptr, void* user = nullptr) : m_user(user) {
+            Config(uint32_t attr_count = 0, const tai_attribute_t* attr_list = nullptr, void* user = nullptr, setter_f setter = nullptr, getter_f getter = nullptr) : m_user(user), m_default_setter(setter), m_default_getter(getter) {
                 for ( auto i = 0; i < attr_count; i++) {
                     auto ret = _set(attr_list[i], true, false);
                     if ( ret != TAI_STATUS_SUCCESS ) {
@@ -119,25 +119,35 @@ namespace tai {
 
             tai_status_t get(tai_attribute_t* const attr, bool without_hook = false) {
                 auto info = m_info.find(attr->id);
+                tai_status_t ret = TAI_STATUS_NOT_SUPPORTED;
                 if ( info == m_info.end() ) {
-                    return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
+                    DEBUG("no meta: 0x%x", attr->id);
+                    ret = TAI_STATUS_ATTR_NOT_SUPPORTED_0;
+                    goto err;
                 }
-                if ( !without_hook && info->second.getter != nullptr ) {
-                    return info->second.getter(attr, m_user);
-                }
-                std::unique_lock<std::mutex> lk(m_mtx);
-                auto v = _get(attr->id);
-                if ( v == nullptr ) {
-                    return TAI_STATUS_UNINITIALIZED;
-                }
-                tai_attribute_t src{attr->id, *v};
-                return tai_metadata_deepcopy_attr_value(info->second.meta, &src, attr);
-            }
 
-            int set_post_set_hook(setter_f hook) {
-                std::unique_lock<std::mutex> lk(m_mtx);
-                m_post_set_hook = hook;
-                return 0;
+                if ( !without_hook && info->second.getter != nullptr ) {
+                    ret = info->second.getter(attr, m_user);
+                    if ( ret == TAI_STATUS_SUCCESS ) {
+                        return ret;
+                    }
+                }
+
+                {
+                    std::unique_lock<std::mutex> lk(m_mtx);
+                    auto v = _get(attr->id);
+                    if ( v == nullptr ) {
+                        ret = TAI_STATUS_UNINITIALIZED;
+                        goto err;
+                    }
+                    tai_attribute_t src{attr->id, *v};
+                    return tai_metadata_deepcopy_attr_value(info->second.meta, &src, attr);
+                }
+err:
+                if ( !without_hook && m_default_getter != nullptr ) {
+                    return m_default_getter(attr, m_user);
+                }
+                return ret;
             }
 
             int set_hook(tai_attr_id_t id, setter_f hook) {
@@ -173,10 +183,10 @@ namespace tai {
                     for ( auto i = 0; i < attr_count; i++ ) {
                         const auto& attr = attr_list[i];
                         auto info = m_info.find(attr.id);
-                        if ( info == m_info.end() ) {
+                        if ( m_default_setter == nullptr && info == m_info.end() ) {
                             return convert_tai_error_to_list(TAI_STATUS_ATTR_NOT_SUPPORTED_0, i);
                         }
-                        if ( info->second.validator != nullptr ) {
+                        if ( info != m_info.end() && info->second.validator != nullptr ) {
                             auto ret = info->second.validator(&attr.value);
                             if ( ret != TAI_STATUS_SUCCESS ) {
                                 return convert_tai_error_to_list(ret, i);
@@ -199,13 +209,19 @@ namespace tai {
                     return TAI_STATUS_SUCCESS;
                 }
 
-                auto s = FSM_STATE_END;
+                // determine which state to transit
+                // choose the lowest state if we have multiple choice
+                // the state can't go upper from the current state
+                // hence initialize 's' with 'next_state' which holds the
+                // current state when this method is called
+                auto s = next_state;
                 for ( auto i = 0; i < diff.size(); i++ ) {
                     auto state = next_state;
                     auto ret = _set(*diff[i], false, false, &state);
                     if ( ret != TAI_STATUS_SUCCESS ) {
                         return convert_tai_error_to_list(ret, i);
                     }
+                    // if 'state' is updated and lower than 's', update 's' to that state
                     if ( state != next_state && state < s) {
                         s = state;
                     }
@@ -213,6 +229,7 @@ namespace tai {
                     if ( info == m_info.end() ) {
                         continue;
                     }
+                    // no FSM state specified in attribute info
                     if ( info->second.fsm == FSM_STATE_INIT ) {
                         continue;
                     }
@@ -262,8 +279,8 @@ namespace tai {
                                     ret = TAI_STATUS_SUCCESS;
                                 }
                             }
-                            if ( m_post_set_hook != nullptr && (TAI_STATUS_IS_ATTR_NOT_SUPPORTED(ret) || ret == TAI_STATUS_NOT_SUPPORTED) ) {
-                                ret = m_post_set_hook(&default_attr, &state, m_user);
+                            if ( m_default_setter != nullptr && (TAI_STATUS_IS_ATTR_NOT_SUPPORTED(ret) || ret == TAI_STATUS_NOT_SUPPORTED) ) {
+                                ret = m_default_setter(&default_attr, &state, m_user);
                             }
                             if ( ret != TAI_STATUS_SUCCESS ) {
                                 return convert_tai_error_to_list(ret, i);
@@ -321,50 +338,79 @@ namespace tai {
 
             // readonly : if true, allow readonly attribute to be set
             tai_status_t _set(S_Attribute src, bool readonly, bool without_hook, FSMState* fsm = nullptr) {
-                auto it = m_info.find(src->id());
-                if ( it == m_info.end() ) {
-                    WARN("no meta: 0x%x", src->id());
-                    return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
+                auto info = m_info.find(src->id());
+                tai_status_t ret = TAI_STATUS_SUCCESS;
+                if ( info == m_info.end() ) {
+                    DEBUG("no meta: 0x%x", src->id());
+                    ret = TAI_STATUS_ATTR_NOT_SUPPORTED_0;
+                    goto err;
                 }
-                if ( !readonly && it->second.meta->isreadonly) {
+
+                if ( !readonly && info->second.meta->isreadonly) {
                     WARN("read only: 0x%x", src->id());
-                    return TAI_STATUS_INVALID_ATTR_VALUE_0;
+                    ret = TAI_STATUS_INVALID_ATTR_VALUE_0;
+                    goto err;
                 }
-                int ret = 0;
-                if ( !without_hook ) {
-                    if ( it->second.setter != nullptr ) {
-                        ret = it->second.setter(src->raw(), fsm, m_user);
-                        if ( ret == TAI_STATUS_NOT_EXECUTED ) {
-                            ret = TAI_STATUS_SUCCESS;
-                        }
-                    }
-                    if ( m_post_set_hook != nullptr && (TAI_STATUS_IS_ATTR_NOT_SUPPORTED(ret) || ret == TAI_STATUS_NOT_SUPPORTED) ) {
-                        ret = m_post_set_hook(src->raw(), fsm, m_user);
+
+                if ( !without_hook && info->second.setter != nullptr ) {
+                    ret = info->second.setter(src->raw(), fsm, m_user);
+                    if ( ret != TAI_STATUS_SUCCESS || info->second.no_store ) {
+                        goto err;
                     }
                 }
-                if ( ret != TAI_STATUS_SUCCESS || it->second.no_store ) {
+
+                {
+                    std::unique_lock<std::mutex> lk(m_mtx);
+                    m_config[src->id()] = src;
                     return ret;
                 }
-                std::unique_lock<std::mutex> lk(m_mtx);
-                m_config[src->id()] = src;
+err:
+                if ( !without_hook && m_default_setter != nullptr ) {
+                    return m_default_setter(src->raw(), fsm, m_user);
+                }
                 return ret;
             }
 
             tai_status_t _set(const tai_attribute_t& src, bool readonly, bool without_hook, FSMState* fsm = nullptr) {
-                auto it = m_info.find(src.id);
-                if ( it == m_info.end() ) {
-                    WARN("no meta: 0x%x", src.id);
-                    return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
+                auto info = m_info.find(src.id);
+                tai_status_t ret = TAI_STATUS_SUCCESS;
+                if ( info == m_info.end() ) {
+                    DEBUG("no meta: 0x%x", src.id);
+                    ret = TAI_STATUS_ATTR_NOT_SUPPORTED_0;
+                    goto err;
                 }
-                auto attr = std::make_shared<Attribute>(it->second.meta, src);
-                return _set(attr, readonly, without_hook, fsm);
+
+                if ( !readonly && info->second.meta->isreadonly) {
+                    WARN("read only: 0x%x", src.id);
+                    ret = TAI_STATUS_INVALID_ATTR_VALUE_0;
+                    goto err;
+                }
+
+                if ( !without_hook && info->second.setter != nullptr ) {
+                    ret = info->second.setter(&src, fsm, m_user);
+                    if ( ret != TAI_STATUS_SUCCESS || info->second.no_store ) {
+                        goto err;
+                    }
+                }
+
+                {
+                    std::unique_lock<std::mutex> lk(m_mtx);
+                    m_config[src.id] = std::make_shared<Attribute>(info->second.meta, src);
+                    return ret;
+                }
+err:
+                if ( !without_hook && m_default_setter != nullptr ) {
+                    return m_default_setter(&src, fsm, m_user);
+                }
+                return ret;
             }
 
             static const AttributeInfoMap<T> m_info;
             std::map<tai_attr_id_t, S_Attribute> m_config;
-            setter_f m_post_set_hook;
+            const setter_f m_default_setter;
+            const getter_f m_default_getter;
             mutable std::mutex m_mtx;
-            void* m_user;
+            void* const m_user;
     };
 
     template<tai_object_type_t T>

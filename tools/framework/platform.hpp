@@ -32,7 +32,7 @@ namespace tai {
 
         protected:
             const tai_service_method_table_t * m_services;
-            // we usually doesn't need a lock to access m_objects/m_fsms since TAI API is not thread-safe
+            // we don't need a lock to access m_objects/m_fsms since TAI API is not thread-safe
             std::map<tai_object_id_t, S_BaseObject> m_objects;
             std::map<Location, S_FSM> m_fsms;
     };
