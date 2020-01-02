@@ -894,11 +894,19 @@ int tai_serialize_attribute_value(
     case TAI_ATTR_VALUE_TYPE_OBJLIST:
         _TAI_SERIALIZE_LIST(objlist, object_id);
     case TAI_ATTR_VALUE_TYPE_CHARLIST:
+        if ( option->json ) {
+            _SERIALIZE(snprintf(ptr, n, "\""), count, ptr, n);
+        }
         if ( value->charlist.count > n ) {
-            return value->charlist.count;
+            return (ptr - buffer) + value->charlist.count;
         }
         memcpy(ptr, value->charlist.list, value->charlist.count);
-        return value->charlist.count;
+        ptr += value->charlist.count;
+        n -= value->charlist.count;
+        if ( option->json ) {
+            _SERIALIZE(snprintf(ptr, n, "\""), count, ptr, n);
+        }
+        return ptr - buffer;
     case TAI_ATTR_VALUE_TYPE_U8LIST:
         _TAI_SERIALIZE_LIST(u8list, uint8);
     case TAI_ATTR_VALUE_TYPE_S8LIST:
