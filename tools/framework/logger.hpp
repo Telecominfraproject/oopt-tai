@@ -65,7 +65,7 @@ namespace tai {
             std::mutex m_mtx;
     };
 
-#define _LOG(api, level, format, ...) Logger::get_instance().log(api, level, __FILE__, __LINE__, __FUNCTION__, format, ##__VA_ARGS__)
+#define _LOG(api, level, format, ...) Logger::get_instance().log(api, level, __FILE__, __LINE__, __PRETTY_FUNCTION__, format, ##__VA_ARGS__)
 #define LOG(level, format, ...) _LOG(TAI_API_UNSPECIFIED, level, format, ##__VA_ARGS__)
 
 #define DEBUG(format, ...)    LOG(TAI_LOG_LEVEL_DEBUG,    format, ##__VA_ARGS__)
