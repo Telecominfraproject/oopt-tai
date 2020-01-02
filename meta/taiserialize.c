@@ -458,7 +458,7 @@ int tai_deserialize_charlist(
         _In_ const char *buffer,
         _Out_ tai_char_list_t *value)
 {
-    int count = strlen(buffer) + 1;
+    int count = strlen(buffer);
     if ( count > value->count ) {
         value->count = count;
         return TAI_STATUS_BUFFER_OVERFLOW;
