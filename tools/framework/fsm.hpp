@@ -104,6 +104,10 @@ namespace tai {
                 return m_next_state;
             }
 
+            FSMState prev_state() {
+                return m_prev_state;
+            }
+
         private:
             virtual fsm_callback cb(FSMState state) { return nullptr; }
             virtual fsm_state_change_callback state_change_cb() { return nullptr; }
