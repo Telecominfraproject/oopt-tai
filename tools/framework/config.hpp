@@ -182,8 +182,13 @@ namespace tai {
                                 return convert_tai_error_to_list(ret, i);
                             }
                         }
-                        auto it = m_config.find(attr.id);
-                        if ( it == m_config.end() || it->second->cmp(&attr) ) {
+                        auto v = _get(attr.id);
+                        bool equal = false;
+                        if ( v != nullptr ) {
+                            const tai_attribute_t& rhs{attr.id, *v};
+                            tai_metadata_deepequal_attr_value(info->second.meta, &attr, &rhs, &equal);
+                        }
+                        if ( !equal ) {
                             diff.emplace_back(&attr);
                         }
                     }
