@@ -20,24 +20,26 @@
 using grpc::Status;
 using grpc::StatusCode;
 
-static int _serialize_status(const tai_status_t status, std::string& out) {
+static const std::string _serialize_status(const tai_status_t status) {
     tai_serialize_option_t option{ .human = true, .valueonly = true, .json = false};
     size_t size = 64;
     char buf[64] = {0};
     if ( tai_serialize_status(buf, 64, status, &option) < 0 ) {
-        out = "unknown";
-        return -1;
+        return "unknown";
     }
-    out = buf;
-    return 0;
+    return std::string(buf);
 }
 
 ::grpc::Status _status(const std::string& message, const tai_status_t status) {
     std::stringstream ss;
-    std::string r;
-    _serialize_status(status, r);
+    std::string r = _serialize_status(status);
     ss << message << ": " << r;
     return Status(StatusCode::UNKNOWN, ss.str());
+}
+
+static void add_status(::grpc::ServerContext* context, tai_status_t status) {
+    context->AddTrailingMetadata("tai-status-code", std::to_string(status));
+    context->AddTrailingMetadata("tai-status-msg", _serialize_status(status));
 }
 
 static int _serialize_attribute(const tai_attr_metadata_t* meta, const tai_attribute_t* attr, std::string& out) {
@@ -91,13 +93,15 @@ TAIAPIModuleList::~TAIAPIModuleList() {
     auto list = l.list();
     auto ret = m_api->list_module(list);
     if ( ret != TAI_STATUS_SUCCESS ) {
-        return _status("failed to get module list", ret);
+        add_status(context, ret);
+        return Status::OK;
     }
     auto meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_MODULE, TAI_MODULE_ATTR_LOCATION);
     tai_attribute_t attr = {0};
     ret = tai_metadata_alloc_attr_value(meta, &attr, nullptr);
     if( ret != TAI_STATUS_SUCCESS ) {
-        return _status("failed to alloc attr", ret);
+        add_status(context, ret);
+        return Status::OK;
     }
 
     for ( auto i = 0; i < list->count; i++ ) {
@@ -131,12 +135,11 @@ TAIAPIModuleList::~TAIAPIModuleList() {
 
 err:
     if ( (ret = tai_metadata_free_attr_value(meta, &attr, nullptr)) != TAI_STATUS_SUCCESS ) {
-        return _status("failed to free attr", ret);
-    }
-    if ( ret == 0 ) {
+        add_status(context, ret);
         return Status::OK;
     }
-    return _status("failed to get module location", ret);
+    add_status(context, ret);
+    return Status::OK;
 }
 
 static void usage(const tai_attr_metadata_t* meta, std::string* str) {
@@ -217,11 +220,11 @@ static void convert_metadata(const tai_attr_metadata_t* const src, taish::Attrib
             ret = tai_deserialize_host_interface_attr(attr_name.c_str(), &attr_id, &option);
             break;
         default:
-            return Status(StatusCode::INVALID_ARGUMENT, "unsupported object type");
+            ret = TAI_STATUS_NOT_SUPPORTED;
         }
-
         if ( ret < 0 ) {
-            return _status("failed to deserialize attr name", ret);
+            add_status(context, ret);
+            return Status::OK;
         }
     } else {
         attr_id = request->attr_id();
@@ -233,6 +236,7 @@ static void convert_metadata(const tai_attr_metadata_t* const src, taish::Attrib
     }
     auto res = response->mutable_metadata();
     convert_metadata(meta, res);
+    add_status(context, TAI_STATUS_SUCCESS);
     return Status::OK;
 }
 
@@ -310,9 +314,7 @@ err:
             return Status(StatusCode::UNKNOWN, "failed to free reference value");
         }
     }
-    if ( ret < 0 ) {
-        return _status("failed to get attribute", ret);
-    }
+    add_status(context, ret);
     return Status::OK;
 }
 
@@ -364,9 +366,7 @@ err:
             return Status(StatusCode::UNKNOWN, "failed to free reference value");
         }
     }
-    if ( ret < 0 ) {
-        return _status("failed to set attribute", ret);
-    }
+    add_status(context, ret);
     return Status::OK;
 }
 
@@ -383,9 +383,7 @@ err:
     default:
         ret = TAI_STATUS_FAILURE;
     }
-    if ( ret < 0 ) {
-        return _status("failed to set attribute", ret);
-    }
+    add_status(context, ret);
     return Status::OK;
 }
 
@@ -473,11 +471,12 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
             ret = m_api->module_api->get_module_attribute(oid, &attr);
             break;
         default:
-            return Status(StatusCode::UNKNOWN, "unsupported object type");
+            ret = TAI_STATUS_NOT_SUPPORTED;
         }
 
         if ( ret != TAI_STATUS_SUCCESS ) {
-            return _status("failed to get notification attribute", ret);
+            add_status(context, ret);
+            return Status::OK;
         }
 
         notifier = get_notifier(oid, nid);
@@ -496,10 +495,11 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
                 ret = m_api->module_api->set_module_attribute(oid, &attr);
                 break;
             default:
-                return Status(StatusCode::UNKNOWN, "unsupported object type");
+                ret = TAI_STATUS_NOT_SUPPORTED;
             }
             if ( ret != TAI_STATUS_SUCCESS ) {
-                return _status("failed to set notification attribute", ret);
+                add_status(context, ret);
+                return Status::OK;
             }
         } else if ( attr.value.notification.notify != nullptr && notifier->size() == 0 ) {
             return Status(StatusCode::UNKNOWN, "notify attribute is set by others");
@@ -569,10 +569,11 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
                 ret = m_api->module_api->set_module_attribute(oid, &attr);
                 break;
             default:
-                return Status(StatusCode::UNKNOWN, "unsupported object type");
+                ret = TAI_STATUS_NOT_SUPPORTED;
             }
             if ( ret != TAI_STATUS_SUCCESS ) {
-                return _status("failed to clear notification attribute", ret);
+                add_status(context, ret);
+                return Status::OK;
             }
         }
 
@@ -591,9 +592,7 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
 
 ::grpc::Status TAIServiceImpl::SetLogLevel(::grpc::ServerContext* context, const taish::SetLogLevelRequest* request, taish::SetLogLevelResponse* response) {
     auto ret = tai_log_set(static_cast<tai_api_t>(request->api()), static_cast<tai_log_level_t>(request->level()), nullptr);
-    if ( ret != TAI_STATUS_SUCCESS ) {
-        return Status(StatusCode::UNKNOWN, "failed to set loglevel");
-    }
+    add_status(context, ret);
     return Status::OK;
 }
 
@@ -662,9 +661,7 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
 
     tai_object_id_t oid;
     ret = create(&oid, attrs.size(), attrs.data());
-    if ( ret != TAI_STATUS_SUCCESS ) {
-        status = Status(StatusCode::UNKNOWN, "failed to create object");
-    } else {
+    if ( ret == TAI_STATUS_SUCCESS ) {
         m_api->object_update(type, oid, true);
     }
 err:
@@ -674,6 +671,7 @@ err:
             status = Status(StatusCode::UNKNOWN, "failed to free value");
         }
     }
+    add_status(context, ret);
     return status;
 }
 
@@ -693,13 +691,9 @@ err:
         ret = m_api->hostif_api->remove_host_interface(oid);
         break;
     default:
-        return Status(StatusCode::INVALID_ARGUMENT, "unsupported object type");
+        ret = TAI_STATUS_NOT_SUPPORTED;
     }
-
-    if ( ret != TAI_STATUS_SUCCESS ) {
-        return Status(StatusCode::UNKNOWN, "failed to remove object");
-    } else {
-
+    if ( ret == TAI_STATUS_SUCCESS ) {
         {
             std::unique_lock<std::mutex> lk(m_mtx);
             auto it = m_notifiers.begin();
@@ -711,9 +705,8 @@ err:
                 }
             }
         }
-
         m_api->object_update(type, oid, false);
-
     }
+    add_status(context, ret);
     return Status::OK;
 }
