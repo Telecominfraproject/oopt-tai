@@ -145,7 +145,7 @@ static tai_status_t clear_host_interface_attribute(_In_ tai_object_id_t id, _In_
  * @brief The host interface functions. This structure is retrieved via the 
  *        #tai_api_query function.
  */
-tai_host_interface_api_t host_interface_api = {
+static tai_host_interface_api_t host_interface_api = {
     .create_host_interface           = create_host_interface,
     .remove_host_interface           = remove_host_interface,
     .set_host_interface_attribute    = set_host_interface_attribute,
@@ -282,7 +282,7 @@ static tai_status_t remove_network_interface(_In_ tai_object_id_t network_interf
  * @brief The network interface functions. This structure is retrieved via the 
  *        #tai_api_query function.
  */
-tai_network_interface_api_t network_interface_api = {
+static tai_network_interface_api_t network_interface_api = {
     .create_network_interface         = create_network_interface,
     .remove_network_interface         = remove_network_interface,
     .set_network_interface_attribute  = set_network_interface_attribute,
