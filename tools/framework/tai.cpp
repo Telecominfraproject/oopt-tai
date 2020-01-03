@@ -365,6 +365,12 @@ tai_status_t tai_api_uninitialize(void) {
 }
 
 tai_status_t tai_log_set(tai_api_t tai_api_id, tai_log_level_t log_level, tai_log_fn log_fn) {
+    if ( g_platform != nullptr ) {
+        auto ret = g_platform->set_log(tai_api_id, log_level, log_fn);
+        if ( ret != TAI_STATUS_SUCCESS ) {
+            return ret;
+        }
+    }
     return tai::Logger::get_instance().set_log(tai_api_id, log_level, log_fn);
 }
 

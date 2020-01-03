@@ -30,6 +30,10 @@ namespace tai {
             virtual tai_object_type_t get_object_type(tai_object_id_t id) = 0;
             virtual tai_object_id_t get_module_id(tai_object_id_t id) = 0;
 
+            virtual tai_status_t set_log(tai_api_t tai_api_id, tai_log_level_t log_level, tai_log_fn log_fn) {
+                return TAI_STATUS_SUCCESS;
+            }
+
         protected:
             const tai_service_method_table_t * m_services;
             // we don't need a lock to access m_objects/m_fsms since TAI API is not thread-safe
