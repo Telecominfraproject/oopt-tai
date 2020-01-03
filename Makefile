@@ -1,11 +1,19 @@
 .PHONY: doc stub test docker meta
 
 ifndef TAI_DOCKER_CMD
-    TAI_DOCKER_CMD=bash
+    TAI_DOCKER_CMD := bash
 endif
 
 ifndef TAI_DOCKER_IMAGE
-    TAI_DOCKER_IMAGE=tai
+    TAI_DOCKER_IMAGE := tai
+endif
+
+ifndef TAI_DOCKER_MOUNT
+    TAI_DOCKER_MOUNT := "$(PWD):/data"
+endif
+
+ifndef TAI_DOCKER_WORKDIR
+    TAI_DOCKER_WORKDIR := "/data"
 endif
 
 all: meta stub
@@ -19,12 +27,11 @@ doc:
 stub:
 	$(MAKE) -C ./stub
 
-test: stub
-	$(MAKE) -C ./test
-	LD_LIBRARY_PATH=./stub:./meta ./test/test
+test:
+	$(MAKE) -C ./tests
 
 cmd:
-	docker run --net=host -it --rm -v `pwd`:/data -w /data $(TAI_DOCKER_IMAGE) $(TAI_DOCKER_CMD)
+	docker run --net=host -it --rm -v $(TAI_DOCKER_MOUNT) -w $(TAI_DOCKER_WORKDIR) $(TAI_DOCKER_IMAGE) $(TAI_DOCKER_CMD)
 
 docker:
 	TAI_DOCKER_CMD='make' $(MAKE) cmd
