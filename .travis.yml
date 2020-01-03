@@ -1,6 +1,6 @@
 sudo: required
 
-language: cpp
+language: cpp # we run all tests in docker container so this can be anything
 
 services:
   - docker
