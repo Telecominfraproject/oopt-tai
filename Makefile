@@ -16,6 +16,10 @@ ifndef TAI_DOCKER_WORKDIR
     TAI_DOCKER_WORKDIR := "/data"
 endif
 
+ifndef TAI_DOCKER_RUN_OPTION
+    TAI_DOCKER_RUN_OPTION := --net=host -it --rm
+endif
+
 all: meta stub
 
 meta:
@@ -31,7 +35,7 @@ test:
 	$(MAKE) -C ./tests
 
 cmd:
-	docker run --net=host -it --rm -v $(TAI_DOCKER_MOUNT) -w $(TAI_DOCKER_WORKDIR) $(TAI_DOCKER_IMAGE) $(TAI_DOCKER_CMD)
+	docker run $(TAI_DOCKER_RUN_OPTION) -v $(TAI_DOCKER_MOUNT) -w $(TAI_DOCKER_WORKDIR) $(TAI_DOCKER_IMAGE) $(TAI_DOCKER_CMD)
 
 docker:
 	TAI_DOCKER_CMD='make' $(MAKE) cmd
