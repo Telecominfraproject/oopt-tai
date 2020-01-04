@@ -135,6 +135,13 @@ class Client(object):
         return self.get_module(location)
 
     def create(self, object_type, attrs, module_id=0):
+        if type(object_type) == str:
+            if object_type == 'module':
+                object_type = taish_pb2.MODULE
+            elif object_type == 'netif':
+                object_type = taish_pb2.NETIF
+            elif object_type == 'hostif':
+                object_type = taish_pb2.HOSTIF
         req = taish_pb2.CreateRequest()
         req.object_type = object_type
         req.module_id = module_id
