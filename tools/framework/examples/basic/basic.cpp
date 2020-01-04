@@ -305,6 +305,32 @@ namespace tai::basic {
         return config.get(attribute, true);
     }
 
+    tai_status_t FSM::get_tributary_mapping(tai_attribute_t* const attr) {
+        if ( m_netif == nullptr ) {
+            attr->value.objmaplist.count = 0;
+            return TAI_STATUS_SUCCESS;
+        }
+        if ( attr->value.objmaplist.count < BASIC_NUM_NETIF ) {
+            attr->value.objmaplist.count = BASIC_NUM_NETIF;
+            return TAI_STATUS_BUFFER_OVERFLOW;
+        }
+        attr->value.objmaplist.count = BASIC_NUM_NETIF;
+        attr->value.objmaplist.list[0].key = m_netif->id();
+
+        if ( attr->value.objmaplist.list[0].value.count < BASIC_NUM_HOSTIF ) {
+            attr->value.objmaplist.list[0].value.count = BASIC_NUM_HOSTIF;
+            return TAI_STATUS_BUFFER_OVERFLOW;
+        }
+
+        attr->value.objmaplist.list[0].value.count = BASIC_NUM_HOSTIF;
+        for ( int i = 0; i < BASIC_NUM_HOSTIF; i++ ) {
+            if ( m_hostif[i] != nullptr ) {
+                attr->value.objmaplist.list[0].value.list[i] = m_hostif[i]->id();
+            }
+        }
+        return TAI_STATUS_SUCCESS;
+    }
+
     fsm_state_change_callback FSM::state_change_cb() {
         return std::bind(&FSM::_state_change_cb, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     }
@@ -465,6 +491,10 @@ namespace tai::basic {
     //
     //    In this example, we are passing a FSM object as the context in the Module/NetIf/HostIf constructor.
 
+    using M = AttributeInfo<TAI_OBJECT_TYPE_MODULE>;
+    using N = AttributeInfo<TAI_OBJECT_TYPE_NETWORKIF>;
+    using H = AttributeInfo<TAI_OBJECT_TYPE_HOSTIF>;
+
     static const tai_attribute_value_t default_tai_module_vendor_name_value = {
         .charlist = {5, (char*)"BASIC"},
     };
@@ -477,9 +507,10 @@ namespace tai::basic {
         .u32 = BASIC_NUM_HOSTIF,
     };
 
-    using M = AttributeInfo<TAI_OBJECT_TYPE_MODULE>;
-    using N = AttributeInfo<TAI_OBJECT_TYPE_NETWORKIF>;
-    using H = AttributeInfo<TAI_OBJECT_TYPE_HOSTIF>;
+    tai_status_t module_tributary_mapping_getter(tai_attribute_t* const attribute, void* user) {
+        auto fsm = reinterpret_cast<FSM*>(user);
+        return fsm->get_tributary_mapping(attribute);
+    }
 
     template <> const tai::AttributeInfoMap<TAI_OBJECT_TYPE_MODULE> tai::Config<TAI_OBJECT_TYPE_MODULE>::m_info {
         basic::M(TAI_MODULE_ATTR_LOCATION),
@@ -493,6 +524,8 @@ namespace tai::basic {
         basic::M(TAI_MODULE_ATTR_ADMIN_STATUS)
             .set_validator(EnumValidator({TAI_MODULE_ADMIN_STATUS_DOWN, TAI_MODULE_ADMIN_STATUS_UP}))
             .set_fsm_state(FSM_STATE_WAITING_CONFIGURATION),
+        basic::M(TAI_MODULE_ATTR_TRIBUTARY_MAPPING)
+            .set_getter(tai::basic::module_tributary_mapping_getter),
         basic::M(TAI_MODULE_ATTR_MODULE_SHUTDOWN_REQUEST_NOTIFY),
         basic::M(TAI_MODULE_ATTR_MODULE_STATE_CHANGE_NOTIFY),
         basic::M(TAI_MODULE_ATTR_NOTIFY),
