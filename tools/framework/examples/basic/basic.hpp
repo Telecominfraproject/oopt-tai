@@ -82,6 +82,8 @@ namespace tai::basic {
             tai_status_t set_tx_dis(const tai_attribute_t* const attribute);
             tai_status_t get_tx_dis(tai_attribute_t* const attribute);
 
+            tai_status_t get_tributary_mapping(tai_attribute_t* const attribute);
+
             tai::Location location() {
                 return m_loc;
             }
