@@ -18,7 +18,10 @@ endif
 
 all: c python
 
-c: $(TAI_TEST_TARGET)
+../meta/libmetatai.so:
+	$(MAKE) -C $(@D)
+
+c: $(TAI_TEST_TARGET) ../meta/libmetatai.so
 	gcc -I ../inc -I ../sai/inc -o test test.c -L $(dir $(TAI_TEST_TARGET)) -ltai -L ../meta -lmetatai
 	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) ./test
 
