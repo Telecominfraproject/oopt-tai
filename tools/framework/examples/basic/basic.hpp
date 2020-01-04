@@ -108,6 +108,13 @@ namespace tai::basic {
         public:
             Object(uint32_t count, const tai_attribute_t *list, S_FSM fsm) : tai::Object<T>(count, list, fsm, reinterpret_cast<void*>(fsm.get()), std::bind(&Object::setter, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), std::bind(&Object::getter, this, std::placeholders::_1, std::placeholders::_2)) {}
 
+            tai_object_id_t id() const {
+                return m_id;
+            }
+
+        protected:
+            tai_object_id_t m_id;
+
         private:
             tai_status_t setter(const tai_attribute_t* const attribute, FSMState* fsm, void* const user) {
                 auto meta = tai_metadata_get_attr_metadata(T, attribute->id);
@@ -158,14 +165,10 @@ namespace tai::basic {
                 }
             }
 
-            tai_object_id_t id() {
-                return m_id;
-            }
             S_FSM fsm() {
                 return m_fsm;
             }
         private:
-            tai_object_id_t m_id;
             S_FSM m_fsm;
     };
 
@@ -188,12 +191,6 @@ namespace tai::basic {
                 }
                 m_id = static_cast<tai_object_id_t>(uint64_t(TAI_OBJECT_TYPE_NETWORKIF) << OBJECT_TYPE_SHIFT | (module->id() & 0xff) << 8 | index);
             }
-            tai_object_id_t id() {
-                return m_id;
-            }
-
-        private:
-            tai_object_id_t m_id;
     };
 
     class HostIf : public Object<TAI_OBJECT_TYPE_HOSTIF> {
@@ -214,12 +211,6 @@ namespace tai::basic {
                 }
                 m_id = static_cast<tai_object_id_t>(uint64_t(TAI_OBJECT_TYPE_HOSTIF) << OBJECT_TYPE_SHIFT | (module->id() & 0xff) << 8 | index);
             }
-
-            tai_object_id_t id() {
-                return m_id;
-            }
-        private:
-            tai_object_id_t m_id;
     };
 
 };
