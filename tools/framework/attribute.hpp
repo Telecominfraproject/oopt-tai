@@ -15,6 +15,7 @@ namespace tai {
     class Attribute;
 
     using S_Attribute = std::shared_ptr<Attribute>;
+    using S_ConstAttribute = std::shared_ptr<const Attribute>;
 
     using getter = std::function<tai_status_t(tai_attribute_t*)>;
 
