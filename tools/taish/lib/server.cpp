@@ -662,6 +662,7 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
     tai_object_id_t oid;
     ret = create(&oid, attrs.size(), attrs.data());
     if ( ret == TAI_STATUS_SUCCESS ) {
+        response->set_oid(oid);
         m_api->object_update(type, oid, true);
     }
 err:
