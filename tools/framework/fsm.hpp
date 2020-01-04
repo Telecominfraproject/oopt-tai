@@ -72,12 +72,12 @@ namespace tai {
                         next = s_cb(m_current_state, next, this);
                     }
 
+                    m_prev_state = m_current_state;
+                    m_current_state = next;
+
                     if ( next == FSM_STATE_END ) {
                         break;
                     }
-
-                    m_prev_state = m_current_state;
-                    m_current_state = next;
 
                 }
                 return 0;

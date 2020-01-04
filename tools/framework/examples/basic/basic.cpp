@@ -5,6 +5,20 @@
 
 namespace tai::basic {
 
+    static const std::string to_string(FSMState s) {
+        switch (s) {
+        case FSM_STATE_INIT:
+            return "init";
+        case FSM_STATE_WAITING_CONFIGURATION:
+            return "waiting-configuration";
+        case FSM_STATE_READY:
+            return "ready";
+        case FSM_STATE_END:
+            return "end";
+        }
+        return "unknown";
+    }
+
     Platform::Platform(const tai_service_method_table_t * services) : tai::Platform(services) {
 
         if ( services != nullptr && services->module_presence != nullptr ) {
@@ -30,7 +44,7 @@ namespace tai::basic {
                     if ( loc == "" ) {
                         return TAI_STATUS_MANDATORY_ATTRIBUTE_MISSING;
                     }
-                    auto fsm = std::make_shared<FSM>();
+                    auto fsm = std::make_shared<FSM>(loc);
                     auto it = m_fsms.find(loc);
                     if ( it != m_fsms.end() ) {
                         return TAI_STATUS_ITEM_ALREADY_EXISTS;
@@ -70,8 +84,10 @@ namespace tai::basic {
             default:
                 return TAI_STATUS_NOT_SUPPORTED;
             }
-        } catch (tai_status_t e) {
-            return e;
+        } catch (Exception& e) {
+            return e.err();
+        } catch (...) {
+            return TAI_STATUS_FAILURE;
         }
 
         auto oid = obj->id();
@@ -81,6 +97,52 @@ namespace tai::basic {
         }
         m_objects[oid] = obj;
         *id = oid;
+        return TAI_STATUS_SUCCESS;
+    }
+
+    tai_status_t Platform::remove(tai_object_id_t id) {
+        auto it = m_objects.find(id);
+        if ( it == m_objects.end() ) {
+            return TAI_STATUS_ITEM_NOT_FOUND;
+        }
+        auto type = get_object_type(id);
+        tai_status_t ret;
+        switch (type) {
+        case TAI_OBJECT_TYPE_MODULE:
+            {
+                auto module = std::dynamic_pointer_cast<Module>(it->second);
+                auto fsm = module->fsm();
+                ret = fsm->remove_module();
+                if ( ret == TAI_STATUS_SUCCESS ) {
+                    m_fsms.erase(fsm->location());
+                }
+            }
+            break;
+        case TAI_OBJECT_TYPE_NETWORKIF:
+        case TAI_OBJECT_TYPE_HOSTIF:
+            {
+                auto module_id = get_module_id(id);
+                auto it = m_objects.find(module_id);
+                if ( it == m_objects.end() ) {
+                    return TAI_STATUS_INVALID_OBJECT_ID;
+                }
+                auto module = std::dynamic_pointer_cast<Module>(it->second);
+                auto fsm = module->fsm();
+                if ( type == TAI_OBJECT_TYPE_NETWORKIF ) {
+                    ret = fsm->remove_netif();
+                } else {
+                    auto idx = id & 0xff;
+                    ret = fsm->remove_hostif(idx);
+                }
+            }
+            break;
+        default:
+            return TAI_STATUS_NOT_SUPPORTED;
+        }
+        if ( ret != TAI_STATUS_SUCCESS ) {
+            return ret;
+        }
+        m_objects.erase(it);
         return TAI_STATUS_SUCCESS;
     }
 
@@ -171,6 +233,58 @@ namespace tai::basic {
         return 0;
     }
 
+    tai_status_t FSM::remove_module() {
+        if ( m_module == nullptr ) {
+            return TAI_STATUS_ITEM_NOT_FOUND;
+        }
+        if ( m_netif != nullptr || m_hostif[0] != nullptr || m_hostif[1] != nullptr ) {
+            WARN("can't remove a module before removing its siblings");
+            return TAI_STATUS_OBJECT_IN_USE;
+        }
+        transite(FSM_STATE_END);
+        while(true) {
+            auto s = get_state();
+            if ( s == FSM_STATE_END ) {
+                break;
+            }
+            usleep(100000);
+        }
+        m_module = nullptr;
+        return TAI_STATUS_SUCCESS;
+    }
+
+    tai_status_t FSM::remove_netif() {
+        if ( m_netif == nullptr ) {
+            return TAI_STATUS_ITEM_NOT_FOUND;
+        }
+        m_no_transit = true;
+        transite(FSM_STATE_WAITING_CONFIGURATION);
+        // TODO implement timeout?
+        while(true) {
+            auto s = get_state();
+            if ( s <= FSM_STATE_WAITING_CONFIGURATION || s == FSM_STATE_END ) {
+                break;
+            }
+            usleep(1000);
+        }
+        // the FSM state is now waiting-configuration.
+        // we don't access netif in waiting-configuration. safe to make m_netif null
+        m_netif = nullptr;
+        // m_netif is now null, flag down m_netif_being_removed so that netif
+        // can be re-created again
+        // this is safe because TAI API is not thread-safe
+        m_no_transit = false;
+        return TAI_STATUS_SUCCESS;
+    }
+
+    tai_status_t FSM::remove_hostif(int index) {
+        if ( index < 0 || index >= BASIC_NUM_HOSTIF || m_hostif[index] == nullptr ) {
+            return TAI_STATUS_ITEM_NOT_FOUND;
+        }
+        m_hostif[index] = nullptr;
+        return TAI_STATUS_SUCCESS;
+    }
+
     tai_status_t FSM::set_tx_dis(const tai_attribute_t* const attribute) {
         // you will access hardware here to set tx-dis
         // in this example, it doesn't do anything.
@@ -193,18 +307,6 @@ namespace tai::basic {
 
     fsm_state_change_callback FSM::state_change_cb() {
         return std::bind(&FSM::_state_change_cb, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
-    }
-
-    static std::string to_string(FSMState s) {
-        switch (s) {
-        case FSM_STATE_INIT:
-            return "init";
-        case FSM_STATE_WAITING_CONFIGURATION:
-            return "waiting-configuration";
-        case FSM_STATE_READY:
-            return "ready";
-        }
-        return "unknown";
     }
 
     FSMState FSM::_state_change_cb(FSMState current, FSMState next, void* user) {
@@ -258,10 +360,6 @@ namespace tai::basic {
     //                                       it calls configured() periodically by using timerfd
     FSMState FSM::_waiting_configuration_cb(FSMState current, void* user) {
 
-        if ( configured() ) {
-            return FSM_STATE_READY;
-        }
-
         fd_set fs;
         auto evfd = get_event_fd();
         itimerspec interval = {{1,0}, {0,1}};
@@ -283,7 +381,7 @@ namespace tai::basic {
             if (FD_ISSET(tfd, &fs)) {
                 uint64_t r;
                 read(tfd, &r, sizeof(uint64_t));
-                if ( configured() ) {
+                if ( configured() && !m_no_transit ) {
                     return FSM_STATE_READY;
                 }
             }
