@@ -164,7 +164,7 @@ class Root(Object):
 
             attrs = [tuple(attr.split(':')) for attr in line]
             try:
-                self.client.create(object_type, attrs, module_id)
+                print('oid: 0x{:x}'.format(self.client.create(object_type, attrs, module_id)))
             except TAIException as e:
                 print('err: {} (code: {:x})'.format(e.msg, e.code))
 

@@ -153,8 +153,9 @@ class Client(object):
             a.attr_id = attr_id
             a.value = str(value)
             req.attrs.append(a)
-        _, call = self.stub.Create.with_call(req)
+        res, call = self.stub.Create.with_call(req)
         check_call(call)
+        return res.oid
 
     def remove(self, oid):
         req = taish_pb2.RemoveRequest()
