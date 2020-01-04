@@ -2,6 +2,7 @@
 #define __BASIC_HPP__
 
 #include "platform.hpp"
+#include <atomic>
 
 namespace tai::basic {
 
@@ -16,9 +17,7 @@ namespace tai::basic {
         public:
             Platform(const tai_service_method_table_t * services);
             tai_status_t create(tai_object_type_t type, tai_object_id_t module_id, uint32_t attr_count, const tai_attribute_t * const attr_list, tai_object_id_t *id);
-            tai_status_t remove(tai_object_id_t id) {
-                return TAI_STATUS_NOT_SUPPORTED;
-            }
+            tai_status_t remove(tai_object_id_t id);
             tai_object_type_t get_object_type(tai_object_id_t id);
             tai_object_id_t   get_module_id(tai_object_id_t id);
     };
@@ -71,13 +70,21 @@ namespace tai::basic {
 
         // methods/fields specific to this example
         public:
-            FSM() : m_module(nullptr), m_netif(nullptr), m_hostif{} {}
+            FSM(tai::Location loc) : m_loc(loc), m_module(nullptr), m_netif(nullptr), m_hostif{} {}
             int set_module(S_Module module);
             int set_netif(S_NetIf   netif);
             int set_hostif(S_HostIf hostif, int index);
 
+            tai_status_t remove_module();
+            tai_status_t remove_netif();
+            tai_status_t remove_hostif(int index);
+
             tai_status_t set_tx_dis(const tai_attribute_t* const attribute);
             tai_status_t get_tx_dis(tai_attribute_t* const attribute);
+
+            tai::Location location() {
+                return m_loc;
+            }
 
         private:
             FSMState _state_change_cb(FSMState current, FSMState next, void* user);
@@ -89,6 +96,9 @@ namespace tai::basic {
             S_Module m_module;
             S_NetIf m_netif;
             S_HostIf m_hostif[BASIC_NUM_HOSTIF];
+
+            std::atomic<bool> m_no_transit;
+            tai::Location m_loc;
     };
 
     using S_FSM = std::shared_ptr<FSM>;
@@ -143,6 +153,9 @@ namespace tai::basic {
                 }
                 auto i = std::stoi(loc);
                 m_id = static_cast<tai_object_id_t>(uint64_t(TAI_OBJECT_TYPE_MODULE) << OBJECT_TYPE_SHIFT | i);
+                if ( i >= BASIC_NUM_MODULE ) {
+                    throw Exception(TAI_STATUS_INVALID_PARAMETER);
+                }
             }
 
             tai_object_id_t id() {
@@ -170,6 +183,9 @@ namespace tai::basic {
                 if ( index < 0 ) {
                     throw Exception(TAI_STATUS_MANDATORY_ATTRIBUTE_MISSING);
                 }
+                if ( index >= BASIC_NUM_NETIF ) {
+                    throw Exception(TAI_STATUS_INVALID_PARAMETER);
+                }
                 m_id = static_cast<tai_object_id_t>(uint64_t(TAI_OBJECT_TYPE_NETWORKIF) << OBJECT_TYPE_SHIFT | (module->id() & 0xff) << 8 | index);
             }
             tai_object_id_t id() {
@@ -192,6 +208,9 @@ namespace tai::basic {
                 }
                 if ( index < 0 ) {
                     throw Exception(TAI_STATUS_MANDATORY_ATTRIBUTE_MISSING);
+                }
+                if ( index >= BASIC_NUM_HOSTIF ) {
+                    throw Exception(TAI_STATUS_INVALID_PARAMETER);
                 }
                 m_id = static_cast<tai_object_id_t>(uint64_t(TAI_OBJECT_TYPE_HOSTIF) << OBJECT_TYPE_SHIFT | (module->id() & 0xff) << 8 | index);
             }
