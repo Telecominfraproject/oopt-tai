@@ -70,7 +70,7 @@ namespace tai::basic {
 
         // methods/fields specific to this example
         public:
-            FSM(tai::Location loc) : m_loc(loc), m_module(nullptr), m_netif(nullptr), m_hostif{} {}
+            FSM(tai::Location loc) : m_loc(loc), m_module(nullptr), m_netif(nullptr), m_hostif{}, m_no_transit(false) {}
             int set_module(S_Module module);
             int set_netif(S_NetIf   netif);
             int set_hostif(S_HostIf hostif, int index);
