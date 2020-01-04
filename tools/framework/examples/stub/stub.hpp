@@ -81,7 +81,7 @@ namespace tai::stub {
                 auto i = std::stoi(loc);
                 m_id = static_cast<tai_object_id_t>(uint64_t(TAI_OBJECT_TYPE_MODULE) << OBJECT_TYPE_SHIFT | i);
             }
-            tai_object_id_t id() {
+            tai_object_id_t id() const {
                 return m_id;
             }
         private:
@@ -103,7 +103,7 @@ namespace tai::stub {
                 }
                 m_id = static_cast<tai_object_id_t>(uint64_t(TAI_OBJECT_TYPE_NETWORKIF) << OBJECT_TYPE_SHIFT | (module_id & 0xff) << 8 | index);
             }
-            tai_object_id_t id() {
+            tai_object_id_t id() const {
                 return m_id;
             }
         private:
@@ -125,7 +125,7 @@ namespace tai::stub {
                 }
                 m_id = static_cast<tai_object_id_t>(uint64_t(TAI_OBJECT_TYPE_HOSTIF) << OBJECT_TYPE_SHIFT | (module_id & 0xff) << 8 | index);
             }
-            tai_object_id_t id() {
+            tai_object_id_t id() const {
                 return m_id;
             }
         private:

@@ -8,8 +8,8 @@ namespace tai {
 
     class BaseObject {
         public:
-            virtual tai_object_type_t type() = 0;
-            virtual tai_object_id_t id() = 0;
+            virtual tai_object_type_t type() const = 0;
+            virtual tai_object_id_t id() const = 0;
             virtual tai_status_t get_attributes(uint32_t attr_count, tai_attribute_t* const attr_list) = 0;
             virtual tai_status_t set_attributes(uint32_t attr_count, const tai_attribute_t* const attr_list) = 0;
             virtual tai_status_t clear_attributes(uint32_t attr_count, const tai_attr_id_t* const attr_id_list) = 0;
@@ -27,7 +27,7 @@ namespace tai {
                 return m_fsm->configured();
             }
 
-            tai_object_type_t type() { return T; }
+            tai_object_type_t type() const { return T; }
             tai_status_t get_attributes(uint32_t attr_count, tai_attribute_t* const attr_list);
             tai_status_t set_attributes(uint32_t attr_count, const tai_attribute_t* const attr_list);
             tai_status_t clear_attributes(uint32_t attr_count, const tai_attr_id_t* const attr_id_list);
