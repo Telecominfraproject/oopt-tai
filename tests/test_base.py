@@ -127,6 +127,73 @@ class TestTAI(unittest.TestCase):
         hostif.set('loopback-type', 'none')
         self.assertEqual(hostif.get('loopback-type'), '"none"')
 
+    def test_remove(self):
+        cli = taish.Client()
+        l = cli.list()
+        self.assertNotEqual(l, None)
+        self.assertTrue('0' in l)
+        module = l['0']
+        self.assertNotEqual(module.oid, 0)
+        self.assertEqual(len(module.netifs), 1)
+        self.assertEqual(len(module.hostifs), 2)
+
+        m = cli.get_module('0')
+        netif = m.get_netif()
+        cli.remove(netif.oid)
+        l = cli.list()
+        module = l['0']
+        self.assertEqual(len(module.netifs), 0)
+
+        hostif = m.get_hostif()
+        cli.remove(hostif.oid)
+        l = cli.list()
+        module = l['0']
+        self.assertEqual(len(module.hostifs), 1)
+
+        hostif = m.get_hostif(1)
+        cli.remove(hostif.oid)
+        l = cli.list()
+        module = l['0']
+        self.assertEqual(len(module.hostifs), 0)
+
+        cli.remove(module.oid)
+        l = cli.list()
+        module = l['0']
+        self.assertEqual(module.oid, 0)
+
+    def test_create(self):
+        self.test_remove()
+        cli = taish.Client()
+        with self.assertRaises(Exception):
+            cli.get_module('0')
+        cli.create('module', [('location', 0)])
+        l = cli.list()
+        self.assertNotEqual(l, None)
+        self.assertTrue('0' in l)
+        module = l['0']
+        self.assertNotEqual(module.oid, 0)
+        self.assertEqual(len(module.netifs), 0)
+        self.assertEqual(len(module.hostifs), 0)
+
+        m = cli.get_module('0')
+        self.assertEqual(int(m.get('num-network-interfaces')), 1)
+        self.assertEqual(int(m.get('num-host-interfaces')), 2)
+
+        cli.create('netif', [('index', 0)], m.oid)
+        l = cli.list()
+        module = l['0']
+        self.assertEqual(len(module.netifs), 1)
+
+        cli.create('hostif', [('index', 0)], m.oid)
+        l = cli.list()
+        module = l['0']
+        self.assertEqual(len(module.hostifs), 1)
+
+        cli.create('hostif', [('index', 1)], m.oid)
+        l = cli.list()
+        module = l['0']
+        self.assertEqual(len(module.hostifs), 2)
+
 
 if __name__ == '__main__':
     unittest.main()

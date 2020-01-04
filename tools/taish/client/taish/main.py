@@ -148,6 +148,35 @@ class Root(Object):
                 raise InvalidInput('usage: log-level <level>')
             self.client.set_log_level(line[0])
 
+        @self.command()
+        def create(line):
+            if len(line) < 1:
+                raise InvalidInput('invalid input: create [module| netif <module-oid> | hostif <module-oid>] [<attr-name>:<attr-value> ]...')
+            object_type = line[0]
+            line.pop(0)
+            module_id = 0
+            if object_type in ['netif', 'hostif']:
+                if len(line) < 1:
+                    print('invalid input: create [module| netif <module-oid> | hostif <module-oid>] [<attr-name>:<attr-value> ]...')
+                    return
+                module_id = int(line[0], 0)
+                line.pop(0)
+
+            attrs = [tuple(attr.split(':')) for attr in line]
+            try:
+                self.client.create(object_type, attrs, module_id)
+            except TAIException as e:
+                print('err: {} (code: {:x})'.format(e.msg, e.code))
+
+        @self.command()
+        def remove(line):
+            if len(line) != 1:
+                raise InvalidInput('usage: remove <oid>')
+            try:
+                self.client.remove(int(line[0], 0))
+            except TAIException as e:
+                print('err: {} (code: {:x})'.format(e.msg, e.code))
+
     def __str__(self):
         return ''
 
