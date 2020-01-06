@@ -127,10 +127,7 @@ namespace tai {
                 }
 
                 if ( !without_hook && info->second.getter != nullptr ) {
-                    ret = info->second.getter(attr, m_user);
-                    if ( ret == TAI_STATUS_SUCCESS ) {
-                        return ret;
-                    }
+                    return info->second.getter(attr, m_user);
                 }
 
                 {
