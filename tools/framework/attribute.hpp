@@ -6,6 +6,7 @@
 #include "taimetadata.h"
 
 #include "exception.hpp"
+#include "logger.hpp"
 
 #include <iostream>
 #include <functional>
@@ -21,39 +22,57 @@ namespace tai {
 
     class Attribute {
         public:
-            Attribute(const tai_attr_metadata_t* const meta, getter getter) : m_meta(meta) {
-                auto ret = tai_metadata_alloc_attr_value(meta, &m_attr, nullptr);
+            Attribute(const tai_attr_metadata_t* const meta, getter getter) :  m_meta(meta) {
+                if ( meta == nullptr ) {
+                    throw Exception(TAI_STATUS_INVALID_PARAMETER);
+                }
+                tai_attribute_t attr{.id = meta->attrid};
+                tai_status_t ret;
+                for (int i = 0; i < 3; i++ ) {
+                    tai_alloc_info_t alloc_info = { .reference = &attr };
+                    ret = tai_metadata_alloc_attr_value(meta, &attr, &alloc_info);
+                    if ( ret != TAI_STATUS_SUCCESS ) {
+                        goto err;
+                    }
+                    ret = getter(&attr);
+                    if ( ret == TAI_STATUS_SUCCESS ) {
+                        break;
+                    } else if ( ret != TAI_STATUS_BUFFER_OVERFLOW ) {
+                        goto err;
+                    }
+                }
+
                 if ( ret != TAI_STATUS_SUCCESS ) {
+err:
+                    tai_metadata_free_attr_value(meta, &attr, nullptr);
                     throw Exception(ret);
                 }
-                ret = getter(&m_attr);
-                if ( ret != TAI_STATUS_SUCCESS ) {
-                    throw Exception(ret);
-                }
-                m_attr.id = meta->attrid;
+                m_attr = attr;
             }
 
             Attribute(const tai_attr_metadata_t* const meta, const tai_attribute_t* const src) : m_meta(meta) {
                 if ( meta == nullptr || src == nullptr ) {
                     throw Exception(TAI_STATUS_INVALID_PARAMETER);
                 }
-                m_attr.id = src->id;
+                tai_attribute_t attr = {.id = src->id};
                 tai_alloc_info_t info{
-                    .list_size=0,
                     .reference=src,
                 };
-                auto ret = tai_metadata_alloc_attr_value(meta, &m_attr, &info);
+                auto ret = tai_metadata_alloc_attr_value(meta, &attr, &info);
                 if ( ret != TAI_STATUS_SUCCESS ) {
                     throw Exception(ret);
                 }
-                ret = tai_metadata_deepcopy_attr_value(meta, src, &m_attr);
+                ret = tai_metadata_deepcopy_attr_value(meta, src, &attr);
                 if ( ret != TAI_STATUS_SUCCESS ) {
                     throw Exception(ret);
                 }
+                m_attr = attr;
             }
 
-
             Attribute(const tai_attr_metadata_t* const meta, const tai_attribute_t& src) : Attribute(meta, &src) {}
+            Attribute(const Attribute& a) : Attribute(a.metadata(), a.raw()) {}
+
+            Attribute(const tai_attr_metadata_t* const meta, const std::string& value, const tai_serialize_option_t* const option = nullptr);
 
             int id() {
                 return m_attr.id;
@@ -64,6 +83,10 @@ namespace tai {
             }
             const tai_attribute_t* const raw() const {
                 return &m_attr;
+            }
+
+            const tai_attr_metadata_t* const metadata() const {
+                return m_meta;
             }
 
             bool cmp(const tai_attribute_t* const rhs) {
@@ -87,22 +110,11 @@ namespace tai {
                 return cmp(rhs->raw());
             }
 
+            std::string to_string(tai_serialize_option_t* option = nullptr);
+
             std::ostream& str(std::ostream& os) {
                 tai_serialize_option_t option = { true, true, false };
-                os << m_meta->attridshortname << ":";
-                auto size = tai_serialize_attribute(nullptr, 0, m_meta, &m_attr, &option);
-                if ( size < 0 ) {
-                    os << " (serialize failed)";
-                    return os;
-                }
-                auto p = new char[size+1];
-                auto ret = tai_serialize_attribute(p, size+1, m_meta, &m_attr, &option);
-                if ( ret < 0 || ret > size+1 ) {
-                    os << " (serialize failed)";
-                } else {
-                    os << p;
-                }
-                delete[] p;
+                os << to_string(&option);
                 return os;
             }
         private:
