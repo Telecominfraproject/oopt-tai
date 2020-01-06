@@ -15,6 +15,8 @@ from prompt_toolkit.completion import FuzzyCompleter, Completion, WordCompleter
 from prompt_toolkit.key_binding import KeyBindings
 from tabulate import tabulate
 
+from itertools import chain
+
 TAI_ATTR_CUSTOM_RANGE_START = 0x10000000
 
 class TAICompleter(Completer):
@@ -129,8 +131,8 @@ class Root(Object):
                 raise InvalidInput('usage: module <name>')
             return Module(self.client.get_module(line[0]), line[0], self)
 
-        @self.command()
-        def list(line):
+        @self.command(name='list')
+        def _list(line):
             if len(line) != 0:
                 raise InvalidInput('usage: list')
             for k, m in self.client.list().items():
@@ -168,7 +170,9 @@ class Root(Object):
             except TAIException as e:
                 print('err: {} (code: {:x})'.format(e.msg, e.code))
 
-        @self.command()
+        get_oids = lambda : ('0x{:x}'.format(elem.oid) for elem in chain.from_iterable([v] + list(v.netifs) + list(v.hostifs) for v in self.client.list().values() if v.oid > 0))
+
+        @self.command(WordCompleter(get_oids))
         def remove(line):
             if len(line) != 1:
                 raise InvalidInput('usage: remove <oid>')
@@ -180,9 +184,6 @@ class Root(Object):
     def __str__(self):
         return ''
 
-    def _modules(self):
-        d = self._module_map
-        return [v['name'] for v in d['goldstone-tai:modules']['module']]
 
 class TAIShellCompleter(Completer):
     def __init__(self, context):

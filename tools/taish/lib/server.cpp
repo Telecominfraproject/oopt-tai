@@ -16,6 +16,8 @@
 #include <sstream>
 #include <chrono>
 #include <functional>
+#include "attribute.hpp"
+#include "logger.hpp"
 
 using grpc::Status;
 using grpc::StatusCode;
@@ -23,18 +25,12 @@ using grpc::StatusCode;
 static const std::string _serialize_status(const tai_status_t status) {
     tai_serialize_option_t option{ .human = true, .valueonly = true, .json = false};
     size_t size = 64;
-    char buf[64] = {0};
-    if ( tai_serialize_status(buf, 64, status, &option) < 0 ) {
+    char buf[size];
+    auto ret = tai_serialize_status(buf, size, status, &option);
+    if ( ret < 0 ) {
         return "unknown";
     }
-    return std::string(buf);
-}
-
-::grpc::Status _status(const std::string& message, const tai_status_t status) {
-    std::stringstream ss;
-    std::string r = _serialize_status(status);
-    ss << message << ": " << r;
-    return Status(StatusCode::UNKNOWN, ss.str());
+    return std::string(buf, ret);
 }
 
 static void add_status(::grpc::ServerContext* context, tai_status_t status) {
@@ -42,35 +38,10 @@ static void add_status(::grpc::ServerContext* context, tai_status_t status) {
     context->AddTrailingMetadata("tai-status-msg", _serialize_status(status));
 }
 
-static int _serialize_attribute(const tai_attr_metadata_t* meta, const tai_attribute_t* attr, std::string& out) {
-    tai_serialize_option_t option{true, true, true};
-    size_t buf_size = 64;
-    char bbuf[64] = {0}, *buf = bbuf;
-    auto count = tai_serialize_attribute(buf, buf_size, meta, attr, &option);
-    if ( count < 0 ) {
-        return count;
-    }
-    if ( count > buf_size ) {
-        buf_size = count + 1;
-        buf = new char[buf_size];
-        count = tai_serialize_attribute(buf, buf_size, meta, attr, &option);
-        if ( count < 0 || count > buf_size ) {
-            return count;
-        }
-        out = buf;
-    }
-    out = buf;
-    // check if buf is dynamically allocated
-    if ( buf != bbuf ) {
-        delete[] buf;
-    }
-    return 0;
-}
-
 TAIAPIModuleList::TAIAPIModuleList(uint32_t module_size, uint32_t hostif_size, uint32_t netif_size) : m_module_size(module_size), m_hostif_size(hostif_size), m_netif_size(netif_size) {
     m_list.count = module_size;
     m_list.list = new tai_api_module_t[module_size];
-    for ( auto i = 0; i < module_size; i++) {
+    for ( uint32_t i = 0; i < module_size; i++) {
         m_list.list[i].hostifs.count = hostif_size;
         m_list.list[i].hostifs.list = new tai_object_id_t[hostif_size];
         m_list.list[i].netifs.count = netif_size;
@@ -79,7 +50,7 @@ TAIAPIModuleList::TAIAPIModuleList(uint32_t module_size, uint32_t hostif_size, u
 }
 
 TAIAPIModuleList::~TAIAPIModuleList() {
-    for ( auto i = 0; i < m_module_size; i++ ) {
+    for ( uint32_t i = 0; i < m_module_size; i++ ) {
         auto l = m_list.list[i];
         delete[] l.hostifs.list;
         delete[] l.netifs.list;
@@ -93,38 +64,37 @@ TAIAPIModuleList::~TAIAPIModuleList() {
     auto list = l.list();
     auto ret = m_api->list_module(list);
     if ( ret != TAI_STATUS_SUCCESS ) {
-        add_status(context, ret);
-        return Status::OK;
+        goto err;
     }
-    auto meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_MODULE, TAI_MODULE_ATTR_LOCATION);
-    tai_attribute_t attr = {0};
-    ret = tai_metadata_alloc_attr_value(meta, &attr, nullptr);
-    if( ret != TAI_STATUS_SUCCESS ) {
-        add_status(context, ret);
-        return Status::OK;
-    }
-
-    for ( auto i = 0; i < list->count; i++ ) {
+    for ( uint32_t i = 0; i < list->count; i++ ) {
         auto res = taish::ListModuleResponse();
         auto m = res.mutable_module();
         auto module = list->list[i];
+        auto meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_MODULE, TAI_MODULE_ATTR_LOCATION);
+        tai_serialize_option_t option{ .human = true, .valueonly = true, .json = false};
+
         m->set_location(module.location);
         m->set_present(module.present);
         m->set_oid(module.id);
+
         if ( module.id != TAI_NULL_OBJECT_ID ) {
-            ret = m_api->module_api->get_module_attribute(module.id, &attr);
-            if ( ret != TAI_STATUS_SUCCESS ) {
+            try {
+                auto attr = std::make_unique<tai::Attribute>(meta, [&](tai_attribute_t* v) -> tai_status_t {
+                    return m_api->module_api->get_module_attribute(module.id, v);
+                });
+                m->set_location(attr->to_string(&option));
+            } catch (tai::Exception& e) {
+                ret = e.err();
                 goto err;
             }
-            m->set_location(attr.value.charlist.list, attr.value.charlist.count);
             m->clear_hostifs();
-            for ( auto i = 0; i < module.hostifs.count; i++ ) {
+            for ( uint32_t i = 0; i < module.hostifs.count; i++ ) {
                 auto hostif = m->add_hostifs();
                 hostif->set_index(i);
                 hostif->set_oid(module.hostifs.list[i]);
             }
             m->clear_netifs();
-            for ( auto i = 0; i < module.netifs.count; i++ ) {
+            for ( uint32_t i = 0; i < module.netifs.count; i++ ) {
                 auto netif = m->add_netifs();
                 netif->set_index(i);
                 netif->set_oid(module.netifs.list[i]);
@@ -132,12 +102,7 @@ TAIAPIModuleList::~TAIAPIModuleList() {
         }
         writer->Write(res);
     }
-
 err:
-    if ( (ret = tai_metadata_free_attr_value(meta, &attr, nullptr)) != TAI_STATUS_SUCCESS ) {
-        add_status(context, ret);
-        return Status::OK;
-    }
     add_status(context, ret);
     return Status::OK;
 }
@@ -146,7 +111,7 @@ static void usage(const tai_attr_metadata_t* meta, std::string* str) {
     if ( meta->isenum && meta->enummetadata != nullptr ) {
         auto m = meta->enummetadata;
         *str = "[";
-        for ( auto i = 0; i < m->valuescount; i++ ) {
+        for ( uint32_t i = 0; i < m->valuescount; i++ ) {
             *str += m->valuesshortnames[i];
             if ( i < m->valuescount - 1 ) {
                 *str += "|";
@@ -185,7 +150,7 @@ static void convert_metadata(const tai_attr_metadata_t* const src, taish::Attrib
     auto object_type = request->object_type();
     auto info = tai_metadata_all_object_type_infos[object_type];
     if ( info == nullptr ) {
-        for ( auto i = 0; i < tai_metadata_attr_sorted_by_id_name_count; i++ ) {
+        for ( uint32_t i = 0; i < tai_metadata_attr_sorted_by_id_name_count; i++ ) {
             auto src = tai_metadata_attr_sorted_by_id_name[i];
             auto dst = res.mutable_metadata();
             convert_metadata(src, dst);
@@ -193,7 +158,7 @@ static void convert_metadata(const tai_attr_metadata_t* const src, taish::Attrib
         }
         return Status::OK;
     }
-    for ( auto i = 0; i < info->attrmetadatalength; i++ ) {
+    for ( uint32_t i = 0; i < info->attrmetadatalength; i++ ) {
         auto src = info->attrmetadata[i];
         auto dst = res.mutable_metadata();
         convert_metadata(src, dst);
@@ -245,74 +210,41 @@ static void convert_metadata(const tai_attr_metadata_t* const src, taish::Attrib
     taish::Attribute a = request->attribute();
     taish::Attribute* res;
     auto id = a.attr_id();
-    auto v = a.value();
+    auto value = a.value();
     auto type = tai_object_type_query(oid);
     auto meta = tai_metadata_get_attr_metadata(type, id);
-    tai_attribute_t attr = {0}, reference = {0};
-    attr.id = id;
-    tai_serialize_option_t option{true, true, true};
-    tai_alloc_info_t alloc_info = { .list_size = 16 };
-    size_t count = 0;
-    std::string value;
+    tai_serialize_option_t option{true, true, false};
 
-again:
-    if( tai_metadata_alloc_attr_value(meta, &attr, &alloc_info) != TAI_STATUS_SUCCESS ) {
-        return Status(StatusCode::UNKNOWN, "failed to alloc value");
-    }
+    auto getter = [&](tai_attribute_t* attr) -> tai_status_t {
 
-    tai_status_t ret;
-    if ( v.size() > 0 ) {
-        ret = tai_deserialize_attribute_value(v.c_str(), meta, &attr.value, &option);
-        if ( ret == TAI_STATUS_BUFFER_OVERFLOW && alloc_info.reference == nullptr ) {
-            reference = attr;
-            alloc_info.reference = &reference;
-            goto again;
-        } else if ( ret < 0 ) {
-            goto err;
+        if ( value.size() > 0 ) {
+            auto ret = tai_deserialize_attribute_value(value.c_str(), meta, &attr->value, &option);
+            if ( ret != TAI_STATUS_SUCCESS ) {
+                return ret;
+            }
         }
-    }
 
-    switch (type) {
-    case TAI_OBJECT_TYPE_MODULE:
-        ret = m_api->module_api->get_module_attribute(oid, &attr);
-        break;
-    case TAI_OBJECT_TYPE_NETWORKIF:
-        ret = m_api->netif_api->get_network_interface_attribute(oid, &attr);
-        break;
-    case TAI_OBJECT_TYPE_HOSTIF:
-        ret = m_api->hostif_api->get_host_interface_attribute(oid, &attr);
-        break;
-    default:
-        ret = TAI_STATUS_FAILURE;
-    }
-
-    // if alloc size is not enough and this is the first try (we can decide this
-    // by checking alloc_info.reference == nullptr), try again with the reference
-    // attribute which contains size information for the necessary allocation
-    if ( ret == TAI_STATUS_BUFFER_OVERFLOW && alloc_info.reference == nullptr ) {
-        reference = attr;
-        alloc_info.reference = &reference;
-        goto again;
-    } else if ( ret != TAI_STATUS_SUCCESS ) {
-        goto err;
-    }
-
-    if ( _serialize_attribute(meta, &attr, value) != 0 ) {
-        ret = TAI_STATUS_FAILURE;
-        goto err;
-    }
-
-    res = response->mutable_attribute();
-    res->set_attr_id(id);
-    res->set_value(value);
-err:
-    if ( tai_metadata_free_attr_value(meta, &attr, &alloc_info) != TAI_STATUS_SUCCESS ) {
-        return Status(StatusCode::UNKNOWN, "failed to free value");
-    }
-    if ( alloc_info.reference != nullptr ) {
-        if ( tai_metadata_free_attr_value(meta, const_cast<tai_attribute_t*>(alloc_info.reference), &alloc_info) != TAI_STATUS_SUCCESS ) {
-            return Status(StatusCode::UNKNOWN, "failed to free reference value");
+        switch (type) {
+        case TAI_OBJECT_TYPE_MODULE:
+            return m_api->module_api->get_module_attribute(oid, attr);
+        case TAI_OBJECT_TYPE_NETWORKIF:
+            return m_api->netif_api->get_network_interface_attribute(oid, attr);
+        case TAI_OBJECT_TYPE_HOSTIF:
+            return m_api->hostif_api->get_host_interface_attribute(oid, attr);
+        default:
+            return TAI_STATUS_NOT_SUPPORTED;
         }
+    };
+
+    auto ret = TAI_STATUS_SUCCESS;
+    try {
+        auto attr = std::make_unique<tai::Attribute>(meta, getter);
+        auto v = attr->to_string(&option);
+        res = response->mutable_attribute();
+        res->set_attr_id(id);
+        res->set_value(v);
+    } catch (tai::Exception& e) {
+        ret = e.err();
     }
     add_status(context, ret);
     return Status::OK;
@@ -325,46 +257,26 @@ err:
     auto v = a.value();
     auto type = tai_object_type_query(oid);
     auto meta = tai_metadata_get_attr_metadata(type, id);
-    tai_attribute_t attr = {0}, reference = {0};
-    attr.id = id;
-    tai_serialize_option_t option{true};
-    tai_alloc_info_t alloc_info = { .list_size = 16 };
+    tai_serialize_option_t option{true, true, false};
 
-again:
-    if( tai_metadata_alloc_attr_value(meta, &attr, &alloc_info) != TAI_STATUS_SUCCESS ) {
-        return Status(StatusCode::UNKNOWN, "failed to alloc value");
-    }
-
-    auto ret = tai_deserialize_attribute_value(v.c_str(), meta, &attr.value, &option);
-    if ( ret == TAI_STATUS_BUFFER_OVERFLOW && alloc_info.reference == nullptr ) {
-        reference = attr;
-        alloc_info.reference = &reference;
-        goto again;
-    } else if ( ret < 0 ) {
-        goto err;
-    }
-
-    switch (type) {
-    case TAI_OBJECT_TYPE_MODULE:
-        ret = m_api->module_api->set_module_attribute(oid, &attr);
-        break;
-    case TAI_OBJECT_TYPE_NETWORKIF:
-        ret = m_api->netif_api->set_network_interface_attribute(oid, &attr);
-        break;
-    case TAI_OBJECT_TYPE_HOSTIF:
-        ret = m_api->hostif_api->set_host_interface_attribute(oid, &attr);
-        break;
-    default:
-        ret = TAI_STATUS_FAILURE;
-    }
-err:
-    if ( tai_metadata_free_attr_value(meta, &attr, nullptr) != TAI_STATUS_SUCCESS ) {
-        return Status(StatusCode::UNKNOWN, "failed to free value");
-    }
-    if ( alloc_info.reference != nullptr ) {
-        if ( tai_metadata_free_attr_value(meta, const_cast<tai_attribute_t*>(alloc_info.reference), &alloc_info) != TAI_STATUS_SUCCESS ) {
-            return Status(StatusCode::UNKNOWN, "failed to free reference value");
+    auto ret = TAI_STATUS_SUCCESS;
+    try {
+        auto attr = std::make_unique<tai::Attribute>(meta, v, &option);
+        switch (type) {
+        case TAI_OBJECT_TYPE_MODULE:
+            ret = m_api->module_api->set_module_attribute(oid, attr->raw());
+            break;
+        case TAI_OBJECT_TYPE_NETWORKIF:
+            ret = m_api->netif_api->set_network_interface_attribute(oid, attr->raw());
+            break;
+        case TAI_OBJECT_TYPE_HOSTIF:
+            ret = m_api->hostif_api->set_host_interface_attribute(oid, attr->raw());
+            break;
+        default:
+            ret = TAI_STATUS_NOT_SUPPORTED;
         }
+    } catch (tai::Exception& e) {
+        ret = e.err();
     }
     add_status(context, ret);
     return Status::OK;
@@ -406,29 +318,12 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
     notification.oid = oid;
     auto type = tai_object_type_query(oid);
 
-    for ( int i = 0; i < attr_count; i++ ) {
-        auto a = attr_list[i];
-        auto meta = tai_metadata_get_attr_metadata(type, a.id);
+    for ( uint32_t i = 0; i < attr_count; i++ ) {
+        auto meta = tai_metadata_get_attr_metadata(type, attr_list[i].id);
         if ( meta == nullptr ) {
             continue;
         }
-        std::shared_ptr<tai_notification_elem_t> ptr(new tai_notification_elem_t, [](tai_notification_elem_t* n) {
-            tai_metadata_free_attr_value(n->meta, &n->attr, nullptr);
-        });
-        ptr->meta = meta;
-        ptr->attr.id = a.id;
-        tai_alloc_info_t alloc_info;
-        alloc_info.reference = &a;
-
-        if ( tai_metadata_alloc_attr_value(meta, &ptr->attr, &alloc_info) != TAI_STATUS_SUCCESS ) {
-            continue;
-        }
-
-        if ( tai_metadata_deepcopy_attr_value(meta, &a, &ptr->attr) != TAI_STATUS_SUCCESS ) {
-            continue;
-        }
-
-        notification.attrs.emplace_back(ptr);
+        notification.attrs.emplace_back(std::make_shared<tai::Attribute>(meta, &attr_list[i]));
     }
 
     auto n = static_cast<TAINotifier*>(context);
@@ -512,6 +407,7 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
 
     {
 
+        tai_serialize_option_t option{true, true, false};
         std::unique_lock<std::mutex> lk(s.mtx);
 
         while(true) {
@@ -539,10 +435,8 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
             taish::MonitorResponse res;
             for ( auto e : n.attrs ) {
                 auto a = res.add_attrs();
-                a->set_attr_id(e->attr.id);
-                std::string value;
-                _serialize_attribute(e->meta, &e->attr, value);
-                a->set_value(value);
+                a->set_attr_id(e->id());
+                a->set_value(e->to_string(&option));
             }
 
             if (!writer->Write(res)) {
@@ -619,61 +513,36 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
         return Status(StatusCode::INVALID_ARGUMENT, "unsupported object type");
     }
 
-    std::vector<tai_attribute_t> attrs;
-    ::grpc::Status status = Status::OK;
-    tai_status_t ret;
+    std::vector<tai::S_Attribute> attrs;
+    tai_serialize_option_t option{true, true, false};
 
-    for ( auto i = 0; i < request->attrs_size(); i++ ) {
-        auto a = request->attrs(i);
-        auto id = a.attr_id();
-        auto v = a.value();
-        auto meta = tai_metadata_get_attr_metadata(type, id);
-        tai_attribute_t attr = {0}, reference = {0};
-        attr.id = id;
-        tai_serialize_option_t option{true};
-        tai_alloc_info_t alloc_info = { .list_size = 16 };
-    again:
-        if( tai_metadata_alloc_attr_value(meta, &attr, &alloc_info) != TAI_STATUS_SUCCESS ) {
-            status = Status(StatusCode::UNKNOWN, "failed to alloc value");
-            goto err;
+    try {
+        for ( auto i = 0; i < request->attrs_size(); i++ ) {
+            auto a = request->attrs(i);
+            auto id = a.attr_id();
+            auto v = a.value();
+            auto meta = tai_metadata_get_attr_metadata(type, id);
+            auto attr = std::make_shared<tai::Attribute>(meta, v, &option);
+            attrs.emplace_back(attr);
         }
-        ret = tai_deserialize_attribute_value(v.c_str(), meta, &attr.value, &option);
-        if ( ret == TAI_STATUS_BUFFER_OVERFLOW && alloc_info.reference == nullptr ) {
-            reference = attr;
-            alloc_info.reference = &reference;
-            goto again;
-        }
-
-        if ( alloc_info.reference != nullptr ) {
-            if ( tai_metadata_free_attr_value(meta, &reference, nullptr) != TAI_STATUS_SUCCESS ) {
-                status = Status(StatusCode::UNKNOWN, "failed to free value");
-                goto err;
-            }
-        }
-
-        if ( ret < 0 ) {
-            status = Status(StatusCode::UNKNOWN, "failed to deserialize value");
-            goto err;
-        }
-
-        attrs.emplace_back(attr);
+    } catch (tai::Exception& e) {
+        add_status(context, e.err());
+        return Status::OK;
     }
 
     tai_object_id_t oid;
-    ret = create(&oid, attrs.size(), attrs.data());
+    std::vector<tai_attribute_t> list;
+    for ( auto& v : attrs ) {
+        list.emplace_back(*(v->raw()));
+    }
+
+    auto ret = create(&oid, list.size(), list.data());
     if ( ret == TAI_STATUS_SUCCESS ) {
         response->set_oid(oid);
         m_api->object_update(type, oid, true);
     }
-err:
-    for ( auto& attr : attrs ) {
-        auto meta = tai_metadata_get_attr_metadata(type, attr.id);
-        if ( tai_metadata_free_attr_value(meta, &attr, nullptr) != TAI_STATUS_SUCCESS ) {
-            status = Status(StatusCode::UNKNOWN, "failed to free value");
-        }
-    }
     add_status(context, ret);
-    return status;
+    return Status::OK;
 }
 
 ::grpc::Status TAIServiceImpl::Remove(::grpc::ServerContext* context, const taish::RemoveRequest* request, taish::RemoveResponse* response) {

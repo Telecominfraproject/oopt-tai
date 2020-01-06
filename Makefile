@@ -17,7 +17,7 @@ ifndef TAI_DOCKER_WORKDIR
 endif
 
 ifndef TAI_DOCKER_RUN_OPTION
-    TAI_DOCKER_RUN_OPTION := --net=host -it --rm
+    TAI_DOCKER_RUN_OPTION := --net=host -it --rm --privileged
 endif
 
 all: meta stub

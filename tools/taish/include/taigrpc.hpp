@@ -25,6 +25,8 @@
 #include <memory>
 #include <vector>
 
+#include "attribute.hpp"
+
 struct tai_api_module_t
 {
     std::string       location;
@@ -70,14 +72,9 @@ class TAIAPIModuleList {
         uint32_t m_netif_size;
 };
 
-struct tai_notification_elem_t {
-    tai_attribute_t attr;
-    const tai_attr_metadata_t* meta;
-};
-
 struct tai_notification_t {
     tai_object_id_t oid;
-    std::vector<std::shared_ptr<const tai_notification_elem_t>> attrs;
+    std::vector<tai::S_Attribute> attrs;
 };
 
 struct tai_subscription_t {
