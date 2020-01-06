@@ -1,7 +1,7 @@
 .PHONY: test
 
 all: taimetadata.c taimetadata.h taiserialize.c taimetadatautils.c
-	gcc -shared -fPIC -I ../inc taiserialize.c taimetadatautils.c taimetadata.c cJSON.c -o libmetatai.so
+	gcc -g3 -Werror -Wall -shared -fPIC -I ../inc taiserialize.c taimetadatautils.c taimetadata.c cJSON.c -o libmetatai.so
 
 taimetadata.c taimetadata.h: main.py
 	python main.py ../inc/tai.h ${TAI_META_CUSTOM_FILES}

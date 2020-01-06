@@ -473,7 +473,7 @@ int tai_deserialize_charlist(
         return TAI_STATUS_BUFFER_OVERFLOW;
     }
     value->count = count;
-    memcpy(value->list, buffer, count);
+    strncpy(value->list, buffer, count);
     return count + (( option != NULL && option->json ) ? 2 : 0);
 }
 
@@ -909,7 +909,7 @@ int tai_serialize_attribute_value(
         if ( value->charlist.count > n ) {
             return (ptr - buffer) + value->charlist.count;
         }
-        memcpy(ptr, value->charlist.list, value->charlist.count);
+        strncpy(ptr, value->charlist.list, value->charlist.count);
         ptr += value->charlist.count;
         n -= value->charlist.count;
         if ( option != NULL && option->json ) {
@@ -1064,11 +1064,13 @@ int tai_serialize_attribute(
         tmp2 = realloc(tmp, n);
         if ( tmp2 == NULL ) {
             TAI_META_LOG_WARN("realloc failed");
+            free(tmp);
             return -1;
         }
         tmp = tmp2;
         ret = _tai_serialize_attribute(tmp, n, meta, attr, option);
         if ( ret < n ) {
+            free(tmp);
             return ret;
         }
     }
@@ -1147,8 +1149,9 @@ int tai_deserialize_attribute_value(
         return tai_deserialize_floatlist(buffer, &value->floatlist, option);
     case TAI_ATTR_VALUE_TYPE_ATTRLIST:
         return tai_deserialize_attrlist(buffer, meta, &value->attrlist, option);
+    default:
+        return TAI_SERIALIZE_ERROR;
     }
-    return TAI_SERIALIZE_ERROR;
 }
 
 #define _SERIALIZE_VALUE(s, short_name)\
