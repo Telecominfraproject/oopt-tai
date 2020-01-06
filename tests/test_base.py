@@ -90,9 +90,9 @@ class TestTAI(unittest.TestCase):
         m = cli.get_module('0')
         netif = m.get_netif()
         netif.set('modulation-format', 'dp-64-qam')
-        self.assertEqual(netif.get('modulation-format'), '"dp-64-qam"')
+        self.assertEqual(netif.get('modulation-format'), 'dp-64-qam')
         netif.set('modulation-format', 'dp-qpsk')
-        self.assertEqual(netif.get('modulation-format'), '"dp-qpsk"')
+        self.assertEqual(netif.get('modulation-format'), 'dp-qpsk')
 
     def test_hostif(self):
         cli = taish.Client()
@@ -110,22 +110,22 @@ class TestTAI(unittest.TestCase):
         m = cli.get_module('0')
         hostif = m.get_hostif()
         hostif.set('fec-type', 'rs')
-        self.assertEqual(hostif.get('fec-type'), '"rs"')
+        self.assertEqual(hostif.get('fec-type'), 'rs')
         hostif.set('fec-type', 'fc')
-        self.assertEqual(hostif.get('fec-type'), '"fc"')
+        self.assertEqual(hostif.get('fec-type'), 'fc')
         hostif.set('fec-type', 'none')
-        self.assertEqual(hostif.get('fec-type'), '"none"')
+        self.assertEqual(hostif.get('fec-type'), 'none')
 
     def test_hostif_set_loopback(self):
         cli = taish.Client()
         m = cli.get_module('0')
         hostif = m.get_hostif()
         hostif.set('loopback-type', 'shallow')
-        self.assertEqual(hostif.get('loopback-type'), '"shallow"')
+        self.assertEqual(hostif.get('loopback-type'), 'shallow')
         hostif.set('loopback-type', 'deep')
-        self.assertEqual(hostif.get('loopback-type'), '"deep"')
+        self.assertEqual(hostif.get('loopback-type'), 'deep')
         hostif.set('loopback-type', 'none')
-        self.assertEqual(hostif.get('loopback-type'), '"none"')
+        self.assertEqual(hostif.get('loopback-type'), 'none')
 
     def test_remove(self):
         cli = taish.Client()

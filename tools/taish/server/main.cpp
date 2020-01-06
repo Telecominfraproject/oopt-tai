@@ -100,7 +100,7 @@ static int load_config(const json& config, std::vector<tai_attribute_t>& list, t
 
 class module {
     public:
-        module(std::string location, const json& config, bool auto_creation) : m_location(location), m_id(0) {
+        module(std::string location, const json& config, bool auto_creation) : m_id(0), m_location(location) {
             std::vector<tai_attribute_t> list;
             tai_attribute_t attr;
 
@@ -167,12 +167,12 @@ void module_presence(bool present, char* location) {
     uint64_t v = 1;
     std::lock_guard<std::mutex> g(m);
     q.push(std::pair<bool, std::string>(present, std::string(location)));
-    auto ret = write(event_fd, &v, sizeof(uint64_t));
+    write(event_fd, &v, sizeof(uint64_t));
 }
 
 int module::create_hostif(uint32_t num, const json& config) {
     auto c = config.find("hostif");
-    for ( int i = 0; i < num; i++ ) {
+    for ( uint32_t i = 0; i < num; i++ ) {
         tai_object_id_t id;
         std::vector<tai_attribute_t> list;
         tai_attribute_t attr;
@@ -201,7 +201,7 @@ int module::create_hostif(uint32_t num, const json& config) {
 
 int module::create_netif(uint32_t num, const json& config) {
     auto c = config.find("netif");
-    for ( int i = 0; i < num; i++ ) {
+    for ( uint32_t i = 0; i < num; i++ ) {
         tai_object_id_t id;
         std::vector<tai_attribute_t> list;
         tai_attribute_t attr;
@@ -320,7 +320,7 @@ tai_status_t list_module(tai_api_module_list_t* const l) {
             return TAI_STATUS_BUFFER_OVERFLOW;
         }
         list[i].hostifs.count = m->hostifs.size();
-        for ( auto j = 0; j < m->hostifs.size(); j++ ) {
+        for ( auto j = 0; j < static_cast<int>(m->hostifs.size()); j++ ) {
             list[i].hostifs.list[j] = m->hostifs[j];
         }
 
@@ -329,7 +329,7 @@ tai_status_t list_module(tai_api_module_list_t* const l) {
             return TAI_STATUS_BUFFER_OVERFLOW;
         }
         list[i].netifs.count = m->netifs.size();
-        for ( auto j = 0; j < m->netifs.size(); j++ ) {
+        for ( auto j = 0; j < static_cast<int>(m->netifs.size()); j++ ) {
             list[i].netifs.list[j] = m->netifs[j];
         }
         i++;
@@ -343,14 +343,17 @@ static const std::string to_string(tai_log_level_t level) {
         return "DEBUG";
     case TAI_LOG_LEVEL_INFO:
         return "INFO";
+    case TAI_LOG_LEVEL_NOTICE:
+        return "NOTICE";
     case TAI_LOG_LEVEL_WARN:
         return "WARN";
     case TAI_LOG_LEVEL_ERROR:
         return "ERROR";
     case TAI_LOG_LEVEL_CRITICAL:
         return "CRITICAL";
+    default:
+        return std::to_string(static_cast<int>(level));
     }
-    return std::to_string(static_cast<int>(level));
 }
 
 static void log_cb(tai_log_level_t lvl, const char *file, int line, const char *function, const char *format, ...) {
