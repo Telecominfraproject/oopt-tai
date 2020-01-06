@@ -4,6 +4,7 @@
 #include "tai.h"
 #include <mutex>
 #include <string>
+#include <map>
 
 namespace tai {
 
@@ -13,14 +14,17 @@ namespace tai {
             return "DEBUG";
         case TAI_LOG_LEVEL_INFO:
             return "INFO";
+        case TAI_LOG_LEVEL_NOTICE:
+            return "INFO";
         case TAI_LOG_LEVEL_WARN:
             return "WARN";
         case TAI_LOG_LEVEL_ERROR:
             return "ERROR";
         case TAI_LOG_LEVEL_CRITICAL:
             return "CRITICAL";
+        default:
+            return std::to_string(static_cast<int>(level));
         }
-        return std::to_string(static_cast<int>(level));
     }
 
     class Logger {
