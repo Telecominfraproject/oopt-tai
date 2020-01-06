@@ -1,9 +1,9 @@
-#ifndef __PLATFORM_HPP__
-#define __PLATFORM_HPP__
+#ifndef __TAI_FRAMEWORK_PLATFORM_HPP__
+#define __TAI_FRAMEWORK_PLATFORM_HPP__
 
 #include "object.hpp"
 
-namespace tai {
+namespace tai::framework {
 
     using Location = std::string;
 

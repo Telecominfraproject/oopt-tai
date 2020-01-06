@@ -4,7 +4,7 @@
 #include "logger.hpp"
 #include "exception.hpp"
 
-static std::unique_ptr<tai::Platform> g_platform;
+static std::unique_ptr<tai::framework::Platform> g_platform;
 
 /**
  * @brief Retrieve a list of attribute values

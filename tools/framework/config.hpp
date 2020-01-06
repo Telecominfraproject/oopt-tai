@@ -1,5 +1,5 @@
-#ifndef __CONFIG_HPP__
-#define __CONFIG_HPP__
+#ifndef __TAI_FRAMEWORK_CONFIG_HPP__
+#define __TAI_FRAMEWORK_CONFIG_HPP__
 
 #include "tai.h"
 #include "taimetadata.h"
@@ -16,7 +16,7 @@
 #include "fsm.hpp"
 #include "logger.hpp"
 
-namespace tai {
+namespace tai::framework {
 
     static tai_status_t convert_tai_error_to_list( _In_ tai_status_t err, _In_ uint32_t idx)
     {
@@ -409,21 +409,6 @@ err:
             mutable std::mutex m_mtx;
             void* const m_user;
     };
-
-    template<tai_object_type_t T>
-    std::ostream& operator<<(std::ostream& os, const Config<T>& config) {
-        os << "size: " << config.m_config.size() << std::endl;
-        for ( const auto& v : config.m_config ) {
-            auto info = config.m_info->find(v.first);
-            if ( info == config.m_info->end() ) {
-                os << std::hex << v.first << "(unknown)" << std::endl;
-            } else {
-                os << v.second << std::endl;
-            }
-        }
-        return os;
-    }
-
 }
 
-#endif
+#endif // __TAI_FRAMEWORK_CONFIG_HPP__

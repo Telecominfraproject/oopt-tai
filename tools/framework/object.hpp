@@ -1,10 +1,10 @@
-#ifndef __OBJECT_HPP__
-#define __OBJECT_HPP__
+#ifndef __TAI_FRAMEWORK_OBJECT_HPP__
+#define __TAI_FRAMEWORK_OBJECT_HPP__
 
 #include <memory>
 #include "config.hpp"
 
-namespace tai {
+namespace tai::framework {
 
     class BaseObject {
         public:
@@ -181,4 +181,4 @@ namespace tai {
 
 }
 
-#endif // __OBJECT_HPP__
+#endif // __TAI_FRAMEWORK_OBJECT_HPP__

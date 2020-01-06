@@ -1,12 +1,12 @@
-#ifndef __FSM_HPP__
-#define __FSM_HPP__
+#ifndef __TAI_FRAMEWORK_FSM_HPP__
+#define __TAI_FRAMEWORK_FSM_HPP__
 
 #include <thread>
 
 #include <unistd.h>
 #include <sys/eventfd.h>
 
-namespace tai {
+namespace tai::framework {
 
     using FSMState = int;
 
@@ -117,4 +117,4 @@ namespace tai {
     };
 }
 
-#endif // __FSM_HPP__
+#endif // __TAI_FRAMEWORK_FSM_HPP__

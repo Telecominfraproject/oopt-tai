@@ -5,6 +5,8 @@
 
 namespace tai::stub {
 
+    using namespace tai::framework;
+
     // Total number of modules
     const uint8_t STUB_NUM_MODULE = 4;
     // The number of network interface which one module has
@@ -47,9 +49,9 @@ namespace tai::stub {
     // It is a singleton in the library and will get created by tai_api_initialize()
     // and destroyed by tai_api_uninitialize()
     //
-    // tai::Platform requires 4 virtual methods create, remove, get_object_type and
+    // tai::framework::Platform requires 4 virtual methods create, remove, get_object_type and
     // get_module_id to be implemented.
-    class Platform : public tai::Platform {
+    class Platform : public tai::framework::Platform {
         public:
             Platform(const tai_service_method_table_t * services);
             tai_status_t create(tai_object_type_t type, tai_object_id_t module_id, uint32_t attr_count, const tai_attribute_t * const attr_list, tai_object_id_t *id);
@@ -61,11 +63,11 @@ namespace tai::stub {
     };
 
     // Define TAI objects which will be created in Platform::create()
-    // tai::Object<T> requires to implement id() which returns the object ID
+    // tai::framework::Object<T> requires to implement id() which returns the object ID
     //
     // In this example, we store it in 'm_id' by following the format mentioned above.
 
-    class Module : public tai::Object<TAI_OBJECT_TYPE_MODULE> {
+    class Module : public tai::framework::Object<TAI_OBJECT_TYPE_MODULE> {
         public:
             Module(uint32_t count, const tai_attribute_t *list) : Object(count, list) {
                 std::string loc;
@@ -88,7 +90,7 @@ namespace tai::stub {
             tai_object_id_t m_id;
     };
 
-    class NetIf : public tai::Object<TAI_OBJECT_TYPE_NETWORKIF> {
+    class NetIf : public tai::framework::Object<TAI_OBJECT_TYPE_NETWORKIF> {
         public:
             NetIf(tai_object_id_t module_id, uint32_t count, const tai_attribute_t *list) : Object(count, list) {
                 int index = -1;
@@ -110,7 +112,7 @@ namespace tai::stub {
             tai_object_id_t m_id;
     };
 
-    class HostIf : public tai::Object<TAI_OBJECT_TYPE_HOSTIF> {
+    class HostIf : public tai::framework::Object<TAI_OBJECT_TYPE_HOSTIF> {
         public:
             HostIf(tai_object_id_t module_id, uint32_t count, const tai_attribute_t *list) : Object(count, list) {
                 int index = -1;

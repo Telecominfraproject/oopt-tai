@@ -19,7 +19,7 @@ namespace tai::basic {
         return "unknown";
     }
 
-    Platform::Platform(const tai_service_method_table_t * services) : tai::Platform(services) {
+    Platform::Platform(const tai_service_method_table_t * services) : tai::framework::Platform(services) {
 
         if ( services != nullptr && services->module_presence != nullptr ) {
             for ( auto i = 0; i < BASIC_NUM_MODULE; i++ ) {
@@ -29,15 +29,15 @@ namespace tai::basic {
     }
 
     tai_status_t Platform::create(tai_object_type_t type, tai_object_id_t module_id, uint32_t count, const tai_attribute_t *list, tai_object_id_t *id) {
-        std::shared_ptr<tai::BaseObject> obj;
+        std::shared_ptr<tai::framework::BaseObject> obj;
         try {
             switch (type) {
             case TAI_OBJECT_TYPE_MODULE:
                 {
-                    tai::Location loc;
+                    tai::framework::Location loc;
                     for ( auto i = 0; i < count; i++ ) {
                         if ( list[i].id == TAI_MODULE_ATTR_LOCATION ) {
-                            loc = tai::Location(list[i].value.charlist.list, list[i].value.charlist.count);
+                            loc = tai::framework::Location(list[i].value.charlist.list, list[i].value.charlist.count);
                             break;
                         }
                     }
@@ -464,7 +464,7 @@ namespace tai::basic {
         return next;
     }
 
-    // List all attributes which is supported by the library in tai::Config<T>::m_info
+    // List all attributes which is supported by the library in tai::framework::Config<T>::m_info
     //
     // Core functionality is explained in examples/stub.cpp
     //
@@ -491,9 +491,9 @@ namespace tai::basic {
     //
     //    In this example, we are passing a FSM object as the context in the Module/NetIf/HostIf constructor.
 
-    using M = AttributeInfo<TAI_OBJECT_TYPE_MODULE>;
-    using N = AttributeInfo<TAI_OBJECT_TYPE_NETWORKIF>;
-    using H = AttributeInfo<TAI_OBJECT_TYPE_HOSTIF>;
+    using M = tai::framework::AttributeInfo<TAI_OBJECT_TYPE_MODULE>;
+    using N = tai::framework::AttributeInfo<TAI_OBJECT_TYPE_NETWORKIF>;
+    using H = tai::framework::AttributeInfo<TAI_OBJECT_TYPE_HOSTIF>;
 
     static const tai_attribute_value_t default_tai_module_vendor_name_value = {
         .charlist = {5, (char*)"BASIC"},
@@ -512,7 +512,7 @@ namespace tai::basic {
         return fsm->get_tributary_mapping(attribute);
     }
 
-    template <> const tai::AttributeInfoMap<TAI_OBJECT_TYPE_MODULE> tai::Config<TAI_OBJECT_TYPE_MODULE>::m_info {
+    template <> const AttributeInfoMap<TAI_OBJECT_TYPE_MODULE> Config<TAI_OBJECT_TYPE_MODULE>::m_info {
         basic::M(TAI_MODULE_ATTR_LOCATION),
         basic::M(TAI_MODULE_ATTR_VENDOR_NAME)
             .set_default(&tai::basic::default_tai_module_vendor_name_value),
@@ -541,7 +541,7 @@ namespace tai::basic {
         return fsm->get_tx_dis(attribute);
     }
 
-    template <> const tai::AttributeInfoMap<TAI_OBJECT_TYPE_NETWORKIF> tai::Config<TAI_OBJECT_TYPE_NETWORKIF>::m_info {
+    template <> const AttributeInfoMap<TAI_OBJECT_TYPE_NETWORKIF> Config<TAI_OBJECT_TYPE_NETWORKIF>::m_info {
         basic::N(TAI_NETWORK_INTERFACE_ATTR_INDEX),
         basic::N(TAI_NETWORK_INTERFACE_ATTR_TX_DIS)
             .set_setter(tai::basic::netif_tx_dis_setter)
@@ -550,7 +550,7 @@ namespace tai::basic {
         basic::N(TAI_NETWORK_INTERFACE_ATTR_OUTPUT_POWER),
     };
 
-    template <> const tai::AttributeInfoMap<TAI_OBJECT_TYPE_HOSTIF> tai::Config<TAI_OBJECT_TYPE_HOSTIF>::m_info {
+    template <> const AttributeInfoMap<TAI_OBJECT_TYPE_HOSTIF> Config<TAI_OBJECT_TYPE_HOSTIF>::m_info {
         basic::H(TAI_HOST_INTERFACE_ATTR_INDEX),
     };
 
