@@ -326,7 +326,7 @@ bool tai_metadata_is_condition_met(
 
 #define _TAI_META_ALLOC_LIST(valuename, type)\
     value->valuename.count = size;\
-    value->valuename.list = calloc(size, sizeof(type));\
+    value->valuename.list = realloc(value->valuename.list, size * sizeof(type));\
     if ( value->valuename.list == NULL ) {\
         return TAI_STATUS_NO_MEMORY;\
     }\
@@ -557,10 +557,10 @@ static int _tai_list_size(
         return value->objmaplist.count;
     case TAI_ATTR_VALUE_TYPE_ATTRLIST:
         return value->attrlist.count;
+    default:
+        TAI_META_LOG_ERROR("unsupported value type: %d", metadata->attrvaluetype);
+        return -1;
     }
-
-    TAI_META_LOG_ERROR("unsupported value type: %d", metadata->attrvaluetype);
-    return -1;
 }
 
 
@@ -634,8 +634,12 @@ static tai_status_t _tai_metadata_alloc_attr_value(
         _TAI_META_ALLOC_LIST(objmaplist, tai_object_map_list_t);
         value->attrlist._alloced = size;
         for ( i = 0; i < size; i++ ) {
-            value->objmaplist.list[i].value.count = size;
-            value->objmaplist.list[i].value.list = calloc(size, sizeof(tai_object_map_t));
+            int ssize = size;
+            if ( info != NULL && info->reference != NULL ) {
+                ssize = info->reference->value.objmaplist.list[i].value.count;
+            }
+            value->objmaplist.list[i].value.count = ssize;
+            value->objmaplist.list[i].value.list = calloc(ssize, sizeof(tai_object_map_t));
             if ( value->objmaplist.list[i].value.list == NULL ) {
                 for ( j = 0; j < i; j++ ) {
                     free(value->objmaplist.list[j].value.list);
