@@ -6,6 +6,8 @@
 
 namespace tai::basic {
 
+    using namespace tai::framework;
+
     const uint8_t BASIC_NUM_MODULE = 1;
     const uint8_t BASIC_NUM_NETIF = 1;
     const uint8_t BASIC_NUM_HOSTIF = 2;
@@ -13,7 +15,7 @@ namespace tai::basic {
     // the same object ID format as examples/stub is used
     const uint8_t OBJECT_TYPE_SHIFT = 48;
 
-    class Platform : public tai::Platform {
+    class Platform : public tai::framework::Platform {
         public:
             Platform(const tai_service_method_table_t * services);
             tai_status_t create(tai_object_type_t type, tai_object_id_t module_id, uint32_t attr_count, const tai_attribute_t * const attr_list, tai_object_id_t *id);
@@ -45,7 +47,7 @@ namespace tai::basic {
     //
     // When the framework want to transit to another state (described in basic.cpp when this happens),
     // the framework triggers an event. This event can be captured through eventfd.
-    // `int tai::FSM::get_event_fd()` returns the event fd and `FSMState tai::FSM::next_state()` returns
+    // `int tai::framework::FSM::get_event_fd()` returns the event fd and `FSMState tai::framework::FSM::next_state()` returns
     // the next state which the framework is requesting to transite.
     //
     // In typical case, the callback respects what the framework is requesting, and return the next state promptly.
@@ -60,7 +62,7 @@ namespace tai::basic {
     //
     // set_module/set_netif/set_hostif are implemented to enable the access to TAI objects from FSM
     // it is not mandatory and required by the framework, but you will find it necessary most of the time to do meaningful stuff
-    class FSM : public tai::FSM {
+    class FSM : public tai::framework::FSM {
         // requirements to inherit tai::FSM
         public:
             bool configured();
@@ -70,7 +72,7 @@ namespace tai::basic {
 
         // methods/fields specific to this example
         public:
-            FSM(tai::Location loc) : m_loc(loc), m_module(nullptr), m_netif(nullptr), m_hostif{}, m_no_transit(false) {}
+            FSM(Location loc) : m_loc(loc), m_module(nullptr), m_netif(nullptr), m_hostif{}, m_no_transit(false) {}
             int set_module(S_Module module);
             int set_netif(S_NetIf   netif);
             int set_hostif(S_HostIf hostif, int index);
@@ -84,7 +86,7 @@ namespace tai::basic {
 
             tai_status_t get_tributary_mapping(tai_attribute_t* const attribute);
 
-            tai::Location location() {
+            Location location() {
                 return m_loc;
             }
 
@@ -100,15 +102,15 @@ namespace tai::basic {
             S_HostIf m_hostif[BASIC_NUM_HOSTIF];
 
             std::atomic<bool> m_no_transit;
-            tai::Location m_loc;
+            Location m_loc;
     };
 
     using S_FSM = std::shared_ptr<FSM>;
 
     template<tai_object_type_t T>
-    class Object : public tai::Object<T> {
+    class Object : public tai::framework::Object<T> {
         public:
-            Object(uint32_t count, const tai_attribute_t *list, S_FSM fsm) : tai::Object<T>(count, list, fsm, reinterpret_cast<void*>(fsm.get()), std::bind(&Object::setter, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), std::bind(&Object::getter, this, std::placeholders::_1, std::placeholders::_2)) {}
+            Object(uint32_t count, const tai_attribute_t *list, S_FSM fsm) : tai::framework::Object<T>(count, list, fsm, reinterpret_cast<void*>(fsm.get()), std::bind(&Object::setter, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), std::bind(&Object::getter, this, std::placeholders::_1, std::placeholders::_2)) {}
 
             tai_object_id_t id() const {
                 return m_id;

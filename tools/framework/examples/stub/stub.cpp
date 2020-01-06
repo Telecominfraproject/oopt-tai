@@ -7,7 +7,7 @@ namespace tai::stub {
     //
     // In this example, we call module_presence blindly with the presence flag 'true'
     // when the callback is given.
-    Platform::Platform(const tai_service_method_table_t * services) : tai::Platform(services) {
+    Platform::Platform(const tai_service_method_table_t * services) : tai::framework::Platform(services) {
 
         if ( services != nullptr && services->module_presence != nullptr ) {
             for ( auto i = 0; i < STUB_NUM_MODULE; i++ ) {
@@ -17,7 +17,7 @@ namespace tai::stub {
     }
 
     tai_status_t Platform::create(tai_object_type_t type, tai_object_id_t module_id, uint32_t attr_count, const tai_attribute_t *attr_list, tai_object_id_t *id) {
-        std::shared_ptr<tai::BaseObject> obj;
+        std::shared_ptr<tai::framework::BaseObject> obj;
         try {
             switch (type) {
             case TAI_OBJECT_TYPE_MODULE:
@@ -97,7 +97,7 @@ namespace tai::stub {
         return TAI_OBJECT_TYPE_NULL;
     }
 
-    // List all attributes which is supported by the library in tai::Config<T>::m_info
+    // List all attributes which is supported by the library in tai::framework::Config<T>::m_info
     //
     // If an attribute is not listed in m_info, the framework returns NOT_SUPPORTED err
     // when user tries to get/set the attribute.
@@ -136,7 +136,7 @@ namespace tai::stub {
     using H = AttributeInfo<TAI_OBJECT_TYPE_HOSTIF>;
 
     // sadly 'auto' can't be used here
-    template <> const tai::AttributeInfoMap<TAI_OBJECT_TYPE_MODULE> tai::Config<TAI_OBJECT_TYPE_MODULE>::m_info {
+    template <> const AttributeInfoMap<TAI_OBJECT_TYPE_MODULE> Config<TAI_OBJECT_TYPE_MODULE>::m_info {
         stub::M(TAI_MODULE_ATTR_LOCATION),
         stub::M(TAI_MODULE_ATTR_VENDOR_NAME)
             .set_default(&tai::stub::default_tai_module_vendor_name_value),
@@ -150,14 +150,14 @@ namespace tai::stub {
         stub::M(TAI_MODULE_ATTR_MODULE_STATE_CHANGE_NOTIFY),
     };
 
-    template <> const tai::AttributeInfoMap<TAI_OBJECT_TYPE_NETWORKIF> tai::Config<TAI_OBJECT_TYPE_NETWORKIF>::m_info {
+    template <> const AttributeInfoMap<TAI_OBJECT_TYPE_NETWORKIF> Config<TAI_OBJECT_TYPE_NETWORKIF>::m_info {
         stub::N(TAI_NETWORK_INTERFACE_ATTR_INDEX),
         stub::N(TAI_NETWORK_INTERFACE_ATTR_TX_DIS),
         stub::N(TAI_NETWORK_INTERFACE_ATTR_TX_LASER_FREQ),
         stub::N(TAI_NETWORK_INTERFACE_ATTR_OUTPUT_POWER),
     };
 
-    template <> const tai::AttributeInfoMap<TAI_OBJECT_TYPE_HOSTIF> tai::Config<TAI_OBJECT_TYPE_HOSTIF>::m_info {
+    template <> const AttributeInfoMap<TAI_OBJECT_TYPE_HOSTIF> Config<TAI_OBJECT_TYPE_HOSTIF>::m_info {
         stub::H(TAI_HOST_INTERFACE_ATTR_INDEX),
     };
 }
