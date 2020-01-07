@@ -1,6 +1,8 @@
 TAISH_DIR := ..
 
-all:
+all: taish/taish_pb2.py taish/taish_pb2_grpc.py
+
+taish/taish_pb2.py taish/taish_pb2_grpc.py: $(TAISH_DIR)/proto/taish/taish.proto
 	python -m grpc_tools.protoc -I$(TAISH_DIR)/proto --python_out=. --grpc_python_out=. $(TAISH_DIR)/proto/taish/taish.proto
 
 clean:
