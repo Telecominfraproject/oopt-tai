@@ -148,7 +148,13 @@ namespace tai::framework {
         for ( auto attr_id : ids ) {
             auto meta = tai_metadata_get_attr_metadata(T, attr_id);
             getter f = [this](tai_attribute_t* a){ return this->_get_attributes(1, a); };
-            auto attr = std::make_shared<Attribute>(meta, f);
+            S_Attribute attr;
+            try {
+                attr = std::make_shared<Attribute>(meta, f);
+            } catch (Exception &e) {
+                ERROR("getting attribute %s for notification failed: %s", meta->attridshortname, e.what());
+                continue;
+            }
             ptrs.emplace_back(attr); // only used for memory management
             bool notify = true;
             if ( alarm ) {
