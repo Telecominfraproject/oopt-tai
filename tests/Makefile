@@ -26,7 +26,7 @@ c: $(TAI_TEST_TARGET) ../meta/libmetatai.so
 	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) ./test
 
 python: taish $(TAI_TAISH_SERVER) $(TAI_TEST_TARGET)
-	PATH=$(dir $(TAI_TAISH_SERVER)):${PATH} LD_LIBRARY_PATH=../meta:$(dir $(TAI_TEST_TARGET)) python -m unittest $(TAI_TEST_CASE)
+	TAI_TEST_MODULE_LOCATION=$(TAI_TEST_MODULE_LOCATION) PATH=$(dir $(TAI_TAISH_SERVER)):${PATH} LD_LIBRARY_PATH=../meta:$(dir $(TAI_TEST_TARGET)) python -m unittest $(TAI_TEST_CASE)
 
 taish:
 	cd $(dir $(TAI_TAISH_SERVER)) && python setup.py install
