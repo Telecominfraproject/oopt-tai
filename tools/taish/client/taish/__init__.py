@@ -43,8 +43,8 @@ class TAIObject(object):
     def set(self, attr_id, value):
         return self.client.set(self.object_type, self.oid, attr_id, value)
 
-    def get(self, attr_id, with_metadata=False):
-        return self.client.get(self.object_type, self.oid, attr_id, with_metadata)
+    def get(self, attr_id, with_metadata=False, value=None):
+        return self.client.get(self.object_type, self.oid, attr_id, with_metadata, value)
 
     def monitor(self, attr_id):
         return self.client.monitor(self.object_type, self.oid, attr_id)
@@ -179,7 +179,7 @@ class Client(object):
         _, call = self.stub.SetAttribute.with_call(req)
         check_call(call)
 
-    def get(self, object_type, oid, attr, with_metadata=False):
+    def get(self, object_type, oid, attr, with_metadata=False, value=None):
         if type(attr) == int:
             attr_id = attr
             if with_metadata:
@@ -194,6 +194,8 @@ class Client(object):
         req = taish_pb2.GetAttributeRequest()
         req.oid = oid
         req.attribute.attr_id = attr_id
+        if value:
+            req.attribute.value = str(value)
         res, call = self.stub.GetAttribute.with_call(req)
         check_call(call)
         value = res.attribute.value
