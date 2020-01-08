@@ -9,6 +9,8 @@ from prompt_toolkit.completion import Completion, WordCompleter
 from prompt_toolkit.completion import Completer as PromptCompleter
 from prompt_toolkit import print_formatted_text as print
 
+import sys
+
 class InvalidInput(Exception):
     def __init__(self, msg, candidates=[]):
         self.msg = msg
@@ -77,7 +79,7 @@ class Object(object):
 
         @self.command()
         def quit(line):
-            return self.parent if self.parent else self
+            return self.parent if self.parent else sys.exit(0)
 
     def command(self, completer=None, name=None):
         def f(func):
