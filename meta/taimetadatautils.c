@@ -585,6 +585,9 @@ static tai_status_t _tai_metadata_alloc_attr_value(
             size = _tai_list_size(metadata, &info->reference->value);
         }
     }
+    if ( size == 0 ) {
+        size = DEFAULT_LIST_SIZE;
+    }
     switch( metadata->attrvaluetype ) {
     case TAI_ATTR_VALUE_TYPE_BOOLDATA:
     case TAI_ATTR_VALUE_TYPE_CHARDATA:

@@ -563,6 +563,8 @@ int tai_deserialize_object_id(
     return TAI_SERIALIZE_ERROR;
 }
 
+#define DEFAULT_LIST_SIZE 16
+
 #define DEFINE_TAI_DESERIALIZE_LIST(listname, listtypename, itemname) \
 int tai_deserialize_ ## listname (\
         _In_ const char *buffer,\
@@ -599,9 +601,9 @@ int tai_deserialize_ ## listname (\
         return 0;\
     }\
     while(true) { \
-        if ( i > value->count ) { \
-            TAI_META_LOG_WARN("deserialize listname buffer overflow"); \
-            value->count = i*2;\
+        if ( i >= value->count ) { \
+            TAI_META_LOG_WARN("deserialize listname buffer overflow: %d", i); \
+            value->count = i > 0 ? i*2 : DEFAULT_LIST_SIZE;\
             return TAI_STATUS_BUFFER_OVERFLOW;\
         } \
         ret = tai_deserialize_ ## itemname(ptr, &value->list[i]); \
