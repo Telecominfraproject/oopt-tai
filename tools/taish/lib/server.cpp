@@ -219,7 +219,7 @@ static void convert_metadata(const tai_attr_metadata_t* const src, taish::Attrib
 
         if ( value.size() > 0 ) {
             auto ret = tai_deserialize_attribute_value(value.c_str(), meta, &attr->value, &option);
-            if ( ret != TAI_STATUS_SUCCESS ) {
+            if ( ret < 0 ) {
                 return ret;
             }
         }
