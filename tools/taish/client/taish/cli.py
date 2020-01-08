@@ -81,6 +81,12 @@ class Object(object):
         def quit(line):
             return self.parent if self.parent else sys.exit(0)
 
+    def add_command(self, handler, completer=None, name=None):
+        self.command(completer, name)(handler)
+
+    def del_command(self, name):
+        del self._commands[name]
+
     def command(self, completer=None, name=None):
         def f(func):
             def _inner(line):

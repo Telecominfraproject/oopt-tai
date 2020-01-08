@@ -195,6 +195,7 @@ class TAIShellCompleter(Completer):
 class TAIShell(object):
     def __init__(self, addr, port):
         client = taish.Client(addr, port)
+        self.client = client
         self.context = Root(client)
         self.completer = TAIShellCompleter(self.context)
         self.default_input = ''
