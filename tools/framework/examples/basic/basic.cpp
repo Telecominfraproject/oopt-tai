@@ -300,9 +300,7 @@ namespace tai::basic {
         // in this example, we get the attribute from the netif config.
         auto& config = m_netif->config();
 
-        // NOTE: it's important to specify without_hook=true.
-        // otherwise get() will call this callback recusively
-        return config.get(attribute, true);
+        return config.get(attribute);
     }
 
     tai_status_t FSM::get_tributary_mapping(tai_attribute_t* const attr) {
