@@ -70,23 +70,12 @@ TAIAPIModuleList::~TAIAPIModuleList() {
         auto res = taish::ListModuleResponse();
         auto m = res.mutable_module();
         auto module = list->list[i];
-        auto meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_MODULE, TAI_MODULE_ATTR_LOCATION);
-        tai_serialize_option_t option{ .human = true, .valueonly = true, .json = false};
 
         m->set_location(module.location);
         m->set_present(module.present);
         m->set_oid(module.id);
 
         if ( module.id != TAI_NULL_OBJECT_ID ) {
-            try {
-                auto attr = std::make_unique<tai::Attribute>(meta, [&](tai_attribute_t* v) -> tai_status_t {
-                    return m_api->module_api->get_module_attribute(module.id, v);
-                });
-                m->set_location(attr->to_string(&option));
-            } catch (tai::Exception& e) {
-                ret = e.err();
-                goto err;
-            }
             m->clear_hostifs();
             for ( uint32_t i = 0; i < module.hostifs.count; i++ ) {
                 auto hostif = m->add_hostifs();
