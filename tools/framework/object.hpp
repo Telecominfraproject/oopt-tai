@@ -21,7 +21,7 @@ namespace tai::framework {
     template<tai_object_type_t T>
     class Object : public BaseObject {
         public:
-            Object(uint32_t attr_count = 0 , const tai_attribute_t* const attr_list = nullptr, S_FSM fsm = std::make_shared<FSM>(), void* user = nullptr, setter_f setter = nullptr, getter_f getter = nullptr) : m_fsm(fsm), m_config(attr_count, attr_list, user, setter, getter) {}
+            Object(uint32_t attr_count = 0 , const tai_attribute_t* const attr_list = nullptr, S_FSM fsm = std::make_shared<FSM>(), void* user = nullptr, default_setter_f setter = nullptr, default_getter_f getter = nullptr) : m_fsm(fsm), m_config(attr_count, attr_list, user, setter, getter) {}
 
             bool configured() {
                 return m_fsm->configured();
@@ -70,13 +70,7 @@ namespace tai::framework {
 
     template<tai_object_type_t T>
     tai_status_t Object<T>::_get_attributes(uint32_t attr_count, tai_attribute_t* const attr_list) {
-        for ( auto i = 0; i < attr_count; i++ ) {
-            auto ret = m_config.get(&attr_list[i]);
-            if ( ret != TAI_STATUS_SUCCESS ) {
-                return convert_tai_error_to_list(ret, i);
-            }
-        }
-        return TAI_STATUS_SUCCESS;
+        return m_config.get_attributes(attr_count, attr_list);
     }
 
     template<tai_object_type_t T>

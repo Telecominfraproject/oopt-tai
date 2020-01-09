@@ -110,7 +110,9 @@ namespace tai::basic {
     template<tai_object_type_t T>
     class Object : public tai::framework::Object<T> {
         public:
-            Object(uint32_t count, const tai_attribute_t *list, S_FSM fsm) : tai::framework::Object<T>(count, list, fsm, reinterpret_cast<void*>(fsm.get()), std::bind(&Object::setter, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), std::bind(&Object::getter, this, std::placeholders::_1, std::placeholders::_2)) {}
+            Object(uint32_t count, const tai_attribute_t *list, S_FSM fsm) : tai::framework::Object<T>(count, list, fsm, reinterpret_cast<void*>(fsm.get()),
+                    std::bind(&Object::default_setter, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
+                    std::bind(&Object::default_getter, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4)) {}
 
             tai_object_id_t id() const {
                 return m_id;
@@ -120,28 +122,41 @@ namespace tai::basic {
             tai_object_id_t m_id;
 
         private:
-            tai_status_t setter(const tai_attribute_t* const attribute, FSMState* fsm, void* const user) {
-                auto meta = tai_metadata_get_attr_metadata(T, attribute->id);
-                m_config[attribute->id] = std::make_shared<Attribute>(meta, *attribute);
+            tai_status_t default_setter(uint32_t count, const tai_attribute_t* const attrs, FSMState* fsm, void* const user, const tai::framework::error_info* const info) {
+                for ( auto i = 0; i < count; i++ ) {
+                    auto attribute = &attrs[i];
+                    auto meta = tai_metadata_get_attr_metadata(T, attribute->id);
+                    if ( meta == nullptr ) {
+                        return info[i].status;
+                    }
+                    m_config[attribute->id] = std::make_shared<Attribute>(meta, *attribute);
+                }
                 return TAI_STATUS_SUCCESS;
             }
 
-            tai_status_t getter(tai_attribute_t* const attribute, void* const user) {
-                auto it = m_config.find(attribute->id);
-                auto meta = tai_metadata_get_attr_metadata(T, attribute->id);
-                if ( it != m_config.end() ) {
-                    return tai_metadata_deepcopy_attr_value(meta, it->second->raw(), attribute);
+            tai_status_t default_getter(uint32_t count, tai_attribute_t* const attrs, void* const user, const tai::framework::error_info* const info) {
+                for ( auto i = 0; i< count; i++ ) {
+                    auto attribute = &attrs[i];
+                    auto meta = tai_metadata_get_attr_metadata(T, attribute->id);
+                    auto it = m_config.find(attribute->id);
+                    if ( it != m_config.end() ) {
+                        auto ret = tai_metadata_deepcopy_attr_value(meta, it->second->raw(), attribute);
+                        if ( ret != TAI_STATUS_SUCCESS ) {
+                            return info[i].status;
+                        }
+                    } else if ( meta == nullptr || meta->isreadonly ) {
+                        return info[i].status;
+                    } else if ( meta->defaultvalue != NULL ) {
+                        tai_attribute_t in = {attribute->id, *meta->defaultvalue};
+                        auto ret = tai_metadata_deepcopy_attr_value(meta, &in, attribute);
+                        if ( ret != TAI_STATUS_SUCCESS ) {
+                            return convert_tai_error_to_list(ret, info[i].index);
+                        }
+                    } else {
+                        return TAI_STATUS_UNINITIALIZED;
+                    }
                 }
-
-                if ( meta == nullptr || meta->isreadonly ) {
-                    return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
-                } else if ( meta->defaultvaluetype == TAI_DEFAULT_VALUE_TYPE_NONE ) {
-                    return tai_metadata_clear_attr_value(meta, attribute);
-                } else if ( meta->defaultvalue != NULL ) {
-                    tai_attribute_t in = {attribute->id, *meta->defaultvalue};
-                    return tai_metadata_deepcopy_attr_value(meta, &in, attribute);
-                }
-                return TAI_STATUS_UNINITIALIZED;
+                return TAI_STATUS_SUCCESS;
             }
 
             std::map<tai_attr_id_t, S_Attribute> m_config;

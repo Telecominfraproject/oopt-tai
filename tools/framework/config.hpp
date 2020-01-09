@@ -92,10 +92,30 @@ namespace tai::framework {
             }
     };
 
+    struct error_info {
+        int index; // original index of the attribute
+        tai_status_t status; // error status
+    };
+
+    // default_setter_f : the fallback callback function which gets called when any error happens in set path
+    // count : number of attributes
+    // attrs : list of the attributes to be set
+    // fsm : the FSM state which we need to transit
+    // user : context
+    // error_info : list of the error status in previous set path
+    using default_setter_f = std::function< tai_status_t(uint32_t count, const tai_attribute_t* const attrs, FSMState* fsm, void* const user, const error_info* const) >;
+
+    // default_getter_f : the fallback callback function which gets called when any error happens in get path
+    // count : number of attributes
+    // attrs : list of the attribute to be get
+    // user : context
+    // error_info : list of the error status in previous set path
+    using default_getter_f = std::function< tai_status_t(uint32_t count, tai_attribute_t* const attrs, void* const user, const error_info* const) >;
+
     template<tai_object_type_t T>
     class Config {
         public:
-            Config(uint32_t attr_count = 0, const tai_attribute_t* attr_list = nullptr, void* user = nullptr, setter_f setter = nullptr, getter_f getter = nullptr) : m_user(user), m_default_setter(setter), m_default_getter(getter) {
+            Config(uint32_t attr_count = 0, const tai_attribute_t* attr_list = nullptr, void* user = nullptr, default_setter_f setter = nullptr, default_getter_f getter = nullptr) : m_user(user), m_default_setter(setter), m_default_getter(getter) {
                 for ( auto i = 0; i < attr_count; i++) {
                     auto ret = _set(attr_list[i], true, false);
                     if ( ret != TAI_STATUS_SUCCESS ) {
@@ -117,44 +137,18 @@ namespace tai::framework {
                 return _get(id);
             }
 
-            tai_status_t get(tai_attribute_t* const attr, bool without_hook = false) {
+            tai_status_t get(tai_attribute_t* const attr) {
                 auto info = m_info.find(attr->id);
-                tai_status_t ret = TAI_STATUS_NOT_SUPPORTED;
                 if ( info == m_info.end() ) {
-                    DEBUG("no meta: 0x%x", attr->id);
-                    ret = TAI_STATUS_ATTR_NOT_SUPPORTED_0;
-                    goto err;
+                    return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
                 }
-
-                if ( !without_hook && info->second.getter != nullptr ) {
-                    return info->second.getter(attr, m_user);
-                }
-
-                {
-                    std::unique_lock<std::mutex> lk(m_mtx);
-                    auto v = _get(attr->id);
-                    if ( v == nullptr ) {
-                        ret = TAI_STATUS_UNINITIALIZED;
-                        goto err;
-                    }
-                    tai_attribute_t src{attr->id, *v};
-                    return tai_metadata_deepcopy_attr_value(info->second.meta, &src, attr);
-                }
-err:
-                if ( !without_hook && m_default_getter != nullptr ) {
-                    return m_default_getter(attr, m_user);
-                }
-                return ret;
-            }
-
-            int set_hook(tai_attr_id_t id, setter_f hook) {
                 std::unique_lock<std::mutex> lk(m_mtx);
-                auto info = m_info.find(id);
-                if ( info == m_info.end() ) {
-                    return -1;
+                auto v = _get(attr->id);
+                if ( v == nullptr ) {
+                    return TAI_STATUS_UNINITIALIZED;
                 }
-                info->second.setter = hook;
-                return 0;
+                tai_attribute_t src{attr->id, *v};
+                return tai_metadata_deepcopy_attr_value(info->second.meta, &src, attr);
             }
 
             tai_status_t set(S_Attribute src, bool without_hook = false) {
@@ -171,6 +165,71 @@ err:
 
             tai_status_t set_readonly(const tai_attribute_t& src) {
                 return _set(src, true, false);
+            }
+
+            tai_status_t get_attributes(uint32_t attr_count, tai_attribute_t * const attr_list) {
+                std::vector<std::pair<tai_attribute_t*const, error_info>> failed_attributes;
+                for ( auto i = 0; i < attr_count; i++ ) {
+                    auto attr = &attr_list[i];
+                    auto info = m_info.find(attr->id);
+                    if ( info == m_info.end() ) {
+                        auto ret = convert_tai_error_to_list(TAI_STATUS_ATTR_NOT_SUPPORTED_0, i);
+                        if ( m_default_getter == nullptr ) {
+                            return ret;
+                        }
+                        failed_attributes.emplace_back(std::make_pair(attr, error_info{i, ret}));
+                        continue;
+                    }
+
+                    if ( info->second.getter != nullptr ) {
+                        auto ret = info->second.getter(attr, m_user);
+                        if ( ret != TAI_STATUS_SUCCESS ) {
+                            ret = convert_tai_error_to_list(ret, i);
+                            if ( m_default_getter == nullptr ) {
+                                return ret;
+                            }
+                            failed_attributes.emplace_back(std::make_pair(attr, error_info{i, ret}));
+                            continue;
+                        }
+                    }
+
+                    {
+                        std::unique_lock<std::mutex> lk(m_mtx);
+                        auto v = _get(attr->id);
+                        if ( v == nullptr ) {
+                            auto ret = convert_tai_error_to_list(TAI_STATUS_UNINITIALIZED, i);
+                            if ( m_default_getter == nullptr ) {
+                                return ret;
+                            }
+                            failed_attributes.emplace_back(std::make_pair(attr, error_info{i, ret}));
+                            continue;
+                        }
+                        tai_attribute_t src{attr->id, *v};
+                        // when this failed, don't fallback to default_getter and return immediately
+                        auto ret = tai_metadata_deepcopy_attr_value(info->second.meta, &src, attr);
+                        if ( ret != TAI_STATUS_SUCCESS ) {
+                            return convert_tai_error_to_list(ret, i);
+                        }
+                    }
+                }
+
+                if ( m_default_getter != nullptr && failed_attributes.size() > 0 ) {
+                    std::vector<tai_attribute_t> list;
+                    std::vector<error_info> err_list;
+                    for ( auto& a : failed_attributes ) {
+                        list.emplace_back(*a.first);
+                        err_list.emplace_back(a.second);
+                    }
+                    auto ret = m_default_getter(list.size(), list.data(), m_user, err_list.data());
+                    if ( ret != TAI_STATUS_SUCCESS ) {
+                        return ret;
+                    }
+                    for ( auto i = 0; i < list.size(); i++ ) {
+                        const auto& a = failed_attributes[i];
+                        attr_list[a.second.index] = list[i];
+                    }
+                }
+                return TAI_STATUS_SUCCESS;
             }
 
             tai_status_t set_attributes(uint32_t attr_count, const tai_attribute_t * const attr_list, FSMState& next_state) {
@@ -202,47 +261,53 @@ err:
                 }
 
                 if ( diff.size() == 0 ) {
-                    INFO("already configured with the same configuration");
+                    DEBUG("already configured with the same configuration");
                     return TAI_STATUS_SUCCESS;
+                }
+
+                const auto current = next_state;
+                std::vector<std::pair<const tai_attribute_t*const, error_info>> failed_attributes;
+                std::vector<FSMState> states;
+                for ( auto i = 0; i < diff.size(); i++ ) {
+                    auto state = current;
+                    auto ret = _set(*diff[i], false, false, &state);
+                    if ( ret != TAI_STATUS_SUCCESS ) {
+                        if ( m_default_setter == nullptr ) {
+                            return convert_tai_error_to_list(ret, i);
+                        }
+                        failed_attributes.emplace_back(std::make_pair(diff[i], error_info{i, ret}));
+                    }
+                    states.emplace_back(state);
+                }
+
+                if ( m_default_setter != nullptr && failed_attributes.size() > 0 ) {
+                    auto state = current;
+                    std::vector<tai_attribute_t> list;
+                    std::vector<error_info> err_list;
+                    for ( auto& a : failed_attributes ) {
+                        list.emplace_back(*a.first);
+                        err_list.emplace_back(a.second);
+                    }
+                    auto ret = m_default_setter(list.size(), list.data(), &state, m_user, err_list.data());
+                    if ( ret != TAI_STATUS_SUCCESS ) {
+                        return ret;
+                    }
+                    states.emplace_back(state);
                 }
 
                 // determine which state to transit
                 // choose the lowest state if we have multiple choice
                 // the state can't go upper from the current state
-                // hence initialize 's' with 'next_state' which holds the
-                // current state when this method is called
-                auto s = next_state;
-                for ( auto i = 0; i < diff.size(); i++ ) {
-                    auto state = next_state;
-                    auto ret = _set(*diff[i], false, false, &state);
-                    if ( ret != TAI_STATUS_SUCCESS ) {
-                        return convert_tai_error_to_list(ret, i);
-                    }
-                    // if 'state' is updated and lower than 's', update 's' to that state
-                    if ( state != next_state && state < s) {
-                        s = state;
-                    }
-                    auto info = m_info.find(diff[i]->id);
-                    if ( info == m_info.end() ) {
-                        continue;
-                    }
-                    // no FSM state specified in attribute info
-                    if ( info->second.fsm == FSM_STATE_INIT ) {
-                        continue;
-                    }
-                    if ( info->second.fsm < s ) {
-                        s = info->second.fsm;
+                for ( const auto& state : states ) {
+                    if ( state != current && state < next_state) {
+                        next_state = state;
                     }
                 }
-
-                next_state = s;
-
                 return TAI_STATUS_SUCCESS;
             }
 
             tai_status_t clear_attributes(uint32_t attr_count, const tai_attr_id_t* const attr_list, FSMState& next_state, bool force = false) {
                 std::unique_lock<std::mutex> lk(m_mtx);
-                auto s = FSM_STATE_END;
                 for ( auto i = 0; i < attr_count; i++ ) {
                     auto id = attr_list[i];
                     auto info = m_info.find(id);
@@ -253,46 +318,8 @@ err:
                         WARN("can't clear non-clearable attribute: 0x%x", id);
                         return convert_tai_error_to_list(TAI_STATUS_INVALID_ATTR_VALUE_0, i);
                     }
-                    auto it = m_config.find(id);
-                    if ( it == m_config.end() ) {
-                        continue;
-                    }
-                    // attribute is configured
-                    auto default_value = info->second.defaultvalue;
-                    if ( default_value == nullptr ) {
-                        default_value = info->second.meta->defaultvalue;
-                    }
-                    // when default_value is different from the configured value,
-                    // check if we need to move fsm state due to this clear
                     m_config.erase(id);
-                    if ( !it->second->cmp(default_value) ) {
-                        auto state = next_state;
-                        if ( default_value != nullptr ) {
-                            tai_status_t ret;
-                            tai_attribute_t default_attr { id, *default_value };
-                            if ( info->second.setter != nullptr ) {
-                                ret = info->second.setter(&default_attr, &state, m_user);
-                                if ( ret == TAI_STATUS_NOT_EXECUTED ) {
-                                    ret = TAI_STATUS_SUCCESS;
-                                }
-                            }
-                            if ( m_default_setter != nullptr && (TAI_STATUS_IS_ATTR_NOT_SUPPORTED(ret) || ret == TAI_STATUS_NOT_SUPPORTED) ) {
-                                ret = m_default_setter(&default_attr, &state, m_user);
-                            }
-                            if ( ret != TAI_STATUS_SUCCESS ) {
-                                return convert_tai_error_to_list(ret, i);
-                            }
-                        }
-                        if ( state != next_state && state < s ) {
-                            s = state;
-                        }
-                    }
-
-                    if ( info->second.fsm != FSM_STATE_INIT && info->second.fsm < s ) {
-                        s = info->second.fsm;
-                    }
                 }
-                next_state = s;
                 return TAI_STATUS_SUCCESS;
             }
 
@@ -336,76 +363,46 @@ err:
             // readonly : if true, allow readonly attribute to be set
             tai_status_t _set(S_Attribute src, bool readonly, bool without_hook, FSMState* fsm = nullptr) {
                 auto info = m_info.find(src->id());
-                tai_status_t ret = TAI_STATUS_SUCCESS;
                 if ( info == m_info.end() ) {
                     DEBUG("no meta: 0x%x", src->id());
-                    ret = TAI_STATUS_ATTR_NOT_SUPPORTED_0;
-                    goto err;
+                    return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
                 }
 
                 if ( !readonly && info->second.meta->isreadonly) {
                     WARN("read only: 0x%x", src->id());
-                    ret = TAI_STATUS_INVALID_ATTR_VALUE_0;
-                    goto err;
+                    return TAI_STATUS_INVALID_ATTR_VALUE_0;
+                }
+
+                if ( fsm != nullptr && info->second.fsm != FSM_STATE_INIT ) {
+                    *fsm = info->second.fsm;
                 }
 
                 if ( !without_hook && info->second.setter != nullptr ) {
-                    ret = info->second.setter(src->raw(), fsm, m_user);
+                    auto ret = info->second.setter(src->raw(), fsm, m_user);
                     if ( ret != TAI_STATUS_SUCCESS || info->second.no_store ) {
-                        goto err;
+                        return ret;
                     }
                 }
 
-                {
-                    std::unique_lock<std::mutex> lk(m_mtx);
-                    m_config[src->id()] = src;
-                    return ret;
-                }
-err:
-                if ( !without_hook && m_default_setter != nullptr ) {
-                    return m_default_setter(src->raw(), fsm, m_user);
-                }
-                return ret;
+                std::unique_lock<std::mutex> lk(m_mtx);
+                m_config[src->id()] = src;
+                return TAI_STATUS_SUCCESS;
             }
 
             tai_status_t _set(const tai_attribute_t& src, bool readonly, bool without_hook, FSMState* fsm = nullptr) {
                 auto info = m_info.find(src.id);
-                tai_status_t ret = TAI_STATUS_SUCCESS;
                 if ( info == m_info.end() ) {
                     DEBUG("no meta: 0x%x", src.id);
-                    ret = TAI_STATUS_ATTR_NOT_SUPPORTED_0;
-                    goto err;
+                    return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
                 }
-
-                if ( !readonly && info->second.meta->isreadonly) {
-                    WARN("read only: 0x%x", src.id);
-                    ret = TAI_STATUS_INVALID_ATTR_VALUE_0;
-                    goto err;
-                }
-
-                if ( !without_hook && info->second.setter != nullptr ) {
-                    ret = info->second.setter(&src, fsm, m_user);
-                    if ( ret != TAI_STATUS_SUCCESS || info->second.no_store ) {
-                        goto err;
-                    }
-                }
-
-                {
-                    std::unique_lock<std::mutex> lk(m_mtx);
-                    m_config[src.id] = std::make_shared<Attribute>(info->second.meta, src);
-                    return ret;
-                }
-err:
-                if ( !without_hook && m_default_setter != nullptr ) {
-                    return m_default_setter(&src, fsm, m_user);
-                }
-                return ret;
+                auto attr = std::make_shared<Attribute>(info->second.meta, src);
+                return _set(attr, readonly, without_hook, fsm);
             }
 
             static const AttributeInfoMap<T> m_info;
             std::map<tai_attr_id_t, S_Attribute> m_config;
-            const setter_f m_default_setter;
-            const getter_f m_default_getter;
+            const default_setter_f m_default_setter;
+            const default_getter_f m_default_getter;
             mutable std::mutex m_mtx;
             void* const m_user;
     };
