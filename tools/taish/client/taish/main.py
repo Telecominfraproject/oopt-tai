@@ -72,8 +72,22 @@ class TAIShellObject(Object):
                 args = ['notify'] #TODO default value handling
             if len(args) != 1:
                 raise InvalidInput('usage: monitor <name>')
+
+            l = self.client.list_attribute_metadata()
+
+            def cb(res):
+                for attr in res.attrs:
+                    a = [ v.short_name for v in l if v.attr_id == attr.attr_id ]
+                    if len(a) == 1:
+                        print('{} | {}'.format(a[0], attr.value))
+                    elif len(a) == 0:
+                        print('0x{:x} | {}'.format(attr.attr_id, attr.value))
+                    else:
+                        print('error: more than one metadata matched for id 0x{:x}: {}'.format(attr.attr_id, a))
+
             try:
-                self.client.monitor(args[0])
+                self.client.monitor(args[0], cb)
+                print()
             except TAIException as e:
                 print('err: {} (code: {:x})'.format(e.msg, e.code))
 

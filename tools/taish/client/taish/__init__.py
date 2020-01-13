@@ -4,24 +4,27 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import grpc
+from grpclib.client import Channel
 
 from taish import taish_pb2
-from taish import taish_pb2_grpc
+from taish import taish_grpc
+
+import asyncio
+
+import time
+
+DEFAULT_SERVER_ADDRESS = 'localhost'
+DEFAULT_SERVER_PORT = '50051'
 
 class TAIException(Exception):
     def __init__(self, code, msg):
         self.code = code
         self.msg = msg
 
-def check_call(call):
-    code = None
-    for key, value in call.trailing_metadata():
-        if key == 'tai-status-code':
-            code = int(value)
-        elif key == 'tai-status-msg':
-            msg = value
+def check_metadata(metadata):
+    code = int(metadata.get('tai-status-code', 0))
     if code:
+        msg = metadata.get('tai-status-msg', '')
         raise TAIException(code, msg)
 
 class TAIObject(object):
@@ -33,6 +36,21 @@ class TAIObject(object):
     @property
     def oid(self):
         return self.obj.oid
+
+    def list_attribute_metadata_async(self):
+        return self.client.list_attribute_metadata_async(self.object_type)
+
+    def get_attribute_metadata_async(self, attr):
+        return self.client.get_attribute_metadata_async(self.object_type, attr)
+
+    def set_async(self, attr_id, value):
+        return self.client.set_async(self.object_type, self.oid, attr_id, value)
+
+    def get_async(self, attr_id, with_metadata=False, value=None):
+        return self.client.get_async(self.object_type, self.oid, attr_id, with_metadata, value)
+
+    def monitor_async(self, attr_id, callback):
+        return self.client.monitor_async(self.object_type, self.oid, attr_id, callback)
 
     def list_attribute_metadata(self):
         return self.client.list_attribute_metadata(self.object_type)
@@ -46,8 +64,8 @@ class TAIObject(object):
     def get(self, attr_id, with_metadata=False, value=None):
         return self.client.get(self.object_type, self.oid, attr_id, with_metadata, value)
 
-    def monitor(self, attr_id):
-        return self.client.monitor(self.object_type, self.oid, attr_id)
+    def monitor(self, attr_id, callback):
+        return self.client.monitor(self.object_type, self.oid, attr_id, callback)
 
 
 class NetIf(TAIObject):
@@ -68,26 +86,36 @@ class Module(TAIObject):
     def get_hostif(self, index=0):
         return HostIf(self.client, self.obj.hostifs[index])
 
-    def create_netif(self, index=0, attrs=[]):
+    async def create_netif_async(self, index=0, attrs=[]):
         attrs.append(("index", index))
-        self.client.create(taish_pb2.NETIF, attrs, self.oid)
-        self.obj = self.client.list()[self.obj.location]
+        await self.client.create_async(taish_pb2.NETIF, attrs, self.oid)
+        self.obj = await self.client.list_async()[self.obj.location]
         return self.get_netif(index)
 
-    def create_hostif(self, index=0, attrs=[]):
+    def create_netif(self, index=0, attrs=[]):
+        return self.client.loop.run_until_complete(self.create_netif_async(index, attrs))
+
+    async def create_hostif_async(self, index=0, attrs=[]):
         attrs.append(("index", index))
-        self.client.create(taish_pb2.HOSTIF, attrs, self.oid)
-        self.obj = self.client.list()[self.obj.location]
+        await self.client.create(taish_pb2.HOSTIF, attrs, self.oid)
+        self.obj = await self.client.list_async()[self.obj.location]
         return self.get_hostif(index)
+
+    def create_hostif(self, index=0, attrs=[]):
+        return self.client.loop.run_until_complete(self.create_hostif_async(index, attrs))
 
 
 class Client(object):
-    def __init__(self, address='localhost', port='50051'):
-        self.channel = grpc.insecure_channel('{}:{}'.format(address, port))
-        self.stub = taish_pb2_grpc.TAIStub(self.channel)
+    def __init__(self, address=DEFAULT_SERVER_ADDRESS, port=DEFAULT_SERVER_PORT, loop=None):
+        self.loop = loop if loop else asyncio.get_event_loop()
+        self.channel = Channel(address, int(port), loop=self.loop)
+        self.stub = taish_grpc.TAIStub(self.channel)
 
     def close(self):
         self.channel.close()
+
+    def __del__(self):
+        self.close()
 
     def __enter__(self):
         return self
@@ -95,31 +123,43 @@ class Client(object):
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
-    def list(self):
+    async def list_async(self):
         req = taish_pb2.ListModuleRequest()
-        mods = { res.module.location: res.module for res in self.stub.ListModule(req) }
-        return mods
+        future = await self.stub.ListModule(req)
+        return { res.module.location: res.module for res in future }
 
-    def list_attribute_metadata(self, object_type):
+    def list(self):
+        return self.loop.run_until_complete(self.list_async())
+
+    async def list_attribute_metadata_async(self, object_type):
         req = taish_pb2.ListAttributeMetadataRequest()
         req.object_type = object_type
-        return [res.metadata for res in self.stub.ListAttributeMetadata(req)]
+        return [res.metadata for res in await self.stub.ListAttributeMetadata(req)]
+
+    def list_attribute_metadata(self, object_type):
+        return self.loop.run_until_complete(self.list_attribute_metadata_async(object_type))
+
+    async def get_attribute_metadata_async(self, object_type, attr):
+        async with self.stub.GetAttributeMetadata.open() as stream:
+            req = taish_pb2.GetAttributeMetadataRequest()
+            req.object_type = object_type
+            if type(attr) == int:
+                req.attr_id = attr
+            elif type(attr) == str:
+                req.attr_name = attr
+            else:
+                raise Exception("invalid argument")
+            await stream.send_message(req)
+            res = await stream.recv_message()
+            await stream.recv_trailing_metadata()
+            check_metadata(stream.trailing_metadata)
+            return res.metadata
 
     def get_attribute_metadata(self, object_type, attr):
-        req = taish_pb2.GetAttributeMetadataRequest()
-        req.object_type = object_type
-        if type(attr) == int:
-            req.attr_id = attr
-        elif type(attr) == str:
-            req.attr_name = attr
-        else:
-            raise Exception("invalid argument")
-        res, call = self.stub.GetAttributeMetadata.with_call(req)
-        check_call(call)
-        return res.metadata
+        return self.loop.run_until_complete(self.get_attribute_metadata_async(object_type, attr))
 
-    def get_module(self, location):
-        l = self.list()
+    async def get_module_async(self, location):
+        l = await self.list_async()
         if location not in l:
             raise Exception("no module {} found".format(location))
         m = l[location]
@@ -129,108 +169,135 @@ class Client(object):
             raise Exception("module {} not created yet".format(location))
         return Module(self, m)
 
-    def create_module(self, location, attrs=[]):
+    def get_module(self, location):
+        return self.loop.run_until_complete(self.get_module_async(location))
+
+    async def create_module_async(self, location, attrs=[]):
         attrs.append(("location", location))
-        self.create(taish_pb2.MODULE, attrs)
-        return self.get_module(location)
+        await self.create_async(taish_pb2.MODULE, attrs)
+        return await self.get_module_async(location)
+
+    def create_module(self, location, attrs=[]):
+        return self.loop.run_until_complete(self.create_module_async(location, attrs))
+
+    async def create_async(self, object_type, attrs, module_id=0):
+        async with self.stub.Create.open() as stream:
+            if type(object_type) == str:
+                if object_type == 'module':
+                    object_type = taish_pb2.MODULE
+                elif object_type == 'netif':
+                    object_type = taish_pb2.NETIF
+                elif object_type == 'hostif':
+                    object_type = taish_pb2.HOSTIF
+            req = taish_pb2.CreateRequest()
+            req.object_type = object_type
+            req.module_id = module_id
+            for attr in attrs:
+                attr_id, value = attr
+                meta = await self.get_attribute_metadata_async(object_type, attr_id)
+                attr_id = meta.attr_id
+                a = taish_pb2.Attribute()
+                a.attr_id = attr_id
+                a.value = str(value)
+                req.attrs.append(a)
+            await stream.send_message(req)
+            res = await stream.recv_message()
+            await stream.recv_trailing_metadata()
+            check_metadata(stream.trailing_metadata)
+            return res.oid
 
     def create(self, object_type, attrs, module_id=0):
-        if type(object_type) == str:
-            if object_type == 'module':
-                object_type = taish_pb2.MODULE
-            elif object_type == 'netif':
-                object_type = taish_pb2.NETIF
-            elif object_type == 'hostif':
-                object_type = taish_pb2.HOSTIF
-        req = taish_pb2.CreateRequest()
-        req.object_type = object_type
-        req.module_id = module_id
-        for attr in attrs:
-            attr_id, value = attr
-            meta = self.get_attribute_metadata(object_type, attr_id)
-            attr_id = meta.attr_id
-            a = taish_pb2.Attribute()
-            a.attr_id = attr_id
-            a.value = str(value)
-            req.attrs.append(a)
-        res, call = self.stub.Create.with_call(req)
-        check_call(call)
-        return res.oid
+        return self.loop.run_until_complete(self.create_async(object_type, attrs, module_id))
+
+    async def remove_async(self, oid):
+        async with self.stub.Remove.open() as stream:
+            req = taish_pb2.RemoveRequest()
+            req.oid = oid
+            await stream.send_message(req)
+            res = await stream.recv_message()
+            await stream.recv_trailing_metadata()
+            check_metadata(stream.trailing_metadata)
 
     def remove(self, oid):
-        req = taish_pb2.RemoveRequest()
-        req.oid = oid
-        _, call = self.stub.Remove.with_call(req)
-        check_call(call)
+        return self.loop.run_until_complete(self.remove_async(oid))
+
+    async def set_async(self, object_type, oid, attr_id, value):
+        async with self.stub.SetAttribute.open() as stream:
+            if type(attr_id) == int:
+                pass
+            elif type(attr_id) == str:
+                metadata = await self.get_attribute_metadata_async(object_type, attr_id)
+                attr_id = metadata.attr_id
+            else:
+                attr_id = attr_id.attr_id
+
+            req = taish_pb2.SetAttributeRequest()
+            req.oid = oid
+            req.attribute.attr_id = attr_id
+            req.attribute.value = str(value)
+            await stream.send_message(req)
+            res = await stream.recv_message()
+            await stream.recv_trailing_metadata()
+            check_metadata(stream.trailing_metadata)
 
     def set(self, object_type, oid, attr_id, value):
-        if type(attr_id) == int:
-            pass
-        elif type(attr_id) == str:
-            metadata = self.get_attribute_metadata(object_type, attr_id)
-            attr_id = metadata.attr_id
-        else:
-            attr_id = attr_id.attr_id
+        return self.loop.run_until_complete(self.set_async(object_type, oid, attr_id, value))
 
-        req = taish_pb2.SetAttributeRequest()
-        req.oid = oid
-        req.attribute.attr_id = attr_id
-        req.attribute.value = str(value)
-        _, call = self.stub.SetAttribute.with_call(req)
-        check_call(call)
+    async def get_async(self, object_type, oid, attr, with_metadata=False, value=None):
+        async with self.stub.GetAttribute.open() as stream:
+            if type(attr) == int:
+                attr_id = attr
+                if with_metadata:
+                    meta = await self.get_attribute_metadata_async(object_type, attr_id)
+            elif type(attr) == str:
+                meta = await self.get_attribute_metadata_async(object_type, attr)
+                attr_id = meta.attr_id
+            else:
+                attr_id = attr.attr_id
+                meta = attr
+
+            req = taish_pb2.GetAttributeRequest()
+            req.oid = oid
+            req.attribute.attr_id = attr_id
+            if value:
+                req.attribute.value = str(value)
+
+            await stream.send_message(req)
+            res = await stream.recv_message()
+            await stream.recv_trailing_metadata()
+            check_metadata(stream.trailing_metadata)
+            value = res.attribute.value
+            if with_metadata:
+                return (value, meta)
+            else:
+                return value
 
     def get(self, object_type, oid, attr, with_metadata=False, value=None):
-        if type(attr) == int:
-            attr_id = attr
-            if with_metadata:
-                meta = self.get_attribute_metadata(object_type, attr_id)
-        elif type(attr) == str:
-            meta = self.get_attribute_metadata(object_type, attr)
-            attr_id = meta.attr_id
-        else:
-            attr_id = attr.attr_id
-            meta = attr
+        return self.loop.run_until_complete(self.get_async(object_type, oid, attr, with_metadata, value))
 
-        req = taish_pb2.GetAttributeRequest()
-        req.oid = oid
-        req.attribute.attr_id = attr_id
-        if value:
-            req.attribute.value = str(value)
-        res, call = self.stub.GetAttribute.with_call(req)
-        check_call(call)
-        value = res.attribute.value
+    async def monitor_async(self, object_type, oid, attr_id, callback):
+        async with self.stub.Monitor.open() as stream:
+            m = await self.get_attribute_metadata_async(object_type, attr_id)
+            if m.usage != '<notification>':
+                raise Exception('the type of attribute {} is not notification'.format(attr_id))
 
-        if with_metadata:
-            return (value, meta)
-        else:
-            return value
+            req = taish_pb2.MonitorRequest()
+            req.oid = oid
+            req.notification_attr_id = m.attr_id
 
-    def monitor(self, object_type, oid, attr_id):
-        m = self.get_attribute_metadata(object_type, attr_id)
-        if m.usage != '<notification>':
-            raise Exception('the type of attribute {} is not notification'.format(attr_id))
+            await stream.send_message(req)
 
+            while True:
+                callback(await stream.recv_message())
 
-        req = taish_pb2.MonitorRequest()
-        req.oid = oid
-        req.notification_attr_id = m.attr_id
-
-        l = self.list_attribute_metadata(object_type)
-
+    def monitor(self, object_type, oid, attr_id, callback):
         try:
-            for res in self.stub.Monitor(req):
-                for attr in res.attrs:
-                    a = [ v.short_name for v in l if v.attr_id == attr.attr_id ]
-                    if len(a) == 1:
-                        print('{} | {}'.format(a[0], attr.value))
-                    elif len(a) == 0:
-                        print('0x{:x} | {}'.format(attr.attr_id, attr.value))
-                    else:
-                        print('error: more than one metadata matched for id 0x{:x}: {}'.format(attr.attr_id, a))
+            task = self.loop.create_task(self.monitor_async(object_type, oid, attr_id, callback))
+            return self.loop.run_forever()
         except KeyboardInterrupt:
-            pass
+            task.cancel()
 
-    def set_log_level(self, l, api='unspecified'):
+    async def set_log_level_async(self, l, api='unspecified'):
         if l == 'debug':
             level = taish_pb2.DEBUG
         elif l == 'info':
@@ -259,4 +326,7 @@ class Client(object):
         req = taish_pb2.SetLogLevelRequest()
         req.level = level
         req.api = api
-        return self.stub.SetLogLevel(req)
+        await self.stub.SetLogLevel(req)
+
+    def set_log_level(self, l, api='unspecified'):
+        self.loop.run_until_complete(self.set_log_level_async(l, api))
