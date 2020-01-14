@@ -1,7 +1,6 @@
 #include <iostream>
 #include <memory>
 #include "tai.h"
-#include "logger.hpp"
 #include "exception.hpp"
 
 static std::unique_ptr<tai::framework::Platform> g_platform;

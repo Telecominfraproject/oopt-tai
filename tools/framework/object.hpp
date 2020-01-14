@@ -146,7 +146,7 @@ namespace tai::framework {
             try {
                 attr = std::make_shared<Attribute>(meta, f);
             } catch (Exception &e) {
-                ERROR("getting attribute %s for notification failed: %s", meta->attridshortname, e.what());
+                TAI_ERROR("getting attribute %s for notification failed: %s", meta->attridshortname, e.what());
                 continue;
             }
             ptrs.emplace_back(attr); // only used for memory management
