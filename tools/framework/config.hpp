@@ -184,12 +184,7 @@ namespace tai::framework {
                     if ( info->second.getter != nullptr ) {
                         auto ret = info->second.getter(attr, m_user);
                         if ( ret != TAI_STATUS_SUCCESS ) {
-                            ret = convert_tai_error_to_list(ret, i);
-                            // in case of buffer overflow error, don't fallback to default_getter
-                            if ( m_default_getter == nullptr || ret == TAI_STATUS_BUFFER_OVERFLOW ) {
-                                return ret;
-                            }
-                            failed_attributes.emplace_back(std::make_pair(attr, error_info{i, ret}));
+                            return convert_tai_error_to_list(ret, i);
                         }
                     } else {
                         std::unique_lock<std::mutex> lk(m_mtx);
