@@ -255,7 +255,7 @@ namespace tai::framework {
                 }
 
                 if ( diff.size() == 0 ) {
-                    DEBUG("already configured with the same configuration");
+                    TAI_DEBUG("already configured with the same configuration");
                     return TAI_STATUS_SUCCESS;
                 }
 
@@ -309,7 +309,7 @@ namespace tai::framework {
                         return convert_tai_error_to_list(TAI_STATUS_ATTR_NOT_SUPPORTED_0, i);
                     }
                     if ( !force && !info->second.meta->isclearable ) {
-                        WARN("can't clear non-clearable attribute: 0x%x", id);
+                        TAI_WARN("can't clear non-clearable attribute: 0x%x", id);
                         return convert_tai_error_to_list(TAI_STATUS_INVALID_ATTR_VALUE_0, i);
                     }
                     m_config.erase(id);
@@ -358,12 +358,12 @@ namespace tai::framework {
             tai_status_t _set(S_Attribute src, bool readonly, bool without_hook, FSMState* fsm = nullptr) {
                 auto info = m_info.find(src->id());
                 if ( info == m_info.end() ) {
-                    DEBUG("no meta: 0x%x", src->id());
+                    TAI_DEBUG("no meta: 0x%x", src->id());
                     return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
                 }
 
                 if ( !readonly && info->second.meta->isreadonly) {
-                    WARN("read only: 0x%x", src->id());
+                    TAI_WARN("read only: 0x%x", src->id());
                     return TAI_STATUS_INVALID_ATTR_VALUE_0;
                 }
 
@@ -386,7 +386,7 @@ namespace tai::framework {
             tai_status_t _set(const tai_attribute_t& src, bool readonly, bool without_hook, FSMState* fsm = nullptr) {
                 auto info = m_info.find(src.id);
                 if ( info == m_info.end() ) {
-                    DEBUG("no meta: 0x%x", src.id);
+                    TAI_DEBUG("no meta: 0x%x", src.id);
                     return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
                 }
                 auto attr = std::make_shared<Attribute>(info->second.meta, src);

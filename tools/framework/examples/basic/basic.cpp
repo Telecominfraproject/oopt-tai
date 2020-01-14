@@ -238,7 +238,7 @@ namespace tai::basic {
             return TAI_STATUS_ITEM_NOT_FOUND;
         }
         if ( m_netif != nullptr || m_hostif[0] != nullptr || m_hostif[1] != nullptr ) {
-            WARN("can't remove a module before removing its siblings");
+            TAI_WARN("can't remove a module before removing its siblings");
             return TAI_STATUS_OBJECT_IN_USE;
         }
         transite(FSM_STATE_END);
@@ -290,12 +290,12 @@ namespace tai::basic {
         // in this example, it doesn't do anything.
         // by default, the attribute gets stored to config structure
         // after calling this callback.
-        INFO("setting tx-dis to %s", attribute->value.booldata ? "true" : "false");
+        TAI_INFO("setting tx-dis to %s", attribute->value.booldata ? "true" : "false");
         return TAI_STATUS_SUCCESS;
     }
 
     tai_status_t FSM::get_tx_dis(tai_attribute_t* const attribute) {
-        INFO("getting tx-dis");
+        TAI_INFO("getting tx-dis");
         // you will access hardware here to get tx-dis
         // in this example, we get the attribute from the netif config.
         auto& config = m_netif->config();
@@ -348,7 +348,7 @@ namespace tai::basic {
                     TAI_MODULE_ATTR_OPER_STATUS,
             });
         }
-        INFO("%s -> %s", to_string(current).c_str(), to_string(next).c_str());
+        TAI_INFO("%s -> %s", to_string(current).c_str(), to_string(next).c_str());
         return next;
     }
 

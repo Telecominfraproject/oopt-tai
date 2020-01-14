@@ -69,14 +69,14 @@ namespace tai {
             std::mutex m_mtx;
     };
 
-#define _LOG(api, level, format, ...) ::tai::Logger::get_instance().log(api, level, __FILE__, __LINE__, __PRETTY_FUNCTION__, format, ##__VA_ARGS__)
-#define LOG(level, format, ...) _LOG(TAI_API_UNSPECIFIED, level, format, ##__VA_ARGS__)
+#define _TAI_LOG(api, level, format, ...) ::tai::Logger::get_instance().log(api, level, __FILE__, __LINE__, __PRETTY_FUNCTION__, format, ##__VA_ARGS__)
+#define TAI_LOG(level, format, ...) _TAI_LOG(TAI_API_UNSPECIFIED, level, format, ##__VA_ARGS__)
 
-#define DEBUG(format, ...)    LOG(TAI_LOG_LEVEL_DEBUG,    format, ##__VA_ARGS__)
-#define INFO(format, ...)     LOG(TAI_LOG_LEVEL_INFO,     format, ##__VA_ARGS__)
-#define WARN(format, ...)     LOG(TAI_LOG_LEVEL_WARN,     format, ##__VA_ARGS__)
-#define ERROR(format, ...)    LOG(TAI_LOG_LEVEL_ERROR,    format, ##__VA_ARGS__)
-#define CRITICAL(format, ...) LOG(TAI_LOG_LEVEL_CRITICAL, format, ##__VA_ARGS__)
+#define TAI_DEBUG(format, ...)    TAI_LOG(TAI_LOG_LEVEL_DEBUG,    format, ##__VA_ARGS__)
+#define TAI_INFO(format, ...)     TAI_LOG(TAI_LOG_LEVEL_INFO,     format, ##__VA_ARGS__)
+#define TAI_WARN(format, ...)     TAI_LOG(TAI_LOG_LEVEL_WARN,     format, ##__VA_ARGS__)
+#define TAI_ERROR(format, ...)    TAI_LOG(TAI_LOG_LEVEL_ERROR,    format, ##__VA_ARGS__)
+#define TAI_CRITICAL(format, ...) TAI_LOG(TAI_LOG_LEVEL_CRITICAL, format, ##__VA_ARGS__)
 
 }
 

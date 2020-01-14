@@ -17,7 +17,6 @@
 #include <chrono>
 #include <functional>
 #include "attribute.hpp"
-#include "logger.hpp"
 
 using grpc::Status;
 using grpc::StatusCode;
