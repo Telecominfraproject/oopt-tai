@@ -35,7 +35,7 @@ lib: proto $(LIB_OBJS) Makefile
 
 .cc.o: Makefile
 	mkdir -p $(@D)
-	$(CXX) $(INCLUDE) $(CFLAGS) -c $< -MMD -MP -MF $(BUILDDIR)/$*.d -o $@
+	$(CXX) $(INCLUDE) $(CFLAGS) -c -o $@ $<
 
 .cpp.o: Makefile
 	mkdir -p $(@D)
