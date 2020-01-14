@@ -201,6 +201,7 @@ namespace tai::framework {
                         // when this failed, don't fallback to default_getter and return immediately
                         auto ret = tai_metadata_deepcopy_attr_value(info->second.meta, &src, attr);
                         if ( ret != TAI_STATUS_SUCCESS ) {
+                            attr_list[i] = *attr;
                             return convert_tai_error_to_list(ret, i);
                         }
                     }
@@ -214,12 +215,12 @@ namespace tai::framework {
                         err_list.emplace_back(a.second);
                     }
                     auto ret = m_default_getter(list.size(), list.data(), m_user, err_list.data());
-                    if ( ret != TAI_STATUS_SUCCESS ) {
-                        return ret;
-                    }
                     for ( auto i = 0; i < list.size(); i++ ) {
                         const auto& a = failed_attributes[i];
                         attr_list[a.second.index] = list[i];
+                    }
+                    if ( ret != TAI_STATUS_SUCCESS ) {
+                        return ret;
                     }
                 }
                 return TAI_STATUS_SUCCESS;
