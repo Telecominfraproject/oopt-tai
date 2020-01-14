@@ -67,13 +67,15 @@ namespace tai::framework {
                         next = f(m_current_state, this);
                     }
 
+                    m_next_state = next;
+
                     auto s_cb = state_change_cb();
                     if ( s_cb != nullptr ) {
-                        next = s_cb(m_current_state, next, this);
+                        m_next_state = s_cb(m_current_state, m_next_state, this);
                     }
 
                     m_prev_state = m_current_state;
-                    m_current_state = next;
+                    m_current_state = m_next_state;
 
                     if ( next == FSM_STATE_END ) {
                         break;
