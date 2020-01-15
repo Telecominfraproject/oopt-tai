@@ -159,11 +159,11 @@ namespace tai::framework {
                 attrs.emplace_back(*attr->raw());
                 if ( alarm ) {
                     if ( meta->isreadonly ) {
-                        if ( (ret = m_alarm_cache.set_readonly(attr)) < 0 ) {
+                        if ( (ret = m_alarm_cache.set_readonly(attr, true)) < 0 ) {
                             return ret;
                         }
                     } else {
-                        if ( (ret = m_alarm_cache.set(attr)) < 0 ) {
+                        if ( (ret = m_alarm_cache.set(attr, true)) < 0 ) {
                             return ret;
                         }
                     }

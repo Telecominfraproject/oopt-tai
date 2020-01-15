@@ -155,16 +155,16 @@ namespace tai::framework {
                 return _set(src, false, without_hook);
             }
 
-            tai_status_t set_readonly(S_Attribute src) {
-                return _set(src, true, false);
+            tai_status_t set_readonly(S_Attribute src, bool without_hook = false) {
+                return _set(src, true, without_hook);
             }
 
             tai_status_t set(const tai_attribute_t& src, bool without_hook = false) {
                 return _set(src, false, without_hook);
             }
 
-            tai_status_t set_readonly(const tai_attribute_t& src) {
-                return _set(src, true, false);
+            tai_status_t set_readonly(const tai_attribute_t& src, bool without_hook = false) {
+                return _set(src, true, without_hook);
             }
 
             tai_status_t get_attributes(uint32_t attr_count, tai_attribute_t * const attr_list) {
