@@ -93,12 +93,17 @@ class TAIShellObject(Object):
 
         @self.command(name='list-attr')
         def list(args):
-            if len(args) != 0:
-                raise InvalidInput('usage: list')
-            d = []
-            for m in self.client.list_attribute_metadata():
-                d.append([m.short_name, 'ro' if m.is_readonly else 'r/w', m.usage, 'custom' if m.attr_id > TAI_ATTR_CUSTOM_RANGE_START else 'official'])
-            print(tabulate(d, headers=['name', 'type', 'value', 'range']))
+            if len(args) > 1 or (len(args) == 1 and args[0] not in ['simple']):
+                raise InvalidInput('usage: list-attr [simple]')
+            simple = len(args) == 1
+            if simple:
+                for m in self.client.list_attribute_metadata():
+                    print(m.short_name)
+            else:
+                d = []
+                for m in self.client.list_attribute_metadata():
+                    d.append([m.short_name, 'ro' if m.is_readonly else 'r/w', m.usage, 'custom' if m.attr_id > TAI_ATTR_CUSTOM_RANGE_START else 'official'])
+                print(tabulate(d, headers=['name', 'type', 'value', 'range']))
 
 
 class HostIf(TAIShellObject):
