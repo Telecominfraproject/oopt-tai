@@ -17,6 +17,8 @@ from tabulate import tabulate
 
 from itertools import chain
 
+import json
+
 TAI_ATTR_CUSTOM_RANGE_START = 0x10000000
 
 class TAICompleter(Completer):
@@ -53,7 +55,7 @@ class TAIShellObject(Object):
             if len(args) != 1:
                 raise InvalidInput('usage: get <name>')
             try:
-                print(self.client.get(args[0]))
+                print(self.client.get(args[0], json=JSON_OUTPUT))
             except TAIException as e:
                 print('err: {} (code {:x})'.format(e.msg, e.code))
 
@@ -79,14 +81,20 @@ class TAIShellObject(Object):
                 for attr in res.attrs:
                     a = [ v.short_name for v in l if v.attr_id == attr.attr_id ]
                     if len(a) == 1:
-                        print('{} | {}'.format(a[0], attr.value))
+                        if JSON_OUTPUT:
+                            print(json.dumps({"name": a[0], "value": json.loads(attr.value)}))
+                        else:
+                            print('{} | {}'.format(a[0], attr.value))
                     elif len(a) == 0:
-                        print('0x{:x} | {}'.format(attr.attr_id, attr.value))
+                        if JSON_OUTPUT:
+                            print(json.dumps({"name": attr.attr_id, "value": json.loads(attr.value)}))
+                        else:
+                            print('0x{:x} | {}'.format(attr.attr_id, attr.value))
                     else:
                         print('error: more than one metadata matched for id 0x{:x}: {}'.format(attr.attr_id, a))
 
             try:
-                self.client.monitor(args[0], cb)
+                self.client.monitor(args[0], cb, json=JSON_OUTPUT)
                 print()
             except TAIException as e:
                 print('err: {} (code: {:x})'.format(e.msg, e.code))
@@ -272,8 +280,12 @@ def main():
     parser.add_option('--addr', default='localhost')
     parser.add_option('--port', default=50051)
     parser.add_option('-c', '--command-string')
+    parser.add_option('-j', '--json', action="store_true", default=False)
 
     (options, args) = parser.parse_args()
+
+    global JSON_OUTPUT
+    JSON_OUTPUT = options.json
 
     if options.command_string:
         shell = TAIShell(options.addr, options.port)
