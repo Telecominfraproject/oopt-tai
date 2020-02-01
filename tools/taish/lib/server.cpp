@@ -133,6 +133,14 @@ static void convert_metadata(const tai_attr_metadata_t* const src, taish::Attrib
     dst->set_is_key(src->iskey);
 }
 
+static tai_serialize_option_t convert_serialize_option(const taish::SerializeOption& src) {
+    tai_serialize_option_t dst;
+    dst.human = src.human();
+    dst.valueonly = src.value_only();
+    dst.json = src.json();
+    return dst;
+}
+
 ::grpc::Status TAIServiceImpl::ListAttributeMetadata(::grpc::ServerContext* context, const taish::ListAttributeMetadataRequest* request, ::grpc::ServerWriter< taish::ListAttributeMetadataResponse>* writer) {
     auto res = taish::ListAttributeMetadataResponse();
     auto object_type = request->object_type();
@@ -161,7 +169,7 @@ static void convert_metadata(const tai_attr_metadata_t* const src, taish::Attrib
     if ( request->attr_name() != "" ) {
         auto attr_name = request->attr_name();
         int ret;
-        tai_serialize_option_t option{true};
+        auto option = convert_serialize_option(request->serialize_option());
         switch (object_type) {
         case taish::MODULE:
             ret = tai_deserialize_module_attr(attr_name.c_str(), &attr_id, &option);
@@ -201,7 +209,7 @@ static void convert_metadata(const tai_attr_metadata_t* const src, taish::Attrib
     auto value = a.value();
     auto type = tai_object_type_query(oid);
     auto meta = tai_metadata_get_attr_metadata(type, id);
-    tai_serialize_option_t option{true, true, false};
+    auto option = convert_serialize_option(request->serialize_option());
 
     auto getter = [&](tai_attribute_t* attr) -> tai_status_t {
 
@@ -245,7 +253,7 @@ static void convert_metadata(const tai_attr_metadata_t* const src, taish::Attrib
     auto v = a.value();
     auto type = tai_object_type_query(oid);
     auto meta = tai_metadata_get_attr_metadata(type, id);
-    tai_serialize_option_t option{true, true, false};
+    auto option = convert_serialize_option(request->serialize_option());
 
     auto ret = TAI_STATUS_SUCCESS;
     try {
@@ -327,6 +335,7 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
     tai_subscription_t s;
     std::shared_ptr<TAINotifier> notifier = nullptr;
     auto key = std::pair<tai_object_id_t, tai_attr_id_t>(oid, nid);
+    auto option = convert_serialize_option(request->serialize_option());
 
     auto meta = tai_metadata_get_attr_metadata(type, nid);
     if ( meta == nullptr ) {
@@ -395,7 +404,6 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
 
     {
 
-        tai_serialize_option_t option{true, true, false};
         std::unique_lock<std::mutex> lk(s.mtx);
 
         while(true) {
@@ -502,7 +510,7 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
     }
 
     std::vector<tai::S_Attribute> attrs;
-    tai_serialize_option_t option{true, true, false};
+    auto option = convert_serialize_option(request->serialize_option());
 
     try {
         for ( auto i = 0; i < request->attrs_size(); i++ ) {

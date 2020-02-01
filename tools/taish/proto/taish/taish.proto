@@ -38,6 +38,12 @@ enum TAILogLevel {
     CRITICAL = 5;
 }
 
+message SerializeOption {
+    bool human = 1;
+    bool value_only = 2;
+    bool json = 3;
+}
+
 message ListModuleRequest {
 }
 
@@ -59,6 +65,7 @@ message GetAttributeMetadataRequest {
         uint64 attr_id = 2;
         string attr_name = 3;
     }
+    SerializeOption serialize_option = 4;
 }
 
 message GetAttributeMetadataResponse {
@@ -68,6 +75,7 @@ message GetAttributeMetadataResponse {
 message GetAttributeRequest {
     uint64 oid = 1;
     Attribute attribute = 2;
+    SerializeOption serialize_option = 3;
 }
 
 message GetAttributeResponse {
@@ -77,6 +85,7 @@ message GetAttributeResponse {
 message SetAttributeRequest {
     uint64 oid = 1;
     Attribute attribute = 2;
+    SerializeOption serialize_option = 3;
 }
 
 message SetAttributeResponse {
@@ -93,6 +102,7 @@ message ClearAttributeResponse {
 message MonitorRequest {
     uint64 oid = 1;
     uint64 notification_attr_id = 2;
+    SerializeOption serialize_option = 3;
 }
 
 message MonitorResponse {
@@ -111,6 +121,7 @@ message CreateRequest {
     TAIObjectType object_type = 1;
     repeated Attribute attrs = 2;
     uint64 module_id = 3;
+    SerializeOption serialize_option = 4;
 }
 
 message CreateResponse {
