@@ -16,6 +16,11 @@ import time
 DEFAULT_SERVER_ADDRESS = 'localhost'
 DEFAULT_SERVER_PORT = '50051'
 
+def set_default_serialize_option(req):
+    req.serialize_option.human = True
+    req.serialize_option.value_only = True
+    req.serialize_option.json = False
+
 class TAIException(Exception):
     def __init__(self, code, msg):
         self.code = code
@@ -46,8 +51,8 @@ class TAIObject(object):
     def set_async(self, attr_id, value):
         return self.client.set_async(self.object_type, self.oid, attr_id, value)
 
-    def get_async(self, attr_id, with_metadata=False, value=None):
-        return self.client.get_async(self.object_type, self.oid, attr_id, with_metadata, value)
+    def get_async(self, attr_id, with_metadata=False, value=None, json=False):
+        return self.client.get_async(self.object_type, self.oid, attr_id, with_metadata, value, json)
 
     def monitor_async(self, attr_id, callback):
         return self.client.monitor_async(self.object_type, self.oid, attr_id, callback)
@@ -61,11 +66,11 @@ class TAIObject(object):
     def set(self, attr_id, value):
         return self.client.set(self.object_type, self.oid, attr_id, value)
 
-    def get(self, attr_id, with_metadata=False, value=None):
-        return self.client.get(self.object_type, self.oid, attr_id, with_metadata, value)
+    def get(self, attr_id, with_metadata=False, value=None, json=False):
+        return self.client.get(self.object_type, self.oid, attr_id, with_metadata, value, json)
 
-    def monitor(self, attr_id, callback):
-        return self.client.monitor(self.object_type, self.oid, attr_id, callback)
+    def monitor(self, attr_id, callback, json=False):
+        return self.client.monitor(self.object_type, self.oid, attr_id, callback, json)
 
 
 class NetIf(TAIObject):
@@ -143,6 +148,7 @@ class Client(object):
         async with self.stub.GetAttributeMetadata.open() as stream:
             req = taish_pb2.GetAttributeMetadataRequest()
             req.object_type = object_type
+            set_default_serialize_option(req)
             if type(attr) == int:
                 req.attr_id = attr
             elif type(attr) == str:
@@ -192,6 +198,7 @@ class Client(object):
             req = taish_pb2.CreateRequest()
             req.object_type = object_type
             req.module_id = module_id
+            set_default_serialize_option(req)
             for attr in attrs:
                 attr_id, value = attr
                 meta = await self.get_attribute_metadata_async(object_type, attr_id)
@@ -235,6 +242,7 @@ class Client(object):
             req.oid = oid
             req.attribute.attr_id = attr_id
             req.attribute.value = str(value)
+            set_default_serialize_option(req)
             await stream.send_message(req)
             res = await stream.recv_message()
             await stream.recv_trailing_metadata()
@@ -243,7 +251,7 @@ class Client(object):
     def set(self, object_type, oid, attr_id, value):
         return self.loop.run_until_complete(self.set_async(object_type, oid, attr_id, value))
 
-    async def get_async(self, object_type, oid, attr, with_metadata=False, value=None):
+    async def get_async(self, object_type, oid, attr, with_metadata=False, value=None, json=False):
         async with self.stub.GetAttribute.open() as stream:
             if type(attr) == int:
                 attr_id = attr
@@ -259,6 +267,8 @@ class Client(object):
             req = taish_pb2.GetAttributeRequest()
             req.oid = oid
             req.attribute.attr_id = attr_id
+            set_default_serialize_option(req)
+            req.serialize_option.json = json
             if value:
                 req.attribute.value = str(value)
 
@@ -272,10 +282,10 @@ class Client(object):
             else:
                 return value
 
-    def get(self, object_type, oid, attr, with_metadata=False, value=None):
-        return self.loop.run_until_complete(self.get_async(object_type, oid, attr, with_metadata, value))
+    def get(self, object_type, oid, attr, with_metadata=False, value=None, json=False):
+        return self.loop.run_until_complete(self.get_async(object_type, oid, attr, with_metadata, value, json))
 
-    async def monitor_async(self, object_type, oid, attr_id, callback):
+    async def monitor_async(self, object_type, oid, attr_id, callback, json=False):
         async with self.stub.Monitor.open() as stream:
             m = await self.get_attribute_metadata_async(object_type, attr_id)
             if m.usage != '<notification>':
@@ -284,15 +294,17 @@ class Client(object):
             req = taish_pb2.MonitorRequest()
             req.oid = oid
             req.notification_attr_id = m.attr_id
+            set_default_serialize_option(req)
+            req.serialize_option.json = json
 
             await stream.send_message(req)
 
             while True:
                 callback(await stream.recv_message())
 
-    def monitor(self, object_type, oid, attr_id, callback):
+    def monitor(self, object_type, oid, attr_id, callback, json=False):
         try:
-            task = self.loop.create_task(self.monitor_async(object_type, oid, attr_id, callback))
+            task = self.loop.create_task(self.monitor_async(object_type, oid, attr_id, callback, json))
             return self.loop.run_forever()
         except KeyboardInterrupt:
             task.cancel()
