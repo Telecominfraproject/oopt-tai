@@ -152,7 +152,7 @@ class Root(Object):
         super(Root, self).__init__(None)
         self.client = client
 
-        @self.command(WordCompleter(self.client.list().keys()))
+        @self.command(WordCompleter(self.client.list().keys(), WORD=True))
         def module(line):
             if len(line) != 1:
                 raise InvalidInput('usage: module <name>')
@@ -164,7 +164,7 @@ class Root(Object):
                 raise InvalidInput('usage: list')
             for k, m in self.client.list().items():
                 stroid = lambda oid : '0x{:08x}'.format(oid)
-                print('module:', k, stroid(m.oid))
+                print('module:', k, stroid(m.oid) if oid else 'not present')
                 for v in m.hostifs:
                     print(' hostif:', v.index, stroid(v.oid))
 
