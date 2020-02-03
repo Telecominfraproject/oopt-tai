@@ -32,17 +32,11 @@ struct tai_api_module_t
     std::string       location;
     bool              present;
     tai_object_id_t   id;
-    tai_object_list_t hostifs;
-    tai_object_list_t netifs;
+    std::vector<tai_object_id_t> hostifs;
+    std::vector<tai_object_id_t> netifs;
 };
 
-struct tai_api_module_list_t
-{
-    uint32_t count;
-    tai_api_module_t *list;
-};
-
-typedef tai_status_t (*tai_api_list_module_fn)(_Inout_ tai_api_module_list_t* const list);
+typedef tai_status_t (*tai_api_list_module_fn)(_Inout_ std::vector<tai_api_module_t>& list);
 
 // this hook function will be called when taish library created or removed a TAI object
 // type : the object type, we can't use tai_object_type_query() since the object with the oid is
@@ -58,18 +52,6 @@ struct tai_api_method_table_t
     tai_network_interface_api_t* netif_api;
     tai_api_list_module_fn list_module;
     tai_object_update_fn object_update;
-};
-
-class TAIAPIModuleList {
-    public:
-        TAIAPIModuleList(uint32_t module_size = 8, uint32_t hostif_size = 2, uint32_t netif_size = 1);
-        ~TAIAPIModuleList();
-        tai_api_module_list_t* const list() { return &m_list; }
-    private:
-        tai_api_module_list_t m_list;
-        uint32_t m_module_size;
-        uint32_t m_hostif_size;
-        uint32_t m_netif_size;
 };
 
 struct tai_notification_t {

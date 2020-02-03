@@ -37,38 +37,16 @@ static void add_status(::grpc::ServerContext* context, tai_status_t status) {
     context->AddTrailingMetadata("tai-status-msg", _serialize_status(status));
 }
 
-TAIAPIModuleList::TAIAPIModuleList(uint32_t module_size, uint32_t hostif_size, uint32_t netif_size) : m_module_size(module_size), m_hostif_size(hostif_size), m_netif_size(netif_size) {
-    m_list.count = module_size;
-    m_list.list = new tai_api_module_t[module_size];
-    for ( uint32_t i = 0; i < module_size; i++) {
-        m_list.list[i].hostifs.count = hostif_size;
-        m_list.list[i].hostifs.list = new tai_object_id_t[hostif_size];
-        m_list.list[i].netifs.count = netif_size;
-        m_list.list[i].netifs.list = new tai_object_id_t[netif_size];
-    }
-}
-
-TAIAPIModuleList::~TAIAPIModuleList() {
-    for ( uint32_t i = 0; i < m_module_size; i++ ) {
-        auto l = m_list.list[i];
-        delete[] l.hostifs.list;
-        delete[] l.netifs.list;
-    }
-    delete[] m_list.list;
-}
-
 ::grpc::Status TAIServiceImpl::ListModule(::grpc::ServerContext* context, const taish::ListModuleRequest* request, ::grpc::ServerWriter< taish::ListModuleResponse>* writer) {
 
-    TAIAPIModuleList l;
-    auto list = l.list();
+    std::vector<tai_api_module_t> list;
     auto ret = m_api->list_module(list);
     if ( ret != TAI_STATUS_SUCCESS ) {
         goto err;
     }
-    for ( uint32_t i = 0; i < list->count; i++ ) {
+    for ( const auto& module : list ) {
         auto res = taish::ListModuleResponse();
         auto m = res.mutable_module();
-        auto module = list->list[i];
 
         m->set_location(module.location);
         m->set_present(module.present);
@@ -76,16 +54,16 @@ TAIAPIModuleList::~TAIAPIModuleList() {
 
         if ( module.id != TAI_NULL_OBJECT_ID ) {
             m->clear_hostifs();
-            for ( uint32_t i = 0; i < module.hostifs.count; i++ ) {
+            for ( uint32_t i = 0; i < module.hostifs.size(); i++ ) {
                 auto hostif = m->add_hostifs();
                 hostif->set_index(i);
-                hostif->set_oid(module.hostifs.list[i]);
+                hostif->set_oid(module.hostifs[i]);
             }
             m->clear_netifs();
-            for ( uint32_t i = 0; i < module.netifs.count; i++ ) {
+            for ( uint32_t i = 0; i < module.netifs.size(); i++ ) {
                 auto netif = m->add_netifs();
                 netif->set_index(i);
-                netif->set_oid(module.netifs.list[i]);
+                netif->set_oid(module.netifs[i]);
             }
         }
         writer->Write(res);

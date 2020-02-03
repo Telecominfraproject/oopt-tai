@@ -301,38 +301,21 @@ void object_update(tai_object_type_t type, tai_object_id_t oid, bool is_create) 
     }
 }
 
-tai_status_t list_module(tai_api_module_list_t* const l) {
+tai_status_t list_module(std::vector<tai_api_module_t>& l) {
     std::lock_guard<std::mutex> g(m);
-    if ( l->count < g_modules.size() ) {
-        l->count = g_modules.size();
-        return TAI_STATUS_BUFFER_OVERFLOW;
-    }
-    l->count = g_modules.size();
-    auto list = l->list;
-    int i = 0;
     for ( auto v : g_modules ) {
-        list[i].location = v.first;
+        tai_api_module_t list;
+        list.location = v.first;
         auto m = v.second;
-        list[i].present = m->present;
-        list[i].id =  m->id();
-        if ( list[i].hostifs.count < m->hostifs.size() ) {
-            list[i].hostifs.count = m->hostifs.size();
-            return TAI_STATUS_BUFFER_OVERFLOW;
+        list.present = m->present;
+        list.id =  m->id();
+        for ( auto i = 0; i < static_cast<int>(m->hostifs.size()); i++ ) {
+            list.hostifs.emplace_back(m->hostifs[i]);
         }
-        list[i].hostifs.count = m->hostifs.size();
-        for ( auto j = 0; j < static_cast<int>(m->hostifs.size()); j++ ) {
-            list[i].hostifs.list[j] = m->hostifs[j];
+        for ( auto i = 0; i < static_cast<int>(m->netifs.size()); i++ ) {
+            list.netifs.emplace_back(m->netifs[i]);
         }
-
-        if ( list[i].netifs.count < m->netifs.size() ) {
-            list[i].netifs.count = m->netifs.size();
-            return TAI_STATUS_BUFFER_OVERFLOW;
-        }
-        list[i].netifs.count = m->netifs.size();
-        for ( auto j = 0; j < static_cast<int>(m->netifs.size()); j++ ) {
-            list[i].netifs.list[j] = m->netifs[j];
-        }
-        i++;
+        l.emplace_back(list);
     }
     return TAI_STATUS_SUCCESS;
 }
