@@ -1,13 +1,21 @@
-TAI (Transponder Abstraction Interface)
-=======================================
+# TAI (Transponder Abstraction Interface)
+
+[![Build Status](https://travis-ci.com/Telecominfraproject/oopt-tai.svg?branch=master)](https://travis-ci.org/Telecominfraproject/oopt-tai/builds)
+
+<img src="https://github.com/Telecominfraproject/oopt-tai/raw/master/logo/logo.png" width="100">
+
+---
 
 The Transponder Abstraction Interface, or TAI, defines the API to provide a
-vendor-independent way of controlling transponders from various vendors and 
-implementations in a uniform manner. It is based upon and quite common to the
-Switch Abstraction Interface, or SAI.
+form-factor/vendor independent way of controlling transponders and transceivers
+from various vendors and implementations in a uniform manner. It is based upon and quite common to the
+Switch Abstraction Interface, or [SAI](https://github.com/opencomputeproject/SAI).
 
-Components
------------
+TAI is hosted by Telecom Infra Project ([TIP](https://telecominfraproject.com/)) Open Optical and Packet Transport ([OOPT](https://telecominfraproject.com/oopt/)) working group.
+
+---
+
+## Architecture
 
 TAI is an interface specification implemented as a collection of C-language 
 header files. TAI adopts the use of many terms from SAI, including "Adapter" and 
@@ -16,13 +24,18 @@ header files. TAI adopts the use of many terms from SAI, including "Adapter" and
 An Adapter is similar to a user mode driver. It translates the hardware 
 independent TAI interface to a specific hardware implementation. This is 
 implemented as a shared library, and will typically be provided by the 
-transponder module vendor. This shared library is called libtai.so.
-If the transponder supports multiple types of module hardware vendors, then each of the driver will provide a similar interface to libtai.so.
-The details of this are in [docs/TAI-MAI.md](https://github.com/Telecominfraproject/oopt-tai/blob/master/docs/TAI-MAI.md).
+module vendor. This shared library is called libtai.so.
+TAI library is used interchangebly with TAI adapter.
+
+If the transponder supports multiple types of module hardware vendors, TAI multiplexer
+can be used to multiplex several kinds of TAI adapters. For details, see [docs/TAI-MUX.pdf](https://github.com/Telecominfraproject/oopt-tai/blob/master/docs/TAI-MUX.pdf).
 
 An Adapter Host is hardware independent software which uses the TAI interface
 to provide optical transponder functionality to other parts of the system. An 
 adapter host loads the shared library adapter.
+TAI application is used interchangebly with TAI adapter host.
+
+Some TAI adapters are open sourced in the [implementation repo](https://github.com/Telecominfraproject/oopt-tai-implementations).
 
 ```
                       +------------------------+
@@ -44,8 +57,17 @@ adapter host loads the shared library adapter.
                       +------------------------+
 ```
 
-The TAI Interface
------------------
+## Components
+
+- inc/ : TAI API definition
+- meta/ : TAI meta library
+    - TAI meta library provides helper methods for allocation, serialization etc..
+- tools/taish : TAI shell
+    - TAI shell works as a TAI application and provides debug features for TAI library
+- tools/framework : TAI library framework
+    - A framework to develop TAI library
+
+## The TAI Interface
 
 The adapter host begins using TAI by invoking the `tai_api_initialize()` 
 function. This function allows the adapter to initialize various data structures 
@@ -255,8 +277,7 @@ attributes of the module with the `get_network_interface_attribute()`,
 `get_network_interface_attributes()`, `set_network_interface_attribute()`, and 
 `set_network_interface_attributes()` function calls.
 
-TAI Attributes
---------------
+### TAI Attributes
 
 Each object has a list of attributes which are specific to that type of object. 
 Each attribute is assigned an ID which is used to get or set the attribute's 
@@ -271,8 +292,7 @@ Modifying an attribute will commonly cause a modification in the operational
 state of a module. Refer to the taimodule.h, taihostif.h and tainetworkif.h 
 files for a list of the attributes of each object type.
 
-TAI Return Codes
-----------------
+### TAI Return Codes
 
 Every TAI API function returns one of the codes in the taistatus.h file. 
 Successful execution of the function is indicated by the TAI_STATUS_SUCCESS 
