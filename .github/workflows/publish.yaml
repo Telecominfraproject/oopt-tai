@@ -1,0 +1,25 @@
+name: publish
+
+on:
+    push:
+        branches:
+        - master
+jobs:
+    job:
+        runs-on: ubuntu-latest
+        steps:
+        - uses: crazy-max/ghaction-docker-buildx@v1
+          with:
+              version: latest
+        - uses: actions/checkout@v2
+        - run: |
+            import os
+            ref = os.environ['GITHUB_REF']
+            branch = ref[11:]
+            print("::set-env name=DOCKER_IMAGE_TAG::{}".format('latest' if branch == 'master' else branch))
+          shell: python
+        - run: make builder
+        - run: make image
+        - run: docker login https://docker.pkg.github.com -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+        - run: docker tag tai docker.pkg.github.com/telecominfraproject/oopt-tai/tai:${{ env.DOCKER_IMAGE_TAG }}
+        - run: docker push docker.pkg.github.com/telecominfraproject/oopt-tai/tai:${{ env.DOCKER_IMAGE_TAG }}
