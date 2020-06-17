@@ -1,6 +1,6 @@
 # TAI (Transponder Abstraction Interface)
 
-[![Build Status](https://travis-ci.com/Telecominfraproject/oopt-tai.svg?branch=master)](https://travis-ci.org/Telecominfraproject/oopt-tai/builds)
+![](https://github.com/Telecominfraproject/oopt-tai/workflows/ci/badge.svg?branch=master)
 
 <img src="https://github.com/Telecominfraproject/oopt-tai/raw/master/logo/logo.png" width="100">
 
