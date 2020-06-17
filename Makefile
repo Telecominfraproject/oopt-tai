@@ -4,6 +4,10 @@ ifndef TAI_DOCKER_CMD
     TAI_DOCKER_CMD := bash
 endif
 
+ifndef TAI_DOCKER_IMAGE
+    TAI_DOCKER_IMAGE := tai
+endif
+
 ifndef TAI_DOCKER_BUILDER_IMAGE
     TAI_DOCKER_BUILDER_IMAGE := tai-builder
 endif
@@ -37,8 +41,10 @@ test:
 cmd:
 	docker run $(TAI_DOCKER_RUN_OPTION) -v $(TAI_DOCKER_MOUNT) -w $(TAI_DOCKER_WORKDIR) $(TAI_DOCKER_BUILDER_IMAGE) $(TAI_DOCKER_CMD)
 
-docker:
-	TAI_DOCKER_CMD='make' $(MAKE) cmd
+image:
+	DOCKER_BUILDKIT=1 docker build $(TAI_DOCKER_BUILD_OPTION) --build-arg TAI_DOCKER_BUILDER_IMAGE=$(TAI_DOCKER_BUILDER_IMAGE) \
+								  -f docker/run.Dockerfile \
+								  -t $(TAI_DOCKER_IMAGE) .
 
 builder:
 	DOCKER_BUILDKIT=1 docker build $(TAI_DOCKER_BUILD_OPTION) -f docker/builder.Dockerfile \
