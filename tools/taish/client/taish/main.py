@@ -164,7 +164,7 @@ class Root(Object):
                 raise InvalidInput('usage: list')
             for k, m in self.client.list().items():
                 stroid = lambda oid : '0x{:08x}'.format(oid)
-                print('module:', k, stroid(m.oid) if oid else 'not present')
+                print('module:', k, stroid(m.oid) if m.oid else 'not present')
                 for v in m.hostifs:
                     print(' hostif:', v.index, stroid(v.oid))
 
