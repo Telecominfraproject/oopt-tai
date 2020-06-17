@@ -50,7 +50,8 @@ lib/taish.grpc.pb.cc lib/taish.grpc.pb.h: proto/taish/taish.proto
 	protoc --grpc_out=./lib --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` -I proto/taish taish.proto
 
 python:
-	python setup.py install
+	python setup.py sdist
+	pip install dist/*.tar.gz
 
 clean:
 	-rm -f ${OBJS} */*.pb\.* ${PROG} ${LIB_PROG}
