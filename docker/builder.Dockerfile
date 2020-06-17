@@ -15,4 +15,4 @@ RUN --mount=type=bind,target=/root,rw cd /root && make -C meta && cp meta/libmet
 RUN --mount=type=bind,target=/root,rw cd /root && make -C tools/framework/examples/basic && cp tools/framework/examples/basic/libtai.so /usr/lib/x86_64-linux-gnu/libtai-basic.so
 RUN cd /usr/lib/x86_64-linux-gnu && ln -s libtai-basic.so libtai.so
 RUN --mount=type=bind,target=/root,rw cd /root && make -C tools/taish && cp tools/taish/taish_server /usr/local/bin/
-RUN --mount=type=bind,target=/root,rw cd /root && make -C tools/taish python
+RUN --mount=type=bind,target=/root,rw cd /root && make -C tools/taish python && cp tools/taish/dist/*.tar.gz /tmp/

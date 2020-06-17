@@ -13,8 +13,8 @@ cmd = 'make -C ./client'
 sp.run(cmd.split())
 
 # list tags on the current branch
-cmd = 'git log --decorate --simplify-by-decoration --pretty=oneline HEAD --format=%d'
-proc = sp.Popen(cmd.split(), stdout=sp.PIPE)
+cmd = ['sh', '-c', '(which git && git log --decorate --simplify-by-decoration --pretty=oneline HEAD --format=%d) || echo latest']
+proc = sp.Popen(cmd, stdout=sp.PIPE)
 
 version = None
 for line in iter(proc.stdout.readline, b''):
