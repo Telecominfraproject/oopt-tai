@@ -22,4 +22,13 @@ jobs:
         - run: make image
         - run: docker login https://docker.pkg.github.com -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
         - run: docker tag tai docker.pkg.github.com/telecominfraproject/oopt-tai/tai:${{ env.DOCKER_IMAGE_TAG }}
-        - run: docker push docker.pkg.github.com/telecominfraproject/oopt-tai/tai:${{ env.DOCKER_IMAGE_TAG }}
+        - name: Publish Docker image to Github Package
+          run: docker push docker.pkg.github.com/telecominfraproject/oopt-tai/tai:${{ env.DOCKER_IMAGE_TAG }}
+        - run: docker tag tai ${{ secrets.DOCKER_USER }}/tai:${{ env.DOCKER_IMAGE_TAG }}
+        - name: Publish Docker image to Docker Hub
+          uses: ./.github/actions/publish-docker-image
+          with:
+              name: ${{ secrets.DOCKER_USER }}/tai
+              username: ${{ secrets.DOCKER_USER }}
+              password: ${{ secrets.DOCKER_PASSWORD }}
+              tags: ${{ env.DOCKER_IMAGE_TAG }}
