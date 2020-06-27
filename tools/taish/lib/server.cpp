@@ -109,6 +109,7 @@ static void convert_metadata(const tai_attr_metadata_t* const src, taish::Attrib
     dst->set_is_createonly(src->iscreateonly);
     dst->set_is_createandset(src->iscreateandset);
     dst->set_is_key(src->iskey);
+    dst->set_is_enum(src->isenum);
 }
 
 static tai_serialize_option_t convert_serialize_option(const taish::SerializeOption& src) {
