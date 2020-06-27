@@ -151,6 +151,7 @@ message AttributeMetadata {
     bool is_createonly = 8;
     bool is_createandset = 9;
     bool is_key = 10;
+    bool is_enum = 11;
 }
 
 message HostInterface {
