@@ -28,7 +28,7 @@ jobs:
         - name: Publish Docker image to Docker Hub
           uses: ./.github/actions/publish-docker-image
           with:
-              name: ${{ secrets.DOCKER_USER }}/tai
+              name: microsonic/tai
               username: ${{ secrets.DOCKER_USER }}
               password: ${{ secrets.DOCKER_PASSWORD }}
               tags: ${{ env.DOCKER_IMAGE_TAG }}
