@@ -26,6 +26,9 @@
 #include "taigrpc.hpp"
 #include "taimetadata.h"
 
+#include "logger.hpp"
+#include "attribute.hpp"
+
 using grpc::ServerBuilder;
 using grpc::ServerContext;
 
@@ -44,14 +47,16 @@ class module;
 
 std::map<std::string, module*> g_modules;
 
-static int load_config(const json& config, std::vector<tai_attribute_t>& list, tai_object_type_t t) {
+static int load_config(const json& config, std::vector<tai::S_Attribute>& list, tai_object_type_t t) {
     int32_t attr_id;
     tai_serialize_option_t option{true, true, true};
-    tai_alloc_info_t alloc_info = { .list_size = 16 };
-    tai_attribute_t attr;
 
     if ( !config.is_object() ) {
         return -1;
+    }
+
+    if ( config.find("attrs") == config.end() ) {
+        return 0;
     }
 
     for ( auto& a: config["attrs"].items() ) {
@@ -75,25 +80,15 @@ static int load_config(const json& config, std::vector<tai_attribute_t>& list, t
             ss << "failed to deserialize attribute name: " << a.key();
             throw std::runtime_error(ss.str());
         }
-        attr.id = attr_id;
         auto meta = tai_metadata_get_attr_metadata(t, attr_id);
         if ( meta == nullptr ) {
             std::stringstream ss;
             ss << "failed to get metadata for " << a.key();
             throw std::runtime_error(ss.str());
         }
-
-        if ( tai_metadata_alloc_attr_value(meta, &attr, &alloc_info) != TAI_STATUS_SUCCESS ) {
-            throw std::runtime_error("failed allocation");
-        }
-
-        option.json = true;
-
         auto value = a.value().dump();
-        if ( tai_deserialize_attribute_value(value.c_str(), meta, &attr.value, &option) < 0 ) {
-            throw std::runtime_error("failed to deserialize attribute value");
-        }
-        list.push_back(attr);
+        option.json = true;
+        list.push_back(std::make_shared<tai::Attribute>(meta, value, &option));
     }
     return 0;
 }
@@ -101,7 +96,8 @@ static int load_config(const json& config, std::vector<tai_attribute_t>& list, t
 class module {
     public:
         module(std::string location, const json& config, bool auto_creation) : m_id(0), m_location(location) {
-            std::vector<tai_attribute_t> list;
+            std::vector<tai::S_Attribute> list;
+            std::vector<tai_attribute_t> raw_list;
             tai_attribute_t attr;
 
             if (!auto_creation) {
@@ -111,11 +107,20 @@ class module {
             attr.id = TAI_MODULE_ATTR_LOCATION;
             attr.value.charlist.count = location.size();
             attr.value.charlist.list = (char*)location.c_str();
-            list.push_back(attr);
+
+            auto meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_MODULE, attr.id);
+            if ( meta == nullptr ) {
+                throw std::runtime_error("failed to get metadata for location attribute");
+            }
+            list.push_back(std::make_shared<tai::Attribute>(meta, &attr));
 
             load_config(config, list, TAI_OBJECT_TYPE_MODULE);
 
-            auto status = g_api.module_api->create_module(&m_id, list.size(), list.data());
+            for ( auto& a : list ) {
+                raw_list.push_back(*a->raw());
+            }
+
+            auto status = g_api.module_api->create_module(&m_id, raw_list.size(), raw_list.data());
             if ( status != TAI_STATUS_SUCCESS ) {
                 std::cout << "failed to create module whose location is " << location << ", err: " << status << std::endl;
                 return;
@@ -123,20 +128,20 @@ class module {
 
             std::cout << "created module id: 0x" << std::hex << m_id << std::endl;
 
-            list.clear();
+            raw_list.clear();
 
             attr.id = TAI_MODULE_ATTR_NUM_HOST_INTERFACES;
-            list.push_back(attr);
+            raw_list.push_back(attr);
             attr.id = TAI_MODULE_ATTR_NUM_NETWORK_INTERFACES;
-            list.push_back(attr);
-            status = g_api.module_api->get_module_attributes(m_id, list.size(), list.data());
+            raw_list.push_back(attr);
+            status = g_api.module_api->get_module_attributes(m_id, raw_list.size(), raw_list.data());
             if ( status != TAI_STATUS_SUCCESS ) {
                 throw std::runtime_error("faile to get attribute");
             }
-            std::cout << "num hostif: " << list[0].value.u32 << std::endl;
-            std::cout << "num netif: " << list[1].value.u32 << std::endl;
-            create_hostif(list[0].value.u32, config);
-            create_netif(list[1].value.u32, config);
+            std::cout << "num hostif: " << raw_list[0].value.u32 << std::endl;
+            std::cout << "num netif: " << raw_list[1].value.u32 << std::endl;
+            create_hostif(raw_list[0].value.u32, config);
+            create_netif(raw_list[1].value.u32, config);
         }
 
         const std::string& location() {
@@ -174,11 +179,18 @@ int module::create_hostif(uint32_t num, const json& config) {
     auto c = config.find("hostif");
     for ( uint32_t i = 0; i < num; i++ ) {
         tai_object_id_t id;
-        std::vector<tai_attribute_t> list;
+        std::vector<tai::S_Attribute> list;
+        std::vector<tai_attribute_t> raw_list;
         tai_attribute_t attr;
+
         attr.id = TAI_HOST_INTERFACE_ATTR_INDEX;
         attr.value.u32 = i;
-        list.push_back(attr);
+
+        auto meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_HOSTIF, attr.id);
+        if ( meta == nullptr ) {
+            throw std::runtime_error("failed to get metadata for index attribute");
+        }
+        list.push_back(std::make_shared<tai::Attribute>(meta, &attr));
 
         if ( c != config.end() && c->is_object() ) {
             std::stringstream ss;
@@ -189,7 +201,11 @@ int module::create_hostif(uint32_t num, const json& config) {
             }
         }
 
-        auto status = g_api.hostif_api->create_host_interface(&id, m_id, list.size(), list.data());
+        for ( auto& a : list ) {
+            raw_list.push_back(*a->raw());
+        }
+
+        auto status = g_api.hostif_api->create_host_interface(&id, m_id, raw_list.size(), raw_list.data());
         if ( status != TAI_STATUS_SUCCESS ) {
             throw std::runtime_error("failed to create host interface");
         }
@@ -203,12 +219,18 @@ int module::create_netif(uint32_t num, const json& config) {
     auto c = config.find("netif");
     for ( uint32_t i = 0; i < num; i++ ) {
         tai_object_id_t id;
-        std::vector<tai_attribute_t> list;
+        std::vector<tai::S_Attribute> list;
+        std::vector<tai_attribute_t> raw_list;
         tai_attribute_t attr;
 
         attr.id = TAI_NETWORK_INTERFACE_ATTR_INDEX;
         attr.value.u32 = i;
-        list.push_back(attr);
+
+        auto meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORKIF, attr.id);
+        if ( meta == nullptr ) {
+            throw std::runtime_error("failed to get metadata for index attribute");
+        }
+        list.push_back(std::make_shared<tai::Attribute>(meta, &attr));
 
         if ( c != config.end() && c->is_object() ) {
             std::stringstream ss;
@@ -219,7 +241,11 @@ int module::create_netif(uint32_t num, const json& config) {
             }
         }
 
-        auto status = g_api.netif_api->create_network_interface(&id, m_id, list.size(), list.data());
+        for ( auto& a : list ) {
+            raw_list.push_back(*a->raw());
+        }
+
+        auto status = g_api.netif_api->create_network_interface(&id, m_id, raw_list.size(), raw_list.data());
         if ( status != TAI_STATUS_SUCCESS ) {
             throw std::runtime_error("failed to create network interface");
         }
