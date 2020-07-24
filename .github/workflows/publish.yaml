@@ -24,7 +24,7 @@ jobs:
         - run: docker tag tai docker.pkg.github.com/telecominfraproject/oopt-tai/tai:${{ env.DOCKER_IMAGE_TAG }}
         - name: Publish Docker image to Github Package
           run: docker push docker.pkg.github.com/telecominfraproject/oopt-tai/tai:${{ env.DOCKER_IMAGE_TAG }}
-        - run: docker tag tai ${{ secrets.DOCKER_USER }}/tai:${{ env.DOCKER_IMAGE_TAG }}
+        - run: docker tag tai docker.io/microsonic/tai:${{ env.DOCKER_IMAGE_TAG }}
         - name: Publish Docker image to Docker Hub
           uses: ./.github/actions/publish-docker-image
           with:
