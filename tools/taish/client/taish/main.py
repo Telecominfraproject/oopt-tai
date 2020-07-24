@@ -11,7 +11,7 @@ from taish.cli import Object, InvalidInput, Completer
 from optparse import OptionParser
 
 from prompt_toolkit import PromptSession
-from prompt_toolkit.completion import FuzzyCompleter, Completion, WordCompleter
+from prompt_toolkit.completion import FuzzyCompleter, Completion, WordCompleter, NestedCompleter, FuzzyWordCompleter
 from prompt_toolkit.key_binding import KeyBindings
 from tabulate import tabulate
 
@@ -177,7 +177,7 @@ class Root(Object):
                 raise InvalidInput('usage: log-level <level>')
             self.client.set_log_level(line[0])
 
-        @self.command()
+        @self.command(NestedCompleter({'module': None, 'netif': None, 'hostif': None}))
         def create(line):
             if len(line) < 1:
                 raise InvalidInput('invalid input: create [module| netif <module-oid> | hostif <module-oid>] [<attr-name>:<attr-value> ]...')
@@ -188,7 +188,10 @@ class Root(Object):
                 if len(line) < 1:
                     print('invalid input: create [module| netif <module-oid> | hostif <module-oid>] [<attr-name>:<attr-value> ]...')
                     return
-                module_id = int(line[0], 0)
+                try:
+                    module_id = int(line[0], 0)
+                except ValueError as e:
+                    raise InvalidInput(f'invalid module oid: {e}')
                 line.pop(0)
 
             attrs = [tuple(attr.split(':')) for attr in line]
