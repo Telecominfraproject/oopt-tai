@@ -11,6 +11,9 @@ from taish import taish_grpc
 
 import asyncio
 
+from queue import Queue
+from threading import Thread
+
 import time
 
 DEFAULT_SERVER_ADDRESS = 'localhost'
@@ -75,15 +78,15 @@ class TAIObject(object):
 
 class NetIf(TAIObject):
     def __init__(self, client, obj):
-        super(NetIf, self).__init__(client, taish_pb2.NETIF, obj)
+        super().__init__(client, taish_pb2.NETIF, obj)
 
 class HostIf(TAIObject):
     def __init__(self, client, obj):
-        super(HostIf, self).__init__(client, taish_pb2.HOSTIF, obj)
+        super().__init__(client, taish_pb2.HOSTIF, obj)
 
 class Module(TAIObject):
     def __init__(self, client, obj):
-        super(Module, self).__init__(client, taish_pb2.MODULE, obj)
+        super().__init__(client, taish_pb2.MODULE, obj)
 
     def get_netif(self, index=0):
         return NetIf(self.client, self.obj.netifs[index])
@@ -110,10 +113,9 @@ class Module(TAIObject):
         return self.client.loop.run_until_complete(self.create_hostif_async(index, attrs))
 
 
-class Client(object):
-    def __init__(self, address=DEFAULT_SERVER_ADDRESS, port=DEFAULT_SERVER_PORT, loop=None):
-        self.loop = loop if loop else asyncio.get_event_loop()
-        self.channel = Channel(address, int(port), loop=self.loop)
+class AsyncClient(object):
+    def __init__(self, address=DEFAULT_SERVER_ADDRESS, port=DEFAULT_SERVER_PORT):
+        self.channel = Channel(address, int(port))
         self.stub = taish_grpc.TAIStub(self.channel)
 
     def close(self):
@@ -128,23 +130,17 @@ class Client(object):
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
-    async def list_async(self):
+    async def list(self):
         req = taish_pb2.ListModuleRequest()
         future = await self.stub.ListModule(req)
         return { res.module.location: res.module for res in future }
 
-    def list(self):
-        return self.loop.run_until_complete(self.list_async())
-
-    async def list_attribute_metadata_async(self, object_type):
+    async def list_attribute_metadata(self, object_type):
         req = taish_pb2.ListAttributeMetadataRequest()
         req.object_type = object_type
         return [res.metadata for res in await self.stub.ListAttributeMetadata(req)]
 
-    def list_attribute_metadata(self, object_type):
-        return self.loop.run_until_complete(self.list_attribute_metadata_async(object_type))
-
-    async def get_attribute_metadata_async(self, object_type, attr):
+    async def get_attribute_metadata(self, object_type, attr):
         async with self.stub.GetAttributeMetadata.open() as stream:
             req = taish_pb2.GetAttributeMetadataRequest()
             req.object_type = object_type
@@ -161,11 +157,8 @@ class Client(object):
             check_metadata(stream.trailing_metadata)
             return res.metadata
 
-    def get_attribute_metadata(self, object_type, attr):
-        return self.loop.run_until_complete(self.get_attribute_metadata_async(object_type, attr))
-
-    async def get_module_async(self, location):
-        l = await self.list_async()
+    async def get_module(self, location):
+        l = await self.list()
         if location not in l:
             raise Exception("no module {} found".format(location))
         m = l[location]
@@ -175,18 +168,12 @@ class Client(object):
             raise Exception("module {} not created yet".format(location))
         return Module(self, m)
 
-    def get_module(self, location):
-        return self.loop.run_until_complete(self.get_module_async(location))
-
-    async def create_module_async(self, location, attrs=[]):
+    async def create_module(self, location, attrs=[]):
         attrs.append(("location", location))
-        await self.create_async(taish_pb2.MODULE, attrs)
-        return await self.get_module_async(location)
+        await self.create(taish_pb2.MODULE, attrs)
+        return await self.get_module(location)
 
-    def create_module(self, location, attrs=[]):
-        return self.loop.run_until_complete(self.create_module_async(location, attrs))
-
-    async def create_async(self, object_type, attrs, module_id=0):
+    async def create(self, object_type, attrs, module_id=0):
         async with self.stub.Create.open() as stream:
             if type(object_type) == str:
                 if object_type == 'module':
@@ -201,7 +188,7 @@ class Client(object):
             set_default_serialize_option(req)
             for attr in attrs:
                 attr_id, value = attr
-                meta = await self.get_attribute_metadata_async(object_type, attr_id)
+                meta = await self.get_attribute_metadata(object_type, attr_id)
                 attr_id = meta.attr_id
                 a = taish_pb2.Attribute()
                 a.attr_id = attr_id
@@ -213,10 +200,7 @@ class Client(object):
             check_metadata(stream.trailing_metadata)
             return res.oid
 
-    def create(self, object_type, attrs, module_id=0):
-        return self.loop.run_until_complete(self.create_async(object_type, attrs, module_id))
-
-    async def remove_async(self, oid):
+    async def remove(self, oid):
         async with self.stub.Remove.open() as stream:
             req = taish_pb2.RemoveRequest()
             req.oid = oid
@@ -225,15 +209,12 @@ class Client(object):
             await stream.recv_trailing_metadata()
             check_metadata(stream.trailing_metadata)
 
-    def remove(self, oid):
-        return self.loop.run_until_complete(self.remove_async(oid))
-
-    async def set_async(self, object_type, oid, attr_id, value):
+    async def set(self, object_type, oid, attr_id, value):
         async with self.stub.SetAttribute.open() as stream:
             if type(attr_id) == int:
                 pass
             elif type(attr_id) == str:
-                metadata = await self.get_attribute_metadata_async(object_type, attr_id)
+                metadata = await self.get_attribute_metadata(object_type, attr_id)
                 attr_id = metadata.attr_id
             else:
                 attr_id = attr_id.attr_id
@@ -248,17 +229,14 @@ class Client(object):
             await stream.recv_trailing_metadata()
             check_metadata(stream.trailing_metadata)
 
-    def set(self, object_type, oid, attr_id, value):
-        return self.loop.run_until_complete(self.set_async(object_type, oid, attr_id, value))
-
-    async def get_async(self, object_type, oid, attr, with_metadata=False, value=None, json=False):
+    async def get(self, object_type, oid, attr, with_metadata=False, value=None, json=False):
         async with self.stub.GetAttribute.open() as stream:
             if type(attr) == int:
                 attr_id = attr
                 if with_metadata:
-                    meta = await self.get_attribute_metadata_async(object_type, attr_id)
+                    meta = await self.get_attribute_metadata(object_type, attr_id)
             elif type(attr) == str:
-                meta = await self.get_attribute_metadata_async(object_type, attr)
+                meta = await self.get_attribute_metadata(object_type, attr)
                 attr_id = meta.attr_id
             else:
                 attr_id = attr.attr_id
@@ -282,12 +260,9 @@ class Client(object):
             else:
                 return value
 
-    def get(self, object_type, oid, attr, with_metadata=False, value=None, json=False):
-        return self.loop.run_until_complete(self.get_async(object_type, oid, attr, with_metadata, value, json))
-
-    async def monitor_async(self, object_type, oid, attr_id, callback, json=False):
+    async def monitor(self, object_type, oid, attr_id, callback, json=False):
         async with self.stub.Monitor.open() as stream:
-            m = await self.get_attribute_metadata_async(object_type, attr_id)
+            m = await self.get_attribute_metadata(object_type, attr_id)
             if m.usage != '<notification>':
                 raise Exception('the type of attribute {} is not notification'.format(attr_id))
 
@@ -302,14 +277,7 @@ class Client(object):
             while True:
                 callback(await stream.recv_message())
 
-    def monitor(self, object_type, oid, attr_id, callback, json=False):
-        try:
-            task = self.loop.create_task(self.monitor_async(object_type, oid, attr_id, callback, json))
-            return self.loop.run_forever()
-        except KeyboardInterrupt:
-            task.cancel()
-
-    async def set_log_level_async(self, l, api='unspecified'):
+    async def set_log_level(self, l, api='unspecified'):
         if l == 'debug':
             level = taish_pb2.DEBUG
         elif l == 'info':
@@ -340,5 +308,64 @@ class Client(object):
         req.api = api
         await self.stub.SetLogLevel(req)
 
-    def set_log_level(self, l, api='unspecified'):
-        self.loop.run_until_complete(self.set_log_level_async(l, api))
+
+class Client(object):
+
+    def __init__(self, addr=DEFAULT_SERVER_ADDRESS, port=DEFAULT_SERVER_PORT):
+        self.in_q = Queue()
+        self.out_q = Queue()
+        self.t = Thread(target = self.loop, args=(addr, port))
+        self.t.daemon = True
+        self.t.start()
+        self.addr = addr
+        self.port = port
+
+    def loop(self, addr, port):
+        async def _loop():
+            c = AsyncClient(addr, port)
+            while True:
+                i = self.in_q.get()
+                if i == None:
+                    return
+                if type(i) == str:
+                    fname = i
+                    args = []
+                elif type(i) == list:
+                    fname = i[0]
+                    args = i[1:]
+
+                try:
+                    f = getattr(c, fname)
+                    ret = await f(*args)
+                except Exception as e:
+                    ret = e
+
+                if isinstance(ret, TAIObject):
+                    ret.client = self
+
+                self.out_q.put(ret)
+
+        asyncio.run(_loop())
+
+    def close(self):
+        self.in_q.put(None)
+        self.t.join()
+
+    def monitor(self, *args):
+        try:
+            c = AsyncClient(self.addr, self.port)
+            loop = asyncio.get_event_loop()
+            task = loop.create_task(c.monitor(*args))
+            return loop.run_forever()
+        except KeyboardInterrupt:
+            task.cancel()
+
+    def __getattr__(self, name):
+        def f(*args):
+            self.in_q.put([name, *args])
+            ret = self.out_q.get()
+            if isinstance(ret, Exception):
+                raise ret
+            return ret
+        f.__name__ = name
+        return f
