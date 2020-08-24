@@ -121,9 +121,6 @@ class AsyncClient(object):
     def close(self):
         self.channel.close()
 
-    def __del__(self):
-        self.close()
-
     def __enter__(self):
         return self
 
