@@ -77,7 +77,7 @@ class TAIShellObject(Object):
 
             l = self.client.list_attribute_metadata()
 
-            def cb(res):
+            def cb(obj, m, res):
                 for attr in res.attrs:
                     a = [ v.short_name for v in l if v.attr_id == attr.attr_id ]
                     if len(a) == 1:
