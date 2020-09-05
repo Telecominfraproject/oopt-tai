@@ -16,8 +16,19 @@ from threading import Thread
 
 import time
 
+import functools
+import inspect
+from typing import Any, Optional
+
 DEFAULT_SERVER_ADDRESS = 'localhost'
 DEFAULT_SERVER_PORT = '50051'
+
+def is_async_func(func: Any) -> bool:
+    if inspect.iscoroutinefunction(func):
+        return True
+    if isinstance(func, functools.partial):
+        return is_async_func(func.func)
+    return False
 
 def set_default_serialize_option(req):
     req.serialize_option.human = True
@@ -45,21 +56,6 @@ class TAIObject(object):
     def oid(self):
         return self.obj.oid
 
-    def list_attribute_metadata_async(self):
-        return self.client.list_attribute_metadata_async(self.object_type)
-
-    def get_attribute_metadata_async(self, attr):
-        return self.client.get_attribute_metadata_async(self.object_type, attr)
-
-    def set_async(self, attr_id, value):
-        return self.client.set_async(self.object_type, self.oid, attr_id, value)
-
-    def get_async(self, attr_id, with_metadata=False, value=None, json=False):
-        return self.client.get_async(self.object_type, self.oid, attr_id, with_metadata, value, json)
-
-    def monitor_async(self, attr_id, callback):
-        return self.client.monitor_async(self.object_type, self.oid, attr_id, callback)
-
     def list_attribute_metadata(self):
         return self.client.list_attribute_metadata(self.object_type)
 
@@ -73,7 +69,7 @@ class TAIObject(object):
         return self.client.get(self.object_type, self.oid, attr_id, with_metadata, value, json)
 
     def monitor(self, attr_id, callback, json=False):
-        return self.client.monitor(self.object_type, self.oid, attr_id, callback, json)
+        return self.client.monitor(self, attr_id, callback, json)
 
 
 class NetIf(TAIObject):
@@ -257,14 +253,14 @@ class AsyncClient(object):
             else:
                 return value
 
-    async def monitor(self, object_type, oid, attr_id, callback, json=False):
+    async def monitor(self, obj, attr_id, callback, json=False):
         async with self.stub.Monitor.open() as stream:
-            m = await self.get_attribute_metadata(object_type, attr_id)
+            m = await self.get_attribute_metadata(obj.object_type, attr_id)
             if m.usage != '<notification>':
                 raise Exception('the type of attribute {} is not notification'.format(attr_id))
 
             req = taish_pb2.MonitorRequest()
-            req.oid = oid
+            req.oid = obj.oid
             req.notification_attr_id = m.attr_id
             set_default_serialize_option(req)
             req.serialize_option.json = json
@@ -272,7 +268,10 @@ class AsyncClient(object):
             await stream.send_message(req)
 
             while True:
-                callback(await stream.recv_message())
+                if is_async_func(callback):
+                    await callback(obj, m, await stream.recv_message())
+                else:
+                    callback(obj, m, await stream.recv_message())
 
     async def set_log_level(self, l, api='unspecified'):
         if l == 'debug':
