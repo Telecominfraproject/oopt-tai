@@ -116,11 +116,10 @@ namespace tai::framework {
     class Config {
         public:
             Config(uint32_t attr_count = 0, const tai_attribute_t* attr_list = nullptr, void* user = nullptr, default_setter_f setter = nullptr, default_getter_f getter = nullptr) : m_user(user), m_default_setter(setter), m_default_getter(getter) {
-                for ( auto i = 0; i < attr_count; i++) {
-                    auto ret = _set(attr_list[i], true, false);
-                    if ( ret != TAI_STATUS_SUCCESS ) {
-                        throw Exception(convert_tai_error_to_list(ret, i));
-                    }
+                FSMState tmp;
+                auto ret = set_attributes(attr_count, attr_list, tmp, true);
+                if ( ret != TAI_STATUS_SUCCESS ) {
+                    throw Exception(ret);
                 }
             }
 
@@ -226,7 +225,7 @@ namespace tai::framework {
                 return TAI_STATUS_SUCCESS;
             }
 
-            tai_status_t set_attributes(uint32_t attr_count, const tai_attribute_t * const attr_list, FSMState& next_state) {
+            tai_status_t set_attributes(uint32_t attr_count, const tai_attribute_t * const attr_list, FSMState& next_state, bool readonly = false) {
                 std::vector<const tai_attribute_t*> diff;
                 {
                     std::unique_lock<std::mutex> lk(m_mtx);
@@ -264,7 +263,7 @@ namespace tai::framework {
                 std::vector<FSMState> states;
                 for ( auto i = 0; i < diff.size(); i++ ) {
                     auto state = current;
-                    auto ret = _set(*diff[i], false, false, &state);
+                    auto ret = _set(*diff[i], readonly, false, &state);
                     if ( ret != TAI_STATUS_SUCCESS ) {
                         if ( m_default_setter == nullptr ) {
                             return convert_tai_error_to_list(ret, i);
