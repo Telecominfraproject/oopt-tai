@@ -90,23 +90,21 @@ class Module(TAIObject):
     def get_hostif(self, index=0):
         return HostIf(self.client, self.obj.hostifs[index])
 
-    async def create_netif_async(self, index=0, attrs=[]):
+    async def create_netif(self, index=0, attrs=None):
+        if attrs is None:
+            attrs = []
         attrs.append(("index", index))
-        await self.client.create_async(taish_pb2.NETIF, attrs, self.oid)
-        self.obj = await self.client.list_async()[self.obj.location]
+        await self.client.create(taish_pb2.NETIF, attrs, self.oid)
+        self.obj = (await self.client.list())[self.obj.location]
         return self.get_netif(index)
 
-    def create_netif(self, index=0, attrs=[]):
-        return self.client.loop.run_until_complete(self.create_netif_async(index, attrs))
-
-    async def create_hostif_async(self, index=0, attrs=[]):
+    async def create_hostif(self, index=0, attrs=None):
+        if attrs is None:
+            attrs = []
         attrs.append(("index", index))
         await self.client.create(taish_pb2.HOSTIF, attrs, self.oid)
-        self.obj = await self.client.list_async()[self.obj.location]
+        self.obj = (await self.client.list())[self.obj.location]
         return self.get_hostif(index)
-
-    def create_hostif(self, index=0, attrs=[]):
-        return self.client.loop.run_until_complete(self.create_hostif_async(index, attrs))
 
 
 class AsyncClient(object):
@@ -161,7 +159,9 @@ class AsyncClient(object):
             raise Exception("module {} not created yet".format(location))
         return Module(self, m)
 
-    async def create_module(self, location, attrs=[]):
+    async def create_module(self, location, attrs=None):
+        if attrs is None:
+            attrs = []
         attrs.append(("location", location))
         await self.create(taish_pb2.MODULE, attrs)
         return await self.get_module(location)
