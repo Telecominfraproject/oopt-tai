@@ -563,9 +563,7 @@ int tai_deserialize_object_id(
     return TAI_SERIALIZE_ERROR;
 }
 
-#define DEFAULT_LIST_SIZE 16
-
-#define DEFINE_TAI_DESERIALIZE_LIST(listname, listtypename, itemname) \
+#define DEFINE_TAI_DESERIALIZE_LIST(listname, listtypename, itemname, itemtype) \
 int tai_deserialize_ ## listname (\
         _In_ const char *buffer,\
         _Out_ listtypename *value,\
@@ -601,31 +599,39 @@ int tai_deserialize_ ## listname (\
         return 0;\
     }\
     while(true) { \
-        if ( i >= value->count ) { \
-            TAI_META_LOG_WARN("deserialize listname buffer overflow: %d", i); \
-            value->count = i > 0 ? i*2 : DEFAULT_LIST_SIZE;\
-            return TAI_STATUS_BUFFER_OVERFLOW;\
+        itemtype tmp;\
+        ret = tai_deserialize_ ## itemname(ptr, &tmp); \
+        if ( ret < 0 ) { \
+            return ret; \
         } \
-        ret = tai_deserialize_ ## itemname(ptr, &value->list[i]); \
         if ( *(ptr + ret) == 0 ) { \
+            if ( i >= value->count ) { \
+                TAI_META_LOG_WARN("deserialize listname buffer overflow: count: %d, actual count: %d", value->count, i + 1); \
+                value->count = i + 1; \
+                return TAI_STATUS_BUFFER_OVERFLOW;\
+            } \
             value->count = i + 1; \
+            value->list[i] = tmp;\
             return 0; \
         } \
         if ( *(ptr + ret++) != ',' ) { \
             return -1; \
         } \
         ptr += ret; \
+        if ( i < value->count ) { \
+            value->list[i] = tmp; \
+        } \
         i++; \
     } \
 }
 
-DEFINE_TAI_DESERIALIZE_LIST(u8list, tai_u8_list_t, uint8)
-DEFINE_TAI_DESERIALIZE_LIST(s8list, tai_s8_list_t, int8)
-DEFINE_TAI_DESERIALIZE_LIST(u16list, tai_u16_list_t, uint16)
-DEFINE_TAI_DESERIALIZE_LIST(s16list, tai_s16_list_t, int16)
-DEFINE_TAI_DESERIALIZE_LIST(u32list, tai_u32_list_t, uint32)
-DEFINE_TAI_DESERIALIZE_LIST(s32list, tai_s32_list_t, int32)
-DEFINE_TAI_DESERIALIZE_LIST(floatlist, tai_float_list_t, float)
+DEFINE_TAI_DESERIALIZE_LIST(u8list, tai_u8_list_t, uint8, uint8_t)
+DEFINE_TAI_DESERIALIZE_LIST(s8list, tai_s8_list_t, int8, int8_t)
+DEFINE_TAI_DESERIALIZE_LIST(u16list, tai_u16_list_t, uint16, uint16_t)
+DEFINE_TAI_DESERIALIZE_LIST(s16list, tai_s16_list_t, int16, int16_t)
+DEFINE_TAI_DESERIALIZE_LIST(u32list, tai_u32_list_t, uint32, uint32_t)
+DEFINE_TAI_DESERIALIZE_LIST(s32list, tai_s32_list_t, int32, int32_t)
+DEFINE_TAI_DESERIALIZE_LIST(floatlist, tai_float_list_t, float, float)
 
 int tai_serialize_enum(
         _Out_ char *buffer,
