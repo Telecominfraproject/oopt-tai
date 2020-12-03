@@ -271,6 +271,37 @@ int testDeserializeU8list() {
     return 0;
 }
 
+int testDeserializeU8listLengthCheck() {
+    tai_u8_list_t value;
+    tai_serialize_option_t option = {
+        .json = false,
+    };
+    value.count = 0;
+    value.list = NULL;
+    int ret = tai_deserialize_u8list("1,2,3,4", &value, &option);
+    if ( ret == 0 ) {
+        return -1;
+    }
+    if ( value.count != 4 ) {
+        return -1;
+    }
+    return 0;
+}
+
+int testDeserializeU8listInvalidValue() {
+    tai_u8_list_t value;
+    tai_serialize_option_t option = {
+        .json = false,
+    };
+    value.count = 0;
+    value.list = NULL;
+    int ret = tai_deserialize_u8list("1,2,a,4", &value, &option);
+    if ( ret == 0 ) {
+        return -1;
+    }
+    return 0;
+}
+
 int testDeserializeFloatlist() {
     float list[10] = {0};
     tai_float_list_t value;
@@ -804,6 +835,8 @@ struct testCase tests[] = {
     D(testSerializeSignedRange),
     D(testSerializeValueAttrList),
     D(testDeserializeU8list),
+    D(testDeserializeU8listLengthCheck),
+    D(testDeserializeU8listInvalidValue),
     D(testDeserializeFloatlist),
     D(testSerializeListJSON),
     D(testSerializeObjectMapList),
