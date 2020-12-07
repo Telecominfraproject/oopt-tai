@@ -2,9 +2,10 @@ import setuptools
 import subprocess as sp
 import os
 
-install_requires = ['grpcio-tools', 'prompt_toolkit', 'tabulate', 'grpclib']
-
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+with open('requirements.txt') as f:
+    install_requires = f.read().split()
 
 with open('README.md', 'r') as f:
     long_description = f.read()
