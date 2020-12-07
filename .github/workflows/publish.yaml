@@ -16,7 +16,9 @@ jobs:
             import os
             ref = os.environ['GITHUB_REF']
             branch = ref[11:]
-            print("::set-env name=DOCKER_IMAGE_TAG::{}".format('latest' if branch == 'master' else branch))
+            with open(os.environ['GITHUB_ENV'], "a") as f:
+                tag = "latest" if branch == "master" else branch
+                f.write(f"DOCKER_IMAGE_TAG={tag}\n")
           shell: python
         - run: make builder
         - run: make image
