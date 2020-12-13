@@ -153,8 +153,8 @@ typedef enum _tai_network_interface_rx_opu_status_t
 /** @brief The RX Training Sequence Status */
 typedef enum _tai_network_interface_rx_ts_status_t
 {
-    TAI_NETWORK_INTERFACE_RX_TS_STATUS_LOSS_OF_LOCK,                   /**< LOF Alarm in Traning Sequence */
-    TAI_NETWORK_INTERFACE_RX_TS_STATUS_ERR,                            /**< Other Alarm in Trainig Sequence */
+    TAI_NETWORK_INTERFACE_RX_TS_STATUS_LOSS_OF_LOCK,                   /**< LOF Alarm in Training Sequence */
+    TAI_NETWORK_INTERFACE_RX_TS_STATUS_ERR,                            /**< Other Alarm in Training Sequence */
     TAI_NETWORK_INTERFACE_RX_TS_STATUS_MAX                             /**< Number of states */
 } tai_network_interface_rx_ts_status_t;
 
