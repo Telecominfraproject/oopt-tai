@@ -131,18 +131,18 @@ namespace tai::framework {
                 return list;
             }
 
-            const tai_attribute_value_t* get(tai_attr_id_t id) const {
+            const tai_attribute_value_t* get(tai_attr_id_t id, bool no_default = false) const {
                 std::unique_lock<std::mutex> lk(m_mtx);
-                return _get(id);
+                return _get(id, no_default);
             }
 
-            tai_status_t get(tai_attribute_t* const attr) {
+            tai_status_t get(tai_attribute_t* const attr, bool no_default = false) {
                 auto info = m_info.find(attr->id);
                 if ( info == m_info.end() ) {
                     return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
                 }
                 std::unique_lock<std::mutex> lk(m_mtx);
-                auto v = _get(attr->id);
+                auto v = _get(attr->id, no_default);
                 if ( v == nullptr ) {
                     return TAI_STATUS_UNINITIALIZED;
                 }
@@ -241,7 +241,7 @@ namespace tai::framework {
                                 return convert_tai_error_to_list(ret, i);
                             }
                         }
-                        auto v = _get(attr.id);
+                        auto v = _get(attr.id, true);
                         bool equal = false;
                         if ( v != nullptr ) {
                             const tai_attribute_t& rhs{attr.id, *v};
@@ -335,13 +335,16 @@ namespace tai::framework {
             friend std::ostream& operator<<(std::ostream& os, const Config<S> &config);
         private:
 
-            const tai_attribute_value_t* _get(tai_attr_id_t id) const {
+            const tai_attribute_value_t* _get(tai_attr_id_t id, bool no_default = false) const {
                 auto info = m_info.find(id);
                 if ( info == m_info.end() ) {
                     return nullptr;
                 }
                 auto it = m_config.find(id);
                 if ( it == m_config.end() ) {
+                    if ( no_default ) {
+                        return nullptr;
+                    }
                     if ( info->second.defaultvalue != nullptr ) {
                         return info->second.defaultvalue;
                     }
