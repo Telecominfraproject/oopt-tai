@@ -241,7 +241,7 @@ namespace tai::basic {
             TAI_WARN("can't remove a module before removing its siblings");
             return TAI_STATUS_OBJECT_IN_USE;
         }
-        transite(FSM_STATE_END);
+        transit(FSM_STATE_END);
         while(true) {
             auto s = get_state();
             if ( s == FSM_STATE_END ) {
@@ -258,7 +258,7 @@ namespace tai::basic {
             return TAI_STATUS_ITEM_NOT_FOUND;
         }
         m_no_transit = true;
-        transite(FSM_STATE_WAITING_CONFIGURATION);
+        transit(FSM_STATE_WAITING_CONFIGURATION);
         // TODO implement timeout?
         while(true) {
             auto s = get_state();

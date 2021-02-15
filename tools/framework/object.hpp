@@ -18,6 +18,10 @@ namespace tai::framework {
 
     using S_BaseObject = std::shared_ptr<BaseObject>;
 
+    enum transit_cond_context { TRANSIT_COND_CONTEXT_SET, TRANSIT_COND_CONTEXT_CLEAR };
+
+    using transit_cond_fn = std::function<bool(FSMState*, transit_cond_context)>;
+
     template<tai_object_type_t T>
     class Object : public BaseObject {
         public:
@@ -48,6 +52,10 @@ namespace tai::framework {
                 return m_fsm;
             }
 
+            void set_transit_cond(transit_cond_fn f) {
+                m_transit_cond = f;
+            }
+
         private:
 
             std::mutex m_mtx;
@@ -57,9 +65,13 @@ namespace tai::framework {
             Config<T> m_config;
             Config<T> m_alarm_cache;
 
+            transit_cond_fn m_transit_cond;
+
             tai_status_t _get_attributes(uint32_t attr_count, tai_attribute_t* const attr_list);
             tai_status_t _set_attributes(uint32_t attr_count, const tai_attribute_t* const attr_list);
             tai_status_t _clear_attributes(uint32_t attr_count, const tai_attr_id_t* const attr_list);
+
+            tai_status_t _transit(FSMState next, transit_cond_context ctx);
     };
 
     template<tai_object_type_t T>
@@ -86,17 +98,7 @@ namespace tai::framework {
         if ( ret != TAI_STATUS_SUCCESS ) {
             return ret;
         }
-        auto max_state = FSM_STATE_READY;
-        if ( !configured() ){
-            max_state = FSM_STATE_WAITING_CONFIGURATION;
-        }
-        if ( max_state < next_state ) {
-            next_state = max_state;
-        }
-        if ( m_fsm->get_state() != next_state ) {
-            m_fsm->transite(next_state);
-        }
-        return TAI_STATUS_SUCCESS;
+        return _transit(next_state, TRANSIT_COND_CONTEXT_SET);
     }
 
     template<tai_object_type_t T>
@@ -112,14 +114,25 @@ namespace tai::framework {
         if ( ret != TAI_STATUS_SUCCESS ) {
             return ret;
         }
-        auto max_state = FSM_STATE_READY;
-        if ( !configured() ){
-            max_state = FSM_STATE_WAITING_CONFIGURATION;
+        return _transit(next_state, TRANSIT_COND_CONTEXT_CLEAR);
+    }
+
+    template<tai_object_type_t T>
+    tai_status_t Object<T>::_transit(FSMState next, transit_cond_context ctx) {
+        if ( !m_transit_cond ) { // default transit behaviod
+            auto max_state = FSM_STATE_READY;
+            if ( !configured() ){
+                max_state = FSM_STATE_WAITING_CONFIGURATION;
+            }
+            if ( max_state < next ) {
+                next = max_state;
+            }
+            if ( m_fsm->get_state() != next ) {
+                m_fsm->transit(next);
+            }
+        } else if ( m_transit_cond(&next, ctx) ) { // call custom transit callback
+            m_fsm->transit(next);
         }
-        if ( max_state < next_state ) {
-            next_state = max_state;
-        }
-        m_fsm->transite(next_state);
         return TAI_STATUS_SUCCESS;
     }
 
