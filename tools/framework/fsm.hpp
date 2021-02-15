@@ -51,7 +51,7 @@ namespace tai::framework {
                 if ( m_event_fd == 0 ) {
                     return 0;
                 }
-                transite(FSM_STATE_END);
+                transit(FSM_STATE_END);
                 m_th.join();
                 close(m_event_fd);
                 m_event_fd = 0;
@@ -85,7 +85,7 @@ namespace tai::framework {
                 return 0;
             }
 
-            int transite(FSMState state) {
+            int transit(FSMState state) {
                 uint64_t v = 1;
                 m_next_state = state;
                 if ( m_event_fd > 0 ) {

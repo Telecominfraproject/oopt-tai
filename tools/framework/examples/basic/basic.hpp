@@ -48,7 +48,7 @@ namespace tai::basic {
     // When the framework want to transit to another state (described in basic.cpp when this happens),
     // the framework triggers an event. This event can be captured through eventfd.
     // `int tai::framework::FSM::get_event_fd()` returns the event fd and `FSMState tai::framework::FSM::next_state()` returns
-    // the next state which the framework is requesting to transite.
+    // the next state which the framework is requesting to transit.
     //
     // In typical case, the callback respects what the framework is requesting, and return the next state promptly.
     //
