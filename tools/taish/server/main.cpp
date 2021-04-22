@@ -445,6 +445,11 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
+    status = tai_api_query(TAI_API_META, (void **)(&g_api.meta_api));
+    if ( status != TAI_STATUS_SUCCESS ) {
+        std::cout << "failed to query META API: " << status << std::endl;
+    }
+
     g_api.list_module = list_module;
     g_api.object_update = object_update;
 

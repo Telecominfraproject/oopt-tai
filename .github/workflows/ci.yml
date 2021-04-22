@@ -12,5 +12,5 @@ jobs:
           with:
               version: latest
         - uses: actions/checkout@v2
-        - run: make builder
+        - run: make ci
         - run: make image

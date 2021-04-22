@@ -57,10 +57,10 @@ class TAIObject(object):
         return self.obj.oid
 
     def list_attribute_metadata(self):
-        return self.client.list_attribute_metadata(self.object_type)
+        return self.client.list_attribute_metadata(self.object_type, self.oid)
 
     def get_attribute_metadata(self, attr):
-        return self.client.get_attribute_metadata(self.object_type, attr)
+        return self.client.get_attribute_metadata(self.object_type, attr, oid=self.oid)
 
     def set(self, attr_id, value):
         return self.client.set(self.object_type, self.oid, attr_id, value)
@@ -126,15 +126,19 @@ class AsyncClient(object):
         future = await self.stub.ListModule(req)
         return { res.module.location: res.module for res in future }
 
-    async def list_attribute_metadata(self, object_type):
+    async def list_attribute_metadata(self, object_type, oid=0, location=''):
         req = taish_pb2.ListAttributeMetadataRequest()
         req.object_type = object_type
+        req.oid = oid
+        req.location = location
         return [res.metadata for res in await self.stub.ListAttributeMetadata(req)]
 
-    async def get_attribute_metadata(self, object_type, attr):
+    async def get_attribute_metadata(self, object_type, attr, oid=0, location=''):
         async with self.stub.GetAttributeMetadata.open() as stream:
             req = taish_pb2.GetAttributeMetadataRequest()
             req.object_type = object_type
+            req.oid = oid
+            req.location = location
             set_default_serialize_option(req)
             if type(attr) == int:
                 req.attr_id = attr
@@ -167,6 +171,18 @@ class AsyncClient(object):
         return await self.get_module(location)
 
     async def create(self, object_type, attrs, module_id=0):
+
+        if module_id != 0:
+            location = await self.get(taish_pb2.MODULE, module_id, 'location')
+        else:
+            for attr in attrs:
+                key, value = attr
+                if key == 'location':
+                    location = value
+                    break
+            else:
+                raise TAIException(0xe, 'mandatory-attribute-missing')
+
         async with self.stub.Create.open() as stream:
             if type(object_type) == str:
                 if object_type == 'module':
@@ -181,7 +197,7 @@ class AsyncClient(object):
             set_default_serialize_option(req)
             for attr in attrs:
                 attr_id, value = attr
-                meta = await self.get_attribute_metadata(object_type, attr_id)
+                meta = await self.get_attribute_metadata(object_type, attr_id, location=location)
                 attr_id = meta.attr_id
                 a = taish_pb2.Attribute()
                 a.attr_id = attr_id
@@ -207,7 +223,7 @@ class AsyncClient(object):
             if type(attr_id) == int:
                 pass
             elif type(attr_id) == str:
-                metadata = await self.get_attribute_metadata(object_type, attr_id)
+                metadata = await self.get_attribute_metadata(object_type, attr_id, oid=oid)
                 attr_id = metadata.attr_id
             else:
                 attr_id = attr_id.attr_id
@@ -227,9 +243,9 @@ class AsyncClient(object):
             if type(attr) == int:
                 attr_id = attr
                 if with_metadata:
-                    meta = await self.get_attribute_metadata(object_type, attr_id)
+                    meta = await self.get_attribute_metadata(object_type, attr_id, oid=oid)
             elif type(attr) == str:
-                meta = await self.get_attribute_metadata(object_type, attr)
+                meta = await self.get_attribute_metadata(object_type, attr, oid=oid)
                 attr_id = meta.attr_id
             else:
                 attr_id = attr.attr_id
@@ -255,7 +271,7 @@ class AsyncClient(object):
 
     async def monitor(self, obj, attr_id, callback, json=False):
         async with self.stub.Monitor.open() as stream:
-            m = await self.get_attribute_metadata(obj.object_type, attr_id)
+            m = await self.get_attribute_metadata(obj.object_type, attr_id, oid=obj.oid)
             if m.usage != '<notification>':
                 raise Exception('the type of attribute {} is not notification'.format(attr_id))
 

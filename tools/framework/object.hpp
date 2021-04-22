@@ -13,7 +13,6 @@ namespace tai::framework {
             virtual tai_status_t get_attributes(uint32_t attr_count, tai_attribute_t* const attr_list) = 0;
             virtual tai_status_t set_attributes(uint32_t attr_count, const tai_attribute_t* const attr_list) = 0;
             virtual tai_status_t clear_attributes(uint32_t attr_count, const tai_attr_id_t* const attr_id_list) = 0;
-
     };
 
     using S_BaseObject = std::shared_ptr<BaseObject>;
@@ -38,6 +37,7 @@ namespace tai::framework {
 
             tai_status_t notify(tai_attr_id_t notification_id, const std::vector<tai_attr_id_t>& ids, bool alarm = false);
             tai_status_t notify_alarm(tai_attr_id_t notification_id, const std::vector<tai_attr_id_t>& ids);
+
 
             int clear_alarm_cache() {
                 return m_alarm_cache.clear_all();

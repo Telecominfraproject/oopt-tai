@@ -343,6 +343,24 @@ static tai_module_api_t module_api = {
     .get_module_attributes = get_module_attributes,
 };
 
+static tai_status_t list_metadata(const tai_metadata_key_t *const key, uint32_t *count, const tai_attr_metadata_t * const **list) {
+    return g_platform->list_metadata(key, count, list);
+}
+
+static const tai_attr_metadata_t* get_attr_metadata(const tai_metadata_key_t *const key, tai_attr_id_t attr_id) {
+    return g_platform->get_attr_metadata(key, attr_id);
+}
+
+static const tai_object_type_info_t* get_object_info(const tai_metadata_key_t *const key) {
+    return g_platform->get_object_info(key);
+}
+
+static tai_meta_api_t meta_api = {
+    .list_metadata = list_metadata,
+    .get_attr_metadata  = get_attr_metadata,
+    .get_object_info = get_object_info,
+};
+
 tai_status_t tai_api_initialize(uint64_t flags, const tai_service_method_table_t* services) {
     if ( g_platform != nullptr ) {
         return TAI_STATUS_FAILURE;
@@ -383,6 +401,9 @@ tai_status_t tai_api_query(tai_api_t tai_api_id, void** api_method_table) {
         break;
     case TAI_API_HOSTIF:
         *api_method_table = &host_interface_api;
+        break;
+    case TAI_API_META:
+        *api_method_table = &meta_api;
         break;
     default:
         return TAI_STATUS_NOT_SUPPORTED;

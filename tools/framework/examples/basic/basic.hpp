@@ -8,7 +8,7 @@ namespace tai::basic {
 
     using namespace tai::framework;
 
-    const uint8_t BASIC_NUM_MODULE = 1;
+    const uint8_t BASIC_NUM_MODULE = 8;
     const uint8_t BASIC_NUM_NETIF = 1;
     const uint8_t BASIC_NUM_HOSTIF = 2;
 
