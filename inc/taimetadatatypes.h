@@ -18,6 +18,8 @@
 #ifndef __TAIMETADATATYPES_H_
 #define __TAIMETADATATYPES_H_
 
+#include "taitypes.h"
+
 /**
  * @defgroup TAIMETADATATYPES TAI - Metadata Types Definitions
  *
@@ -930,6 +932,12 @@ typedef struct _tai_object_type_info_t
     size_t                                          revgraphmemberscount;
 
 } tai_object_type_info_t;
+
+typedef struct _tai_metadata_key_t {
+    tai_object_id_t oid;
+    tai_object_type_t type;
+    tai_char_list_t location;
+} tai_metadata_key_t;
 
 /**
  * @}

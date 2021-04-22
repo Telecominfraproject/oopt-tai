@@ -7,7 +7,7 @@ TAI_FRAMEWORK_DIR := $(TAI_DIR)/tools/framework
 TAI_BASIC_LIB_DIR := $(TAI_FRAMEWORK_DIR)/examples/basic/
 
 CFLAGS := -std=c++17 -g3 -fPIC -Wall -Werror
-LIB := `pkg-config --libs protobuf grpc++ grpc` -L ../../meta/ -lmetatai -L. -ltai
+LIB := `pkg-config --libs protobuf grpc++ grpc` -L. -ltai -L ../../meta/ -lmetatai
 INCLUDE := -I $(TAI_META_DIR) -I $(TAI_DIR)/inc -I ./include -I ./lib -I $(TAI_LIB_DIR)
 
 LIB_GRPC_SRCS := lib/taish.grpc.pb.cc lib/taish.pb.cc

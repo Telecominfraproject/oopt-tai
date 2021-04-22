@@ -53,6 +53,8 @@ message ListModuleResponse {
 
 message ListAttributeMetadataRequest {
     TAIObjectType object_type = 1;
+    uint64 oid = 2;
+    string location = 3;
 }
 
 message ListAttributeMetadataResponse {
@@ -66,6 +68,8 @@ message GetAttributeMetadataRequest {
         string attr_name = 3;
     }
     SerializeOption serialize_option = 4;
+    uint64 oid = 5;
+    string location = 6;
 }
 
 message GetAttributeMetadataResponse {

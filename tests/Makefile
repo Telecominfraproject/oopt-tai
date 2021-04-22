@@ -11,7 +11,7 @@ ifndef TAI_TAISH_SERVER
 endif
 
 ifndef LD_LIBRARY_PATH
-    LD_LIBRARY_PATH := ../meta:$(dir $(TAI_TEST_TARGET))
+    LD_LIBRARY_PATH := $(dir $(TAI_TEST_TARGET))
 endif
 
 .PHONY: all c python
@@ -21,8 +21,8 @@ all: c python
 ../meta/libmetatai.so:
 	$(MAKE) -C $(@D)
 
-c: $(TAI_TEST_TARGET) ../meta/libmetatai.so
-	gcc -I ../inc -I ../sai/inc -o test test.c -L $(dir $(TAI_TEST_TARGET)) -ltai -L ../meta -lmetatai
+c: $(TAI_TEST_TARGET)
+	gcc -I ../inc -o test test.c -L $(dir $(TAI_TEST_TARGET)) -ltai
 	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) ./test
 
 python: taish $(TAI_TAISH_SERVER) $(TAI_TEST_TARGET)

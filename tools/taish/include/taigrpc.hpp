@@ -50,6 +50,7 @@ struct tai_api_method_table_t
     tai_module_api_t* module_api;
     tai_host_interface_api_t* hostif_api;
     tai_network_interface_api_t* netif_api;
+    tai_meta_api_t* meta_api;
     tai_api_list_module_fn list_module;
     tai_object_update_fn object_update;
 };
@@ -67,7 +68,7 @@ struct tai_subscription_t {
 
 class TAINotifier {
     public:
-        TAINotifier() {};
+        TAINotifier(tai_meta_api_t* m) : m_meta_api(m) {};
         int notify(const tai_notification_t& n);
         int subscribe(void* id, tai_subscription_t* s) {
             std::unique_lock<std::mutex> lk(mtx);
@@ -89,9 +90,13 @@ class TAINotifier {
             std::unique_lock<std::mutex> lk(mtx);
             return m.size();
         }
+        tai_meta_api_t* meta_api() {
+            return m_meta_api;
+        }
     private:
         std::map<void*, tai_subscription_t*> m;
         std::mutex mtx;
+        tai_meta_api_t* m_meta_api;
 };
 
 class TAIServiceImpl final : public taish::TAI::Service {
@@ -111,7 +116,7 @@ class TAIServiceImpl final : public taish::TAI::Service {
         std::shared_ptr<TAINotifier> get_notifier(tai_object_id_t oid, tai_attr_id_t nid) {
             auto key = std::pair<tai_object_id_t, tai_attr_id_t>(oid, nid);
             if ( m_notifiers.find(key) == m_notifiers.end() ) {
-                m_notifiers[key] = std::make_shared<TAINotifier>();
+                m_notifiers[key] = std::make_shared<TAINotifier>(m_api->meta_api);
             }
             return m_notifiers[key];
         }
@@ -119,5 +124,7 @@ class TAIServiceImpl final : public taish::TAI::Service {
         std::map<std::pair<tai_object_id_t, tai_attr_id_t>, std::shared_ptr<TAINotifier>> m_notifiers;
         std::mutex m_mtx; // mutex for m_notifiers
 };
+
+const tai_attr_metadata_t* const get_metadata(tai_meta_api_t* meta_api, const tai_metadata_key_t * const key, tai_attr_id_t attr_id);
 
 #endif // __TAIGRPC_HPP__

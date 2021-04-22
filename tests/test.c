@@ -6,6 +6,7 @@
 tai_module_api_t *module_api;
 tai_network_interface_api_t *network_interface_api;
 tai_host_interface_api_t *host_interface_api;
+tai_meta_api_t *meta_api;
 
 #define TAI_MAX_HOST_IFS    8
 #define TAI_MAX_NET_IFS     8
@@ -170,8 +171,43 @@ int main() {
 
     printf("host_interface_api: %p\n", host_interface_api);
 
+    status = tai_api_query(TAI_API_META, (void**)&meta_api);
+    if ( status != TAI_STATUS_SUCCESS ) {
+        printf("no api for TAI_API_META\n");
+        return 1;
+    }
+
+    printf("meta_api: %p\n", meta_api);
+
     sleep(1);
     create_modules();
+
+    printf("module oid: 0x%lx\n", g_module_ids[0]);
+
+    if ( meta_api != NULL ) {
+        uint32_t count;
+        const tai_attr_metadata_t * const *list;
+        const tai_attr_metadata_t *meta;
+        tai_metadata_key_t key;
+        key.oid = g_module_ids[0];
+        status = meta_api->list_metadata(&key, &count, &list);
+        printf("module list metadata: status: %d, count: %u, list: %p\n", status, count, list);
+
+        key.oid = g_netif_ids[0][0];
+        status = meta_api->list_metadata(&key, &count, &list);
+        printf("netif list metadata: status: %d, count: %u, list: %p\n", status, count, list);
+
+        meta = meta_api->get_attr_metadata(&key, TAI_NETWORK_INTERFACE_ATTR_INDEX);
+        if ( meta == NULL ) {
+            printf("failed to get TAI_NETWORK_INTERFACE_ATTR_INDEX metadata\n");
+            return 1;
+        }
+        if (!meta->ismandatoryoncreate) {
+            printf("wrong TAI_NETWORK_INTERFACE_ATTR_INDEX metadata. must be MANDATORY_ON_CREATE\n");
+            return 1;
+        }
+ 
+    }
 
     status = tai_api_uninitialize();
     if ( status != TAI_STATUS_SUCCESS ) {

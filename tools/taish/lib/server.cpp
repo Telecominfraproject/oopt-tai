@@ -37,6 +37,17 @@ static void add_status(::grpc::ServerContext* context, tai_status_t status) {
     context->AddTrailingMetadata("tai-status-msg", _serialize_status(status));
 }
 
+const tai_attr_metadata_t* const get_metadata(tai_meta_api_t* meta_api, const tai_metadata_key_t * const key, tai_attr_id_t attr_id) {
+    if ( meta_api != nullptr ) {
+        return meta_api->get_attr_metadata(key, attr_id);
+    }
+    auto type = key->type;
+    if ( key->oid != TAI_NULL_OBJECT_ID ) {
+        type = tai_object_type_query(key->oid);
+    }
+    return tai_metadata_get_attr_metadata(type, attr_id);
+}
+
 ::grpc::Status TAIServiceImpl::ListModule(::grpc::ServerContext* context, const taish::ListModuleRequest* request, ::grpc::ServerWriter< taish::ListModuleResponse>* writer) {
 
     std::vector<tai_api_module_t> list;
@@ -124,44 +135,71 @@ static tai_serialize_option_t convert_serialize_option(const taish::SerializeOpt
     auto res = taish::ListAttributeMetadataResponse();
     auto object_type = request->object_type();
     auto info = tai_metadata_all_object_type_infos[object_type];
-    if ( info == nullptr ) {
-        for ( uint32_t i = 0; i < tai_metadata_attr_sorted_by_id_name_count; i++ ) {
-            auto src = tai_metadata_attr_sorted_by_id_name[i];
-            auto dst = res.mutable_metadata();
-            convert_metadata(src, dst);
-            writer->Write(res);
+    auto oid = request->oid();
+    uint32_t count;
+    tai_attr_metadata_t const * const *list;
+
+    if ( oid != TAI_NULL_OBJECT_ID && m_api->meta_api != nullptr ) {
+        tai_metadata_key_t key{.oid = oid};
+        auto ret = m_api->meta_api->list_metadata(&key, &count, &list);
+        if ( ret < 0 ) {
+            add_status(context, ret);
+            return Status::OK;
         }
-        return Status::OK;
+    } else if ( info == nullptr ) {
+        count = tai_metadata_attr_sorted_by_id_name_count;
+        list = tai_metadata_attr_sorted_by_id_name;
+    } else {
+        count = info->attrmetadatalength;
+        list = info->attrmetadata;
     }
-    for ( uint32_t i = 0; i < info->attrmetadatalength; i++ ) {
-        auto src = info->attrmetadata[i];
+
+    for ( uint32_t i = 0; i < count; i++ ) {
+        auto src = list[i];
         auto dst = res.mutable_metadata();
         convert_metadata(src, dst);
         writer->Write(res);
     }
+
     return Status::OK;
 }
 
 ::grpc::Status TAIServiceImpl::GetAttributeMetadata(::grpc::ServerContext* context, const taish::GetAttributeMetadataRequest* request, taish::GetAttributeMetadataResponse* response) {
     auto object_type = request->object_type();
     int32_t attr_id = 0;
+    auto oid = request->oid();
+    auto l = request->location();
+    tai_char_list_t location{.count = static_cast<uint32_t>(l.size()), .list = const_cast<char*>(l.c_str())};
+    tai_metadata_key_t key{.oid = oid, .type = static_cast<tai_object_type_t>(object_type), .location = location};
+
     if ( request->attr_name() != "" ) {
         auto attr_name = request->attr_name();
         int ret;
         auto option = convert_serialize_option(request->serialize_option());
-        switch (object_type) {
-        case taish::MODULE:
-            ret = tai_deserialize_module_attr(attr_name.c_str(), &attr_id, &option);
-            break;
-        case taish::NETIF:
-            ret = tai_deserialize_network_interface_attr(attr_name.c_str(), &attr_id, &option);
-            break;
-        case taish::HOSTIF:
-            ret = tai_deserialize_host_interface_attr(attr_name.c_str(), &attr_id, &option);
-            break;
-        default:
-            ret = TAI_STATUS_NOT_SUPPORTED;
+
+        if ( m_api->meta_api != nullptr ) {
+            auto info = m_api->meta_api->get_object_info(&key);
+            if ( info == nullptr ) {
+                add_status(context, TAI_STATUS_NOT_SUPPORTED);
+                return Status::OK;
+            }
+            ret = tai_deserialize_enum(attr_name.c_str(), info->enummetadata, &attr_id, &option);
+        } else {
+            switch (object_type) {
+            case taish::MODULE:
+                ret = tai_deserialize_module_attr(attr_name.c_str(), &attr_id, &option);
+                break;
+            case taish::NETIF:
+                ret = tai_deserialize_network_interface_attr(attr_name.c_str(), &attr_id, &option);
+                break;
+            case taish::HOSTIF:
+                ret = tai_deserialize_host_interface_attr(attr_name.c_str(), &attr_id, &option);
+                break;
+            default:
+                ret = TAI_STATUS_NOT_SUPPORTED;
+            }
         }
+
         if ( ret < 0 ) {
             add_status(context, ret);
             return Status::OK;
@@ -170,7 +208,7 @@ static tai_serialize_option_t convert_serialize_option(const taish::SerializeOpt
         attr_id = request->attr_id();
     }
 
-    auto meta = tai_metadata_get_attr_metadata(static_cast<tai_object_type_t>(object_type), attr_id);
+    auto meta = get_metadata(m_api->meta_api, &key, attr_id);
     if ( meta == nullptr ) {
         return Status(StatusCode::NOT_FOUND, "not found metadata");
     }
@@ -187,7 +225,8 @@ static tai_serialize_option_t convert_serialize_option(const taish::SerializeOpt
     auto id = a.attr_id();
     auto value = a.value();
     auto type = tai_object_type_query(oid);
-    auto meta = tai_metadata_get_attr_metadata(type, id);
+    tai_metadata_key_t key{.oid = oid};
+    auto meta = get_metadata(m_api->meta_api, &key, id);
     auto option = convert_serialize_option(request->serialize_option());
 
     auto getter = [&](tai_attribute_t* attr) -> tai_status_t {
@@ -231,7 +270,8 @@ static tai_serialize_option_t convert_serialize_option(const taish::SerializeOpt
     auto id = a.attr_id();
     auto v = a.value();
     auto type = tai_object_type_query(oid);
-    auto meta = tai_metadata_get_attr_metadata(type, id);
+    tai_metadata_key_t key{.oid = oid};
+    auto meta = get_metadata(m_api->meta_api, &key, id);
     auto option = convert_serialize_option(request->serialize_option());
 
     auto ret = TAI_STATUS_SUCCESS;
@@ -291,17 +331,17 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
     }
     tai_notification_t notification;
     notification.oid = oid;
-    auto type = tai_object_type_query(oid);
+    tai_metadata_key_t key{.oid = oid};
+    auto n = static_cast<TAINotifier*>(context);
 
     for ( uint32_t i = 0; i < attr_count; i++ ) {
-        auto meta = tai_metadata_get_attr_metadata(type, attr_list[i].id);
+        auto meta = get_metadata(n->meta_api(), &key, attr_list[i].id);
         if ( meta == nullptr ) {
             continue;
         }
         notification.attrs.emplace_back(std::make_shared<tai::Attribute>(meta, &attr_list[i]));
     }
 
-    auto n = static_cast<TAINotifier*>(context);
     n->notify(notification);
 }
 
@@ -316,7 +356,8 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
     auto key = std::pair<tai_object_id_t, tai_attr_id_t>(oid, nid);
     auto option = convert_serialize_option(request->serialize_option());
 
-    auto meta = tai_metadata_get_attr_metadata(type, nid);
+    tai_metadata_key_t k{.oid = oid};
+    auto meta = get_metadata(m_api->meta_api, &k, nid);
     if ( meta == nullptr ) {
         return Status(StatusCode::NOT_FOUND, "not found metadata");
     }
@@ -491,12 +532,41 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
     std::vector<tai::S_Attribute> attrs;
     auto option = convert_serialize_option(request->serialize_option());
 
+    tai_metadata_key_t key{.type = TAI_OBJECT_TYPE_MODULE};
+    auto meta = get_metadata(m_api->meta_api, &key, TAI_MODULE_ATTR_LOCATION);
+    tai::S_Attribute loc;
+    if ( type != TAI_OBJECT_TYPE_MODULE ) {
+        auto getter = [&](tai_attribute_t* attr) -> tai_status_t {
+            return m_api->module_api->get_module_attribute(mid, attr);
+        };
+        try {
+            loc = std::make_unique<tai::Attribute>(meta, getter);
+        } catch ( tai::Exception& e ) {
+            add_status(context, e.err());
+            return Status::OK;
+        }
+    } else {
+        for ( auto i = 0; i < request->attrs_size(); i++ ) {
+            auto a = request->attrs(i);
+            auto id = a.attr_id();
+            if ( id == TAI_MODULE_ATTR_LOCATION ) {
+                loc = std::make_unique<tai::Attribute>(meta, a.value());
+                break;
+            }
+        }
+        if ( !loc ) {
+            add_status(context, TAI_STATUS_MANDATORY_ATTRIBUTE_MISSING);
+            return Status::OK;
+        }
+    }
+
     try {
         for ( auto i = 0; i < request->attrs_size(); i++ ) {
             auto a = request->attrs(i);
             auto id = a.attr_id();
             auto v = a.value();
-            auto meta = tai_metadata_get_attr_metadata(type, id);
+            tai_metadata_key_t key{.type = type, .location = loc->raw()->value.charlist};
+            auto meta = get_metadata(m_api->meta_api, &key, id);
             auto attr = std::make_shared<tai::Attribute>(meta, v, &option);
             attrs.emplace_back(attr);
         }
