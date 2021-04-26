@@ -38,7 +38,7 @@ static void add_status(::grpc::ServerContext* context, tai_status_t status) {
 }
 
 const tai_attr_metadata_t* const get_metadata(tai_meta_api_t* meta_api, const tai_metadata_key_t * const key, tai_attr_id_t attr_id) {
-    if ( meta_api != nullptr ) {
+    if ( meta_api != nullptr && meta_api->get_attr_metadata != nullptr) {
         return meta_api->get_attr_metadata(key, attr_id);
     }
     auto type = key->type;

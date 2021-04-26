@@ -47,7 +47,7 @@ class module;
 
 std::map<std::string, module*> g_modules;
 
-static int load_config(const json& config, std::vector<tai::S_Attribute>& list, tai_object_type_t t) {
+static int load_config(const json& config, std::vector<tai::S_Attribute>& list, tai_object_type_t t, const std::string& l) {
     int32_t attr_id;
     tai_serialize_option_t option{true, true, true};
 
@@ -59,28 +59,39 @@ static int load_config(const json& config, std::vector<tai::S_Attribute>& list, 
         return 0;
     }
 
+    tai_char_list_t location{.count = static_cast<uint32_t>(l.size()), .list = const_cast<char*>(l.c_str())};
+    tai_metadata_key_t key{.type = t, .location = location};
+
     for ( auto& a: config["attrs"].items() ) {
         int ret;
         option.json = false;
-        switch ( t ) {
-        case TAI_OBJECT_TYPE_MODULE:
-            ret = tai_deserialize_module_attr(a.key().c_str(), &attr_id, &option);
-            break;
-        case TAI_OBJECT_TYPE_HOSTIF:
-            ret = tai_deserialize_host_interface_attr(a.key().c_str(), &attr_id, &option);
-            break;
-        case TAI_OBJECT_TYPE_NETWORKIF:
-            ret = tai_deserialize_network_interface_attr(a.key().c_str(), &attr_id, &option);
-            break;
-        default:
-            throw std::runtime_error("unsupported object type");
+        if ( g_api.meta_api != nullptr && g_api.meta_api->get_object_info != nullptr ) {
+            auto info = g_api.meta_api->get_object_info(&key);
+            if ( info == nullptr ) {
+                throw std::runtime_error("failed to get object info");
+            }
+            ret = tai_deserialize_enum(a.key().c_str(), info->enummetadata, &attr_id, &option);
+        } else {
+            switch ( t ) {
+            case TAI_OBJECT_TYPE_MODULE:
+                ret = tai_deserialize_module_attr(a.key().c_str(), &attr_id, &option);
+                break;
+            case TAI_OBJECT_TYPE_HOSTIF:
+                ret = tai_deserialize_host_interface_attr(a.key().c_str(), &attr_id, &option);
+                break;
+            case TAI_OBJECT_TYPE_NETWORKIF:
+                ret = tai_deserialize_network_interface_attr(a.key().c_str(), &attr_id, &option);
+                break;
+            default:
+                throw std::runtime_error("unsupported object type");
+            }
         }
         if ( ret <  0 ) {
             std::stringstream ss;
             ss << "failed to deserialize attribute name: " << a.key();
             throw std::runtime_error(ss.str());
         }
-        auto meta = tai_metadata_get_attr_metadata(t, attr_id);
+        auto meta = get_metadata(g_api.meta_api, &key, attr_id);
         if ( meta == nullptr ) {
             std::stringstream ss;
             ss << "failed to get metadata for " << a.key();
@@ -114,7 +125,7 @@ class module {
             }
             list.push_back(std::make_shared<tai::Attribute>(meta, &attr));
 
-            load_config(config, list, TAI_OBJECT_TYPE_MODULE);
+            load_config(config, list, TAI_OBJECT_TYPE_MODULE, location);
 
             for ( auto& a : list ) {
                 raw_list.push_back(*a->raw());
@@ -140,8 +151,8 @@ class module {
             }
             std::cout << "num hostif: " << raw_list[0].value.u32 << std::endl;
             std::cout << "num netif: " << raw_list[1].value.u32 << std::endl;
-            create_hostif(raw_list[0].value.u32, config);
-            create_netif(raw_list[1].value.u32, config);
+            create_hostif(raw_list[0].value.u32, config, location);
+            create_netif(raw_list[1].value.u32, config, location);
         }
 
         const std::string& location() {
@@ -164,8 +175,8 @@ class module {
     private:
         tai_object_id_t m_id;
         std::string m_location;
-        int create_hostif(uint32_t num, const json& config);
-        int create_netif(uint32_t num, const json& config);
+        int create_hostif(uint32_t num, const json& config, const std::string& location);
+        int create_netif(uint32_t num, const json& config, const std::string& location);
 };
 
 void module_presence(bool present, char* location) {
@@ -175,7 +186,7 @@ void module_presence(bool present, char* location) {
     write(event_fd, &v, sizeof(uint64_t));
 }
 
-int module::create_hostif(uint32_t num, const json& config) {
+int module::create_hostif(uint32_t num, const json& config, const std::string& location) {
     auto c = config.find("hostif");
     for ( uint32_t i = 0; i < num; i++ ) {
         tai_object_id_t id;
@@ -197,7 +208,7 @@ int module::create_hostif(uint32_t num, const json& config) {
             ss << i;
             auto cc = c->find(ss.str());
             if ( cc != c->end() ) {
-                load_config(*cc, list, TAI_OBJECT_TYPE_HOSTIF);
+                load_config(*cc, list, TAI_OBJECT_TYPE_HOSTIF, location);
             }
         }
 
@@ -215,7 +226,7 @@ int module::create_hostif(uint32_t num, const json& config) {
     return 0;
 }
 
-int module::create_netif(uint32_t num, const json& config) {
+int module::create_netif(uint32_t num, const json& config, const std::string& location) {
     auto c = config.find("netif");
     for ( uint32_t i = 0; i < num; i++ ) {
         tai_object_id_t id;
@@ -237,7 +248,7 @@ int module::create_netif(uint32_t num, const json& config) {
             ss << i;
             auto cc = c->find(ss.str());
             if ( cc != c->end() ) {
-                load_config(*cc, list, TAI_OBJECT_TYPE_NETWORKIF);
+                load_config(*cc, list, TAI_OBJECT_TYPE_NETWORKIF, location);
             }
         }
 

@@ -77,7 +77,7 @@ const tai_attr_metadata_t* tai_metadata_get_attr_metadata(
         const tai_attr_metadata_t* const* const md = tai_metadata_attr_by_object_type[objecttype];
 
         /*
-         * Most obejct attributes are not flags, so we can use direct index to
+         * Most object attributes are not flags, so we can use direct index to
          * find attribute metadata, this should speed up search.
          */
 
