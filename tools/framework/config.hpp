@@ -8,7 +8,6 @@
 #include <vector>
 #include <cstring>
 #include <algorithm>
-#include <iostream>
 #include <functional>
 #include <mutex>
 
@@ -331,18 +330,24 @@ namespace tai::framework {
                 return m_config.size();
             }
 
-            template<tai_object_type_t S>
-            friend std::ostream& operator<<(std::ostream& os, const Config<S> &config);
+            tai_status_t direct_set(S_Attribute src) {
+                return _set(src, false, false, nullptr, true);
+            }
+
+            const tai_attribute_value_t* direct_get(tai_attr_id_t id) {
+                return _get(id, false, true);
+            }
+
         private:
 
-            const tai_attribute_value_t* _get(tai_attr_id_t id, bool no_default = false) const {
+            const tai_attribute_value_t* _get(tai_attr_id_t id, bool no_default = false, bool direct = false) const {
                 auto info = m_info.find(id);
-                if ( info == m_info.end() ) {
+                if ( !direct && info == m_info.end() ) {
                     return nullptr;
                 }
                 auto it = m_config.find(id);
                 if ( it == m_config.end() ) {
-                    if ( no_default ) {
+                    if ( no_default || direct ) {
                         return nullptr;
                     }
                     if ( info->second.defaultvalue != nullptr ) {
@@ -357,23 +362,23 @@ namespace tai::framework {
             }
 
             // readonly : if true, allow readonly attribute to be set
-            tai_status_t _set(S_Attribute src, bool readonly, bool without_hook, FSMState* fsm = nullptr) {
+            tai_status_t _set(S_Attribute src, bool readonly, bool without_hook, FSMState* fsm = nullptr, bool direct = false) {
                 auto info = m_info.find(src->id());
-                if ( info == m_info.end() ) {
+                if ( !direct && info == m_info.end() ) {
                     TAI_DEBUG("no meta: 0x%x", src->id());
                     return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
                 }
 
-                if ( !readonly && info->second.meta->isreadonly) {
+                if ( !direct && !readonly && info->second.meta->isreadonly) {
                     TAI_WARN("read only: 0x%x", src->id());
                     return TAI_STATUS_INVALID_ATTR_VALUE_0;
                 }
 
-                if ( fsm != nullptr && info->second.fsm != FSM_STATE_INIT ) {
+                if ( !direct && fsm != nullptr && info->second.fsm != FSM_STATE_INIT ) {
                     *fsm = info->second.fsm;
                 }
 
-                if ( !without_hook && info->second.setter != nullptr ) {
+                if ( !direct && !without_hook && info->second.setter != nullptr ) {
                     auto ret = info->second.setter(src->raw(), fsm, m_user);
                     if ( ret != TAI_STATUS_SUCCESS || info->second.no_store ) {
                         return ret;

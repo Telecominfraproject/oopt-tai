@@ -127,9 +127,13 @@ namespace tai::basic {
                     auto attribute = &attrs[i];
                     auto meta = tai_metadata_get_attr_metadata(T, attribute->id);
                     if ( meta == nullptr ) {
+                        TAI_ERROR("no metadata for attribute 0x%x", attribute->id);
                         return info[i].status;
                     }
-                    m_config[attribute->id] = std::make_shared<Attribute>(meta, *attribute);
+                    auto ret = tai::framework::Object<T>::config().direct_set(std::make_shared<Attribute>(meta, *attribute));
+                    if ( ret != TAI_STATUS_SUCCESS ) {
+                        return convert_tai_error_to_list(ret, info[i].index);
+                    }
                 }
                 return TAI_STATUS_SUCCESS;
             }
@@ -138,9 +142,10 @@ namespace tai::basic {
                 for ( auto i = 0; i< count; i++ ) {
                     auto attribute = &attrs[i];
                     auto meta = tai_metadata_get_attr_metadata(T, attribute->id);
-                    auto it = m_config.find(attribute->id);
-                    if ( it != m_config.end() ) {
-                        auto ret = tai_metadata_deepcopy_attr_value(meta, it->second->raw(), attribute);
+                    auto value = tai::framework::Object<T>::config().direct_get(attribute->id);
+                    if ( value != nullptr ) {
+                        tai_attribute_t in = {attribute->id, *value};
+                        auto ret = tai_metadata_deepcopy_attr_value(meta, &in, attribute);
                         if ( ret != TAI_STATUS_SUCCESS ) {
                             return info[i].status;
                         }
@@ -158,8 +163,6 @@ namespace tai::basic {
                 }
                 return TAI_STATUS_SUCCESS;
             }
-
-            std::map<tai_attr_id_t, S_Attribute> m_config;
     };
 
     class Module : public Object<TAI_OBJECT_TYPE_MODULE> {
