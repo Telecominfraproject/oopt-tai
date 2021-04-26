@@ -211,6 +211,52 @@ class TestTAI(unittest.TestCase):
         module = l[TAI_TEST_MODULE_LOCATION]
         self.assertEqual(len(module.hostifs), 2)
 
+class TestTAIWithConfig(unittest.TestCase):
+
+    def setUp(self):
+        if TAI_TEST_NO_LOCAL_TAISH_SERVER:
+            return
+        proc = sp.Popen(['taish_server', '-f', 'config.json'], stderr=sp.STDOUT, stdout=sp.PIPE)
+        self.d = threading.Thread(target=output_reader, args=(proc,))
+        self.d.start()
+        self.proc = proc
+        time.sleep(5) # wait for the server to be ready
+
+    def test_set_admin_status_attribute_module(self):
+        cli = taish.Client(TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT)
+        m = cli.get_module(TAI_TEST_MODULE_LOCATION)
+        self.assertNotEqual(m, None)
+        print('module oid: 0x{:x}'.format(m.oid))
+
+        self.assertEqual(m.get('admin-status'), 'down')
+
+        m.set('admin-status', 'up')
+
+        self.assertEqual(m.get('admin-status'), 'up')
+
+    def test_set_custom_attribute_module(self):
+        cli = taish.Client(TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT)
+        m = cli.get_module(TAI_TEST_MODULE_LOCATION)
+        self.assertNotEqual(m, None)
+        print('module oid: 0x{:x}'.format(m.oid))
+
+        self.assertEqual(m.get('custom'), 'true')
+
+        m.set('custom', 'false')
+
+        self.assertEqual(m.get('custom'), 'false')
+
+    def tearDown(self):
+        if TAI_TEST_NO_LOCAL_TAISH_SERVER:
+            return
+        self.proc.terminate()
+        self.proc.wait(timeout=0.2)
+        self.d.join()
+        self.proc.stdout.close()
+
+
+
+
 
 if __name__ == '__main__':
     unittest.main()
