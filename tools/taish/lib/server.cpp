@@ -69,12 +69,14 @@ const tai_attr_metadata_t* const get_metadata(tai_meta_api_t* meta_api, const ta
                 auto hostif = m->add_hostifs();
                 hostif->set_index(i);
                 hostif->set_oid(module.hostifs[i]);
+                hostif->set_module_oid(module.id);
             }
             m->clear_netifs();
             for ( uint32_t i = 0; i < module.netifs.size(); i++ ) {
                 auto netif = m->add_netifs();
                 netif->set_index(i);
                 netif->set_oid(module.netifs[i]);
+                netif->set_module_oid(module.id);
             }
         }
         writer->Write(res);
