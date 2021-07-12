@@ -148,6 +148,16 @@ typedef enum _tai_attr_value_type_t
     TAI_ATTR_VALUE_TYPE_S32LIST,
 
     /**
+     * @brief Attribute value is list of 64 bit unsigned integers.
+     */
+    TAI_ATTR_VALUE_TYPE_U64LIST,
+
+    /**
+     * @brief Attribute value is list of 64 bit signed integers.
+     */
+    TAI_ATTR_VALUE_TYPE_S64LIST,
+
+    /**
      * @brief Attribute value is list of float.
      */
     TAI_ATTR_VALUE_TYPE_FLOATLIST,
