@@ -478,6 +478,16 @@ int tai_deserialize_s32list(
         _Out_ tai_s32_list_t *value,
         _In_ const tai_serialize_option_t *option);
 
+int tai_deserialize_u64list(
+        _In_ const char *buffer,
+        _Out_ tai_u64_list_t *value,
+        _In_ const tai_serialize_option_t *option);
+
+int tai_deserialize_s64list(
+        _In_ const char *buffer,
+        _Out_ tai_s64_list_t *value,
+        _In_ const tai_serialize_option_t *option);
+
 int tai_deserialize_floatlist(
         _In_ const char *buffer,
         _Out_ tai_float_list_t *value,

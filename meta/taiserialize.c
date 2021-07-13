@@ -631,6 +631,8 @@ DEFINE_TAI_DESERIALIZE_LIST(u16list, tai_u16_list_t, uint16, uint16_t)
 DEFINE_TAI_DESERIALIZE_LIST(s16list, tai_s16_list_t, int16, int16_t)
 DEFINE_TAI_DESERIALIZE_LIST(u32list, tai_u32_list_t, uint32, uint32_t)
 DEFINE_TAI_DESERIALIZE_LIST(s32list, tai_s32_list_t, int32, int32_t)
+DEFINE_TAI_DESERIALIZE_LIST(u64list, tai_u64_list_t, uint64, uint64_t)
+DEFINE_TAI_DESERIALIZE_LIST(s64list, tai_s64_list_t, int64, int64_t)
 DEFINE_TAI_DESERIALIZE_LIST(floatlist, tai_float_list_t, float, float)
 
 int tai_serialize_enum(
@@ -961,6 +963,10 @@ int tai_serialize_attribute_value(
             _SERIALIZE(snprintf(ptr, n, "]"), count, ptr, n);
         }
         return ptr - buffer;
+    case TAI_ATTR_VALUE_TYPE_U64LIST:
+        _TAI_SERIALIZE_LIST(u64list, uint64);
+    case TAI_ATTR_VALUE_TYPE_S64LIST:
+        _TAI_SERIALIZE_LIST(s64list, int64);
     case TAI_ATTR_VALUE_TYPE_FLOATLIST:
         _TAI_SERIALIZE_LIST(floatlist, float);
     case TAI_ATTR_VALUE_TYPE_U32RANGE:
@@ -1153,6 +1159,10 @@ int tai_deserialize_attribute_value(
             return tai_deserialize_enumlist(buffer, meta->enummetadata, &value->s32list, option);
         }
         return tai_deserialize_s32list(buffer, &value->s32list, option);
+    case TAI_ATTR_VALUE_TYPE_U64LIST:
+        return tai_deserialize_u64list(buffer, &value->u64list, option);
+    case TAI_ATTR_VALUE_TYPE_S64LIST:
+        return tai_deserialize_s64list(buffer, &value->s64list, option);
     case TAI_ATTR_VALUE_TYPE_FLOATLIST:
         return tai_deserialize_floatlist(buffer, &value->floatlist, option);
     case TAI_ATTR_VALUE_TYPE_ATTRLIST:
@@ -1268,6 +1278,8 @@ int tai_serialize_attr_value_type(
     CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_S16LIST, "int16-list")
     CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_U32LIST, "uint32-list")
     CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_S32LIST, "int32-list")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_U64LIST, "uint64-list")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_S64LIST, "int64-list")
     CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_FLOATLIST, "float-list")
     CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_U32RANGE, "uint32-range")
     CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_S32RANGE, "int32-range")

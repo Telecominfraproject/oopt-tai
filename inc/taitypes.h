@@ -159,6 +159,18 @@ typedef struct _tai_s32_list_t
     int32_t *list;
 } tai_s32_list_t;
 
+typedef struct _tai_u64_list_t
+{
+    uint32_t count;
+    uint64_t *list;
+} tai_u64_list_t;
+
+typedef struct _tai_s64_list_t
+{
+    uint32_t count;
+    int64_t *list;
+} tai_s64_list_t;
+
 typedef struct _tai_float_list_t
 {
     uint32_t count;
@@ -266,6 +278,8 @@ typedef union _tai_attribute_value_t
     tai_s16_list_t s16list;
     tai_u32_list_t u32list;
     tai_s32_list_t s32list;
+    tai_u64_list_t u64list;
+    tai_s64_list_t s64list;
     tai_float_list_t floatlist;
     tai_u32_range_t u32range;
     tai_s32_range_t s32range;
