@@ -39,7 +39,7 @@ jobs:
             platforms: linux/amd64,linux/arm64
             file: ./docker/builder.Dockerfile
             tags: |
-                docker.io/microsonic/tai:${{ env.DOCKER_IMAGE_TAG }}
+                docker.io/microsonic/tai-builder:${{ env.DOCKER_IMAGE_TAG }}
             push: true
             cache-from: type=registry,ref=docker.io/microsonic/tai-builder:ci
             cache-to: type=inline
@@ -49,7 +49,7 @@ jobs:
           with:
             context: .
             build-args: |
-                TAI_DOCKER_BUILDER_IMAGE=docker.io/microsonic/tai-builder:${{ github.sha }}
+                TAI_DOCKER_BUILDER_IMAGE=docker.io/microsonic/tai-builder:${{ env.DOCKER_IMAGE_TAG }}
             platforms: linux/amd64,linux/arm64
             file: ./docker/run.Dockerfile
             tags: |
