@@ -390,7 +390,7 @@ int main(int argc, char *argv[]) {
     auto ip = TAI_RPC_DEFAULT_IP;
     auto port = TAI_RPC_DEFAULT_PORT;
     std::string config_file;
-    char c;
+    int c;
     tai_log_level_t level = TAI_LOG_LEVEL_INFO;
     auto auto_creation = true;
 
@@ -417,7 +417,7 @@ int main(int argc, char *argv[]) {
         break;
 
       default:
-        std::cerr << "Usage: taish -i <IP address> -p <Port number> -f <Config file> -v -n" << std::endl;
+        std::cerr << "usage: " << argv[0] << "-i <IP address> -p <Port number> -f <Config file> -v -n" << std::endl;
         return 1;
       }
     }
