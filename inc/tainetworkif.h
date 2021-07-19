@@ -77,6 +77,17 @@ typedef enum _tai_network_interface_tx_grid_spacing_t
     TAI_NETWORK_INTERFACE_TX_GRID_SPACING_MAX
 } tai_network_interface_tx_grid_spacing_t;
 
+/** @brief The line rates */
+typedef enum _tai_network_interface_line_rate_t
+{
+    TAI_NETWORK_INTERFACE_LINE_RATE_UNKNOWN,
+    TAI_NETWORK_INTERFACE_LINE_RATE_100G,
+    TAI_NETWORK_INTERFACE_LINE_RATE_200G,
+    TAI_NETWORK_INTERFACE_LINE_RATE_300G,
+    TAI_NETWORK_INTERFACE_LINE_RATE_400G,
+    TAI_NETWORK_INTERFACE_LINE_RATE_MAX
+} tai_network_interface_line_rate_t;
+
 /** @brief The modulation formats */
 typedef enum _tai_network_interface_modulation_format_t
 {
@@ -95,6 +106,15 @@ typedef enum _tai_network_interface_modulation_format_t
     TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_64_QAM,
     TAI_NETWORK_INTERFACE_MODULATION_FORMAT_MAX
 } tai_network_interface_modulation_format_t;
+
+/** @brief The FEC types */
+typedef enum _tai_network_interface_fec_type_t
+{
+    TAI_NETWORK_INTERFACE_FEC_TYPE_UNKNOWN,
+    TAI_NETWORK_INTERFACE_FEC_TYPE_SC_FEC,
+    TAI_NETWORK_INTERFACE_FEC_TYPE_CFEC,
+    TAI_NETWORK_INTERFACE_FEC_TYPE_OFEC,
+} tai_network_interface_fec_type_t;
 
 /** @brief The loopback types */
 typedef enum _tai_network_interface_loopback_type_t
@@ -249,6 +269,15 @@ typedef enum _tai_network_interface_attr_t
     TAI_NETWORK_INTERFACE_ATTR_TX_FINE_TUNE_LASER_FREQ,
 
     /**
+     * @brief The line rate
+     *
+     * @type #tai_network_interface_line_rate_t
+     * @flags CREATE_AND_SET
+     * @default vendor-specific
+     */
+    TAI_NETWORK_INTERFACE_ATTR_LINE_RATE,
+
+    /**
      * @brief The modulation format
      *
      * @type #tai_network_interface_modulation_format_t
@@ -256,6 +285,15 @@ typedef enum _tai_network_interface_attr_t
      * @default vendor-specific
      */
     TAI_NETWORK_INTERFACE_ATTR_MODULATION_FORMAT,
+
+    /**
+     * @brief The FEC type
+     *
+     * @type #tai_network_interface_fec_type_t
+     * @flags CREATE_AND_SET
+     * @default vendor-specific
+     */
+    TAI_NETWORK_INTERFACE_ATTR_FEC_TYPE,
 
     /**
      * @brief The current pre-FEC bit error rate
