@@ -41,7 +41,7 @@ jobs:
             tags: |
                 docker.io/microsonic/tai-builder:${{ env.DOCKER_IMAGE_TAG }}
             push: true
-            cache-from: type=registry,ref=docker.io/microsonic/tai-builder:ci
+            cache-from: type=registry,ref=docker.io/microsonic/tai-builder:latest
             cache-to: type=inline
         - 
           name: Build container
@@ -55,5 +55,5 @@ jobs:
             tags: |
                 docker.io/microsonic/tai:${{ env.DOCKER_IMAGE_TAG }}
             push: true
-            cache-from: type=registry,ref=docker.io/microsonic/tai:ci
+            cache-from: type=registry,ref=docker.io/microsonic/tai:latest
             cache-to: type=inline
