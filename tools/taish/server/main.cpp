@@ -385,14 +385,29 @@ static void log_cb(tai_log_level_t lvl, const char *file, int line, const char *
     std::cout << std::endl;
 }
 
+void signal_handler(int sig) {
+    std::cout << "HELLO SIGNAL" << std::endl;
+    uint64_t v = 1;
+    std::lock_guard<std::mutex> g(m);
+    q.push(std::pair<bool, std::string>(false, std::string("shutdown")));
+    write(event_fd, &v, sizeof(uint64_t));
+}
+
 int main(int argc, char *argv[]) {
 
     auto ip = TAI_RPC_DEFAULT_IP;
     auto port = TAI_RPC_DEFAULT_PORT;
     std::string config_file;
-    int c;
+    int c, ret = -1;
     tai_log_level_t level = TAI_LOG_LEVEL_INFO;
     auto auto_creation = true;
+    json config;
+    std::stringstream ss;
+
+    if ( signal(SIGINT, signal_handler) == SIG_ERR ) {
+        std::cerr << "failed to register signal handler" << std::endl;
+        return 1;
+    }
 
     while ((c = getopt (argc, argv, "i:p:f:vn")) != -1) {
       switch (c) {
@@ -429,31 +444,31 @@ int main(int argc, char *argv[]) {
     auto status = tai_api_initialize(0, &services);
     if ( status != TAI_STATUS_SUCCESS ) {
         std::cout << "failed to initialize" << std::endl;
-        return -1;
+        goto exit;
     }
 
     status = tai_log_set(TAI_API_UNSPECIFIED, level, log_cb);
     if ( status != TAI_STATUS_SUCCESS ) {
         std::cout << "failed to set log level" << std::endl;
-        return -1;
+        goto exit;
     }
 
     status = tai_api_query(TAI_API_MODULE, (void **)(&g_api.module_api));
     if ( status != TAI_STATUS_SUCCESS ) {
         std::cout << "failed to query MODULE API" << std::endl;
-        return -1;
+        goto exit;
     }
 
     status = tai_api_query(TAI_API_NETWORKIF, (void **)(&g_api.netif_api));
     if ( status != TAI_STATUS_SUCCESS ) {
         std::cout << "failed to query NETWORKIF API" << std::endl;
-        return -1;
+        goto exit;
     }
 
     status = tai_api_query(TAI_API_HOSTIF, (void **)(&g_api.hostif_api));
     if ( status != TAI_STATUS_SUCCESS ) {
         std::cout << "failed to query HOSTIF API" << std::endl;
-        return -1;
+        goto exit;
     }
 
     status = tai_api_query(TAI_API_META, (void **)(&g_api.meta_api));
@@ -464,16 +479,14 @@ int main(int argc, char *argv[]) {
     g_api.list_module = list_module;
     g_api.object_update = object_update;
 
-    std::stringstream ss;
     ss << ip << ":" << port;
     start_grpc_server(ss.str());
 
-    json config;
     if ( config_file != "" ) {
         std::ifstream ifs(config_file);
         if ( !ifs ) {
             std::cout << "failed to open config file: " << config_file << std::endl;
-            return -1;
+            goto exit;
         }
 
         std::istreambuf_iterator<char> it(ifs), last;
@@ -481,7 +494,7 @@ int main(int argc, char *argv[]) {
         config = json::parse(c);
         if ( !config.is_object() ) {
             std::cout << "invalid configuration. config is not object" << std::endl;
-            return -1;
+            goto exit;
         }
     }
 
@@ -493,6 +506,10 @@ int main(int argc, char *argv[]) {
             while ( !q.empty() ) {
                 auto p = q.front();
                 auto loc = p.second;
+                if ( loc == "shutdown" ) {
+                    ret = 0;
+                    goto exit;
+                }
                 std::cout << "present: " << p.first << ", loc: " << loc << std::endl;
                 if ( g_modules.find(loc) == g_modules.end() ) {
                     auto m = new module(loc, config[loc], auto_creation);
@@ -503,4 +520,7 @@ int main(int argc, char *argv[]) {
             }
         }
     }
+exit:
+    tai_api_uninitialize();
+    return ret;
 }
