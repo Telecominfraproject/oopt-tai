@@ -18,6 +18,7 @@ namespace tai::basic {
     class Platform : public tai::framework::Platform {
         public:
             Platform(const tai_service_method_table_t * services);
+            ~Platform();
             tai_status_t create(tai_object_type_t type, tai_object_id_t module_id, uint32_t attr_count, const tai_attribute_t * const attr_list, tai_object_id_t *id);
             tai_status_t remove(tai_object_id_t id);
             tai_object_type_t get_object_type(tai_object_id_t id);

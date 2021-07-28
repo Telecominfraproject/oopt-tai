@@ -10,6 +10,7 @@ namespace tai::framework {
     class Platform {
         public:
             Platform(const tai_service_method_table_t * services) : m_services(services) {};
+            virtual ~Platform() {};
             virtual tai_status_t create(tai_object_type_t type, tai_object_id_t module_id, uint32_t attr_count, const tai_attribute_t *attr_list, tai_object_id_t *id) { return TAI_STATUS_NOT_SUPPORTED; }
             tai_status_t create(tai_object_type_t type, uint32_t attr_count, const tai_attribute_t *attr_list, tai_object_id_t *id) {
                 return create(type, TAI_NULL_OBJECT_ID, attr_count, attr_list, id);

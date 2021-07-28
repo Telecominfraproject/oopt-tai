@@ -28,6 +28,20 @@ namespace tai::basic {
         }
     }
 
+    Platform::~Platform() {
+        std::vector<tai_object_id_t> oids;
+        for ( auto& it : m_objects ) {
+            oids.emplace_back(it.first);
+        }
+        for ( auto oid : oids ) {
+            auto ret = remove(oid);
+        }
+        for ( auto oid : oids ) {
+            auto ret = remove(oid);
+        }
+        m_fsms.erase(m_fsms.begin(), m_fsms.end());
+    }
+
     tai_status_t Platform::create(tai_object_type_t type, tai_object_id_t module_id, uint32_t count, const tai_attribute_t *list, tai_object_id_t *id) {
         std::shared_ptr<tai::framework::BaseObject> obj;
         try {
