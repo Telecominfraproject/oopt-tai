@@ -24,6 +24,12 @@ LDFLAGS ?= -shared -fPIC -fno-gnu-unique
 
 CFLAGS ?= -fPIC -fno-gnu-unique -DTAI_EXPOSE_PLATFORM $(INCLUDE) -Bsymbolic
 
+ifdef DEBUG
+    CFLAGS += -g3 -O0
+else
+    CFLAGS += -O2
+endif
+
 CXXFLAGS ?= $(CFLAGS) -std=c++17 -include basic.hpp
 
 LIBS := -lpthread
