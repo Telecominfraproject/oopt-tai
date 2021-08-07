@@ -640,16 +640,44 @@ typedef tai_status_t (*tai_get_network_interface_attributes_fn)(
         _Inout_ tai_attribute_t *attr_list);
 
 /**
+ * @brief Get network interface capability
+ *
+ * @param[in] network_interface_id Network interface id
+ * @param[inout] attr Attribute capability
+ *
+ * @return #TAI_STATUS_SUCCESS on success, failure status code on error
+ */
+typedef tai_status_t (*tai_get_network_interface_capability_fn)(
+        _In_ tai_object_id_t network_interface_id,
+        _Inout_ tai_attribute_capability_t *cap);
+
+/**
+ * @brief Get multiple network interface capabilities
+ *
+ * @param[in] network_interface_id Network Interface id
+ * @param[in] count Number of capabilities
+ * @param[inout] list Attribute capabilities
+ *
+ * @return #TAI_STATUS_SUCCESS on success, failure status code on error
+ */
+typedef tai_status_t (*tai_get_network_interface_capabilities_fn)(
+        _In_ tai_object_id_t network_interface_id,
+        _In_ uint32_t count,
+        _Inout_ tai_attribute_capability_t *list);
+
+/**
  * @brief Routing interface methods table retrieved with tai_api_query()
  */
 typedef struct _tai_network_interface_api_t
 {
-    tai_create_network_interface_fn          create_network_interface;
-    tai_remove_network_interface_fn          remove_network_interface;
-    tai_set_network_interface_attribute_fn   set_network_interface_attribute;
-    tai_set_network_interface_attributes_fn  set_network_interface_attributes;
-    tai_get_network_interface_attribute_fn   get_network_interface_attribute;
-    tai_get_network_interface_attributes_fn  get_network_interface_attributes;
+    tai_create_network_interface_fn             create_network_interface;
+    tai_remove_network_interface_fn             remove_network_interface;
+    tai_set_network_interface_attribute_fn      set_network_interface_attribute;
+    tai_set_network_interface_attributes_fn     set_network_interface_attributes;
+    tai_get_network_interface_attribute_fn      get_network_interface_attribute;
+    tai_get_network_interface_attributes_fn     get_network_interface_attributes;
+    tai_get_network_interface_capability_fn     get_network_interface_capability;
+    tai_get_network_interface_capabilities_fn   get_network_interface_capabilities;
 
 } tai_network_interface_api_t;
 

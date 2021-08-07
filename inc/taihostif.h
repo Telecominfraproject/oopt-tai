@@ -350,6 +350,32 @@ typedef tai_status_t (*tai_clear_host_interface_attributes_fn)(
         _In_ tai_attr_id_t *attr_id);
 
 /**
+ * @brief Get host interface capability
+ *
+ * @param[in] host_interface_id Host interface id
+ * @param[inout] attr Attribute capability
+ *
+ * @return #TAI_STATUS_SUCCESS on success, failure status code on error
+ */
+typedef tai_status_t (*tai_get_host_interface_capability_fn)(
+        _In_ tai_object_id_t host_interface_id,
+        _Inout_ tai_attribute_capability_t *cap);
+
+/**
+ * @brief Get multiple host interface capabilities
+ *
+ * @param[in] host_interface_id Host Interface id
+ * @param[in] count Number of capabilities
+ * @param[inout] list Attribute capabilities
+ *
+ * @return #TAI_STATUS_SUCCESS on success, failure status code on error
+ */
+typedef tai_status_t (*tai_get_host_interface_capabilities_fn)(
+        _In_ tai_object_id_t host_interface_id,
+        _In_ uint32_t count,
+        _Inout_ tai_attribute_capability_t *list);
+
+/**
  * @brief Host interface methods table retrieved with tai_api_query()
  */
 typedef struct _tai_host_interface_api_t
@@ -362,6 +388,9 @@ typedef struct _tai_host_interface_api_t
     tai_get_host_interface_attributes_fn        get_host_interface_attributes;
     tai_clear_host_interface_attribute_fn       clear_host_interface_attribute;
     tai_clear_host_interface_attributes_fn      clear_host_interface_attributes;
+    tai_get_host_interface_capability_fn        get_host_interface_capability;
+    tai_get_host_interface_capabilities_fn      get_host_interface_capabilities;
+
 } tai_host_interface_api_t;
 
 /**

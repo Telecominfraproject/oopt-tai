@@ -294,6 +294,32 @@ typedef struct _tai_attribute_t
     tai_attribute_value_t value;
 } tai_attribute_t;
 
+typedef struct _tai_attribute_capability_t {
+    tai_attr_id_t         id;
+
+    /* default value is set by TAI adapter */
+    bool                  valid_defaultvalue;
+    /* min is set by TAI adapter */
+    bool                  valid_min;
+    /* max is set by TAI adapter */
+    bool                  valid_max;
+    /* supportedvalues is set by TAI adapter */
+    bool                  valid_supportedvalues;
+
+    /* default value of this attribute */
+    tai_attribute_value_t defaultvalue;
+
+    /* minimum value of this attribute */
+    tai_attribute_value_t min;
+
+    /* maximum value of this attribute */
+    tai_attribute_value_t max;
+
+    /* supported values of this attribute ( only valid for enum attribute ) */
+    tai_attr_value_list_t supportedvalues;
+
+} tai_attribute_capability_t;
+
 /**
  * @}
  */

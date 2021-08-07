@@ -352,6 +352,32 @@ typedef tai_status_t (*tai_get_module_attributes_fn)(
         _Inout_ tai_attribute_t *attr_list);
 
 /**
+ * @brief Get module capability
+ *
+ * @param[in] module_id Module id
+ * @param[inout] cap Attribute capability
+ *
+ * @return #TAI_STATUS_SUCCESS on success, failure status code on error
+ */
+typedef tai_status_t (*tai_get_module_capability_fn)(
+        _In_ tai_object_id_t module_id,
+        _Inout_ tai_attribute_capability_t *cap);
+
+/**
+ * @brief Get multiple module capabilities
+ *
+ * @param[in] module_id Module id
+ * @param[in] count Number of capabilities
+ * @param[inout] list Attribute capabilities
+ *
+ * @return #TAI_STATUS_SUCCESS on success, failure status code on error
+ */
+typedef tai_status_t (*tai_get_module_capabilities_fn)(
+        _In_ tai_object_id_t module_id,
+        _In_ uint32_t count,
+        _Inout_ tai_attribute_capability_t *list);
+
+/**
  * @brief Module method table retrieved with tai_api_query()
  */
 typedef struct _tai_module_api_t
@@ -362,6 +388,8 @@ typedef struct _tai_module_api_t
     tai_set_module_attributes_fn    set_module_attributes;
     tai_get_module_attribute_fn     get_module_attribute;
     tai_get_module_attributes_fn    get_module_attributes;
+    tai_get_module_capability_fn    get_module_capability;
+    tai_get_module_capabilities_fn  get_module_capabilities;
 
 } tai_module_api_t;
 
