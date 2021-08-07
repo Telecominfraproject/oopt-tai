@@ -412,13 +412,13 @@ namespace tai::basic {
             select(FD_SETSIZE, &fs, NULL, NULL, NULL);
             if (FD_ISSET(evfd, &fs)) {
                 uint64_t r;
-                read(evfd, &r, sizeof(uint64_t));
+                r = read(evfd, &r, sizeof(uint64_t));
                 next = next_state();
                 goto ret;
             }
             if (FD_ISSET(tfd, &fs)) {
                 uint64_t r;
-                read(tfd, &r, sizeof(uint64_t));
+                r = read(tfd, &r, sizeof(uint64_t));
                 if ( configured() && !m_no_transit ) {
                     return FSM_STATE_READY;
                 }
@@ -455,13 +455,13 @@ namespace tai::basic {
             select(FD_SETSIZE, &fs, NULL, NULL, NULL);
             if (FD_ISSET(evfd, &fs)) {
                 uint64_t r;
-                read(evfd, &r, sizeof(uint64_t));
+                r = read(evfd, &r, sizeof(uint64_t));
                 next = next_state();
                 goto ret;
             }
             if (FD_ISSET(tfd, &fs)) {
                 uint64_t r;
-                read(tfd, &r, sizeof(uint64_t));
+                r = read(tfd, &r, sizeof(uint64_t));
                 // implementation of notification
                 if ( m_module != nullptr ) {
                     m_module->notify(TAI_MODULE_ATTR_NOTIFY, {
