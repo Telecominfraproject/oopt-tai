@@ -140,6 +140,22 @@ static tai_status_t clear_host_interface_attribute(_In_ tai_object_id_t id, _In_
     return clear_host_interface_attributes(id, 1, &attr_id);
 }
 
+static tai_status_t get_host_interface_capabilities(tai_object_id_t oid, uint32_t count, tai_attribute_capability_t *list) {
+    if ( g_platform == nullptr ) {
+        return TAI_STATUS_UNINITIALIZED;
+    }
+    auto obj = g_platform->get(oid, TAI_OBJECT_TYPE_HOSTIF);
+    if ( obj == nullptr ) {
+        return TAI_STATUS_ITEM_NOT_FOUND;
+    }
+    return obj->get_capabilities(count, list);
+}
+
+
+static tai_status_t get_host_interface_capability(tai_object_id_t oid, tai_attribute_capability_t *cap) {
+    return get_host_interface_capabilities(oid, 1, cap);
+}
+
 /**
  * @brief The host interface functions. This structure is retrieved via the 
  *        #tai_api_query function.
@@ -152,7 +168,9 @@ static tai_host_interface_api_t host_interface_api = {
     .get_host_interface_attribute    = get_host_interface_attribute,
     .get_host_interface_attributes   = get_host_interface_attributes,
     .clear_host_interface_attribute  = clear_host_interface_attribute,
-    .clear_host_interface_attributes = clear_host_interface_attributes
+    .clear_host_interface_attributes = clear_host_interface_attributes,
+    .get_host_interface_capability   = get_host_interface_capability,
+    .get_host_interface_capabilities = get_host_interface_capabilities
 };
 
 /**
@@ -234,6 +252,21 @@ static tai_status_t set_network_interface_attribute(
     return set_network_interface_attributes(id, 1, attr);
 }
 
+static tai_status_t get_network_interface_capabilities(tai_object_id_t oid, uint32_t count, tai_attribute_capability_t *list) {
+    if ( g_platform == nullptr ) {
+        return TAI_STATUS_UNINITIALIZED;
+    }
+    auto obj = g_platform->get(oid, TAI_OBJECT_TYPE_NETWORKIF);
+    if ( obj == nullptr ) {
+        return TAI_STATUS_ITEM_NOT_FOUND;
+    }
+    return obj->get_capabilities(count, list);
+}
+
+
+static tai_status_t get_network_interface_capability(tai_object_id_t oid, tai_attribute_capability_t *cap) {
+    return get_network_interface_capabilities(oid, 1, cap);
+}
 
 /**
  * @brief Network interface initialization. After the call the capability 
@@ -282,12 +315,14 @@ static tai_status_t remove_network_interface(_In_ tai_object_id_t network_interf
  *        #tai_api_query function.
  */
 static tai_network_interface_api_t network_interface_api = {
-    .create_network_interface         = create_network_interface,
-    .remove_network_interface         = remove_network_interface,
-    .set_network_interface_attribute  = set_network_interface_attribute,
-    .set_network_interface_attributes = set_network_interface_attributes,
-    .get_network_interface_attribute  = get_network_interface_attribute,
-    .get_network_interface_attributes = get_network_interface_attributes
+    .create_network_interface           = create_network_interface,
+    .remove_network_interface           = remove_network_interface,
+    .set_network_interface_attribute    = set_network_interface_attribute,
+    .set_network_interface_attributes   = set_network_interface_attributes,
+    .get_network_interface_attribute    = get_network_interface_attribute,
+    .get_network_interface_attributes   = get_network_interface_attributes,
+    .get_network_interface_capability   = get_network_interface_capability,
+    .get_network_interface_capabilities = get_network_interface_capabilities
 };
 
 tai_status_t remove_module(tai_object_id_t module_id) {
@@ -327,6 +362,22 @@ tai_status_t get_module_attribute(tai_object_id_t module_id, tai_attribute_t *at
     return get_module_attributes(module_id, 1, attr_list);
 }
 
+
+tai_status_t get_module_capabilities(tai_object_id_t oid, uint32_t count, tai_attribute_capability_t *list) {
+    if ( g_platform == nullptr ) {
+        return TAI_STATUS_UNINITIALIZED;
+    }
+    auto obj = g_platform->get(oid, TAI_OBJECT_TYPE_MODULE);
+    if ( obj == nullptr ) {
+        return TAI_STATUS_ITEM_NOT_FOUND;
+    }
+    return obj->get_capabilities(count, list);
+}
+
+tai_status_t get_module_capability(tai_object_id_t oid, tai_attribute_capability_t *cap) {
+    return get_module_capabilities(oid, 1, cap);
+}
+
 static tai_status_t create_module(tai_object_id_t *module_id, uint32_t attr_count, const tai_attribute_t *attr_list) {
     if ( g_platform == nullptr ) {
         return TAI_STATUS_UNINITIALIZED;
@@ -341,6 +392,8 @@ static tai_module_api_t module_api = {
     .set_module_attributes = set_module_attributes,
     .get_module_attribute =  get_module_attribute,
     .get_module_attributes = get_module_attributes,
+    .get_module_capability = get_module_capability,
+    .get_module_capabilities = get_module_capabilities
 };
 
 static tai_status_t list_metadata(const tai_metadata_key_t *const key, uint32_t *count, const tai_attr_metadata_t * const **list) {
