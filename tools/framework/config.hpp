@@ -122,14 +122,6 @@ namespace tai::framework {
                 }
             }
 
-            std::vector<tai_attribute_t> list() const {
-                std::unique_lock<std::mutex> lk(m_mtx);
-                std::vector<tai_attribute_t> list;
-                std::transform(m_config.begin(), m_config.end(), list.begin(),
-                    [](std::pair<const tai_attr_id_t, S_Attribute>& p) { return p.second->raw(); });
-                return list;
-            }
-
             const tai_attribute_value_t* get(tai_attr_id_t id, bool no_default = false) const {
                 std::unique_lock<std::mutex> lk(m_mtx);
                 return _get(id, no_default);
