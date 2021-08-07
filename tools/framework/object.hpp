@@ -13,6 +13,7 @@ namespace tai::framework {
             virtual tai_status_t get_attributes(uint32_t attr_count, tai_attribute_t* const attr_list) = 0;
             virtual tai_status_t set_attributes(uint32_t attr_count, const tai_attribute_t* const attr_list) = 0;
             virtual tai_status_t clear_attributes(uint32_t attr_count, const tai_attr_id_t* const attr_id_list) = 0;
+            virtual tai_status_t get_capabilities(uint32_t count, tai_attribute_capability_t* const list) = 0;
     };
 
     using S_BaseObject = std::shared_ptr<BaseObject>;
@@ -24,7 +25,7 @@ namespace tai::framework {
     template<tai_object_type_t T>
     class Object : public BaseObject {
         public:
-            Object(uint32_t attr_count = 0 , const tai_attribute_t* const attr_list = nullptr, S_FSM fsm = std::make_shared<FSM>(), void* user = nullptr, default_setter_f setter = nullptr, default_getter_f getter = nullptr) : m_fsm(fsm), m_config(attr_count, attr_list, user, setter, getter) {}
+            Object(uint32_t attr_count = 0 , const tai_attribute_t* const attr_list = nullptr, S_FSM fsm = std::make_shared<FSM>(), void* user = nullptr, default_setter_f setter = nullptr, default_getter_f getter = nullptr, default_cap_getter_f cap_getter = nullptr) : m_fsm(fsm), m_config(attr_count, attr_list, user, setter, getter, cap_getter) {}
 
             bool configured() {
                 return m_fsm->configured();
@@ -34,10 +35,10 @@ namespace tai::framework {
             tai_status_t get_attributes(uint32_t attr_count, tai_attribute_t* const attr_list);
             tai_status_t set_attributes(uint32_t attr_count, const tai_attribute_t* const attr_list);
             tai_status_t clear_attributes(uint32_t attr_count, const tai_attr_id_t* const attr_id_list);
+            tai_status_t get_capabilities(uint32_t count, tai_attribute_capability_t* const list);
 
             tai_status_t notify(tai_attr_id_t notification_id, const std::vector<tai_attr_id_t>& ids, bool alarm = false);
             tai_status_t notify_alarm(tai_attr_id_t notification_id, const std::vector<tai_attr_id_t>& ids);
-
 
             int clear_alarm_cache() {
                 return m_alarm_cache.clear_all();
@@ -56,6 +57,7 @@ namespace tai::framework {
                 m_transit_cond = f;
             }
 
+
         private:
 
             std::mutex m_mtx;
@@ -70,6 +72,7 @@ namespace tai::framework {
             tai_status_t _get_attributes(uint32_t attr_count, tai_attribute_t* const attr_list);
             tai_status_t _set_attributes(uint32_t attr_count, const tai_attribute_t* const attr_list);
             tai_status_t _clear_attributes(uint32_t attr_count, const tai_attr_id_t* const attr_list);
+            tai_status_t _get_capabilities(uint32_t count, tai_attribute_capability_t* const list);
 
             tai_status_t _transit(FSMState next, transit_cond_context ctx);
     };
@@ -115,6 +118,17 @@ namespace tai::framework {
             return ret;
         }
         return _transit(next_state, TRANSIT_COND_CONTEXT_CLEAR);
+    }
+
+    template<tai_object_type_t T>
+    tai_status_t Object<T>::get_capabilities(uint32_t count, tai_attribute_capability_t* const list) {
+        std::unique_lock<std::mutex> lk(m_mtx);
+        return _get_capabilities(count, list);
+    }
+
+    template<tai_object_type_t T>
+    tai_status_t Object<T>::_get_capabilities(uint32_t count, tai_attribute_capability_t* const list) {
+        return m_config.get_capabilities(count, list);
     }
 
     template<tai_object_type_t T>
