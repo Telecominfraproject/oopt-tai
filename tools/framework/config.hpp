@@ -217,6 +217,10 @@ namespace tai::framework {
             }
 
             tai_status_t set_attributes(uint32_t attr_count, const tai_attribute_t * const attr_list, FSMState& next_state, bool readonly = false) {
+                if ( attr_count == 0 ) {
+                    return TAI_STATUS_SUCCESS;
+                }
+
                 std::vector<const tai_attribute_t*> diff;
                 {
                     std::unique_lock<std::mutex> lk(m_mtx);
