@@ -7,6 +7,7 @@ service TAI {
     rpc ListAttributeMetadata(ListAttributeMetadataRequest) returns (stream ListAttributeMetadataResponse);
     rpc GetAttributeMetadata(GetAttributeMetadataRequest) returns (GetAttributeMetadataResponse);
     rpc GetAttribute(GetAttributeRequest) returns (GetAttributeResponse);
+    rpc GetAttributeCapability(GetAttributeCapabilityRequest) returns (GetAttributeCapabilityResponse);
     rpc SetAttribute(SetAttributeRequest) returns (SetAttributeResponse);
     rpc ClearAttribute(ClearAttributeRequest) returns (ClearAttributeResponse);
     rpc Monitor(MonitorRequest) returns (stream MonitorResponse);
@@ -74,6 +75,16 @@ message GetAttributeMetadataRequest {
 
 message GetAttributeMetadataResponse {
     AttributeMetadata metadata = 1;
+}
+
+message GetAttributeCapabilityRequest {
+    uint64 oid = 1;
+    uint64 attr_id = 2;
+    SerializeOption serialize_option = 3;
+}
+
+message GetAttributeCapabilityResponse {
+    AttributeCapability capability = 1;
 }
 
 message GetAttributeRequest {
@@ -156,6 +167,14 @@ message AttributeMetadata {
     bool is_createandset = 9;
     bool is_key = 10;
     bool is_enum = 11;
+}
+
+message AttributeCapability {
+    uint64 attr_id = 1;
+    string default_value = 2;
+    string min = 3;
+    string max = 4;
+    repeated string supportedvalues = 5;
 }
 
 message HostInterface {

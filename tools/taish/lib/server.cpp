@@ -17,6 +17,7 @@
 #include <chrono>
 #include <functional>
 #include "attribute.hpp"
+#include "capability.hpp"
 
 using grpc::Status;
 using grpc::StatusCode;
@@ -125,6 +126,36 @@ static void convert_metadata(const tai_attr_metadata_t* const src, taish::Attrib
     dst->set_is_enum(src->isenum);
 }
 
+static void convert_capability(tai_serialize_option_t option, const tai_attr_metadata_t* const meta, const tai_attribute_capability_t* const src, taish::AttributeCapability* const dst) {
+    dst->set_attr_id(src->id);
+    if ( src->valid_defaultvalue ) {
+        tai_attribute_t a{.id = meta->attrid, .value = src->defaultvalue};
+        auto attr = std::make_unique<tai::Attribute>(meta, a);
+        auto v = attr->to_string(&option);
+        dst->set_default_value(v);
+    }
+    if ( src->valid_min ) {
+        tai_attribute_t a{.id = meta->attrid, .value = src->min};
+        auto attr = std::make_unique<tai::Attribute>(meta, a);
+        auto v = attr->to_string(&option);
+        dst->set_min(v);
+    }
+    if ( src->valid_max ) {
+        tai_attribute_t a{.id = meta->attrid, .value = src->max};
+        auto attr = std::make_unique<tai::Attribute>(meta, a);
+        auto v = attr->to_string(&option);
+        dst->set_max(v);
+    }
+    if ( src->valid_supportedvalues ) {
+        for ( int i = 0; i < static_cast<int>(src->supportedvalues.count); i++ ) {
+            tai_attribute_t a{.id = meta->attrid, .value = src->supportedvalues.list[i]};
+            auto attr = std::make_unique<tai::Attribute>(meta, a);
+            auto v = attr->to_string(&option);
+            dst->add_supportedvalues(v);
+        }
+    }
+}
+
 static tai_serialize_option_t convert_serialize_option(const taish::SerializeOption& src) {
     tai_serialize_option_t dst;
     dst.human = src.human();
@@ -217,6 +248,51 @@ static tai_serialize_option_t convert_serialize_option(const taish::SerializeOpt
     auto res = response->mutable_metadata();
     convert_metadata(meta, res);
     add_status(context, TAI_STATUS_SUCCESS);
+    return Status::OK;
+}
+
+
+::grpc::Status TAIServiceImpl::GetAttributeCapability(::grpc::ServerContext* context, const taish::GetAttributeCapabilityRequest* request, taish::GetAttributeCapabilityResponse* response) {
+    auto oid = request->oid();
+    tai_attr_id_t attr_id = request->attr_id();
+    auto type = tai_object_type_query(oid);
+    tai_metadata_key_t key{.oid = oid};
+    tai_status_t ret = TAI_STATUS_SUCCESS;
+    auto meta = get_metadata(m_api->meta_api, &key, attr_id);
+    if ( meta == nullptr ) {
+        return Status(StatusCode::NOT_FOUND, "not found metadata");
+    }
+
+    auto getter = [&](tai_attribute_capability_t* cap) -> tai_status_t {
+        switch (type) {
+        case TAI_OBJECT_TYPE_MODULE:
+            if ( m_api->module_api->get_module_capability == nullptr ) {
+                return TAI_STATUS_NOT_SUPPORTED;
+            }
+            return m_api->module_api->get_module_capability(oid, cap);
+        case TAI_OBJECT_TYPE_NETWORKIF:
+            if ( m_api->netif_api->get_network_interface_capability == nullptr ) {
+                return TAI_STATUS_NOT_SUPPORTED;
+            }
+            return m_api->netif_api->get_network_interface_capability(oid, cap);
+        case TAI_OBJECT_TYPE_HOSTIF:
+            if ( m_api->hostif_api->get_host_interface_capability == nullptr ) {
+                return TAI_STATUS_NOT_SUPPORTED;
+            }
+            return m_api->hostif_api->get_host_interface_capability(oid, cap);
+        default:
+            return TAI_STATUS_NOT_SUPPORTED;
+        }
+    };
+
+    try {
+        auto cap = std::make_unique<tai::Capability>(meta, getter);
+        auto option = convert_serialize_option(request->serialize_option());
+        convert_capability(option, meta, cap->raw(), response->mutable_capability());
+    } catch (tai::Exception& e) {
+        ret = e.err();
+    }
+    add_status(context, ret);
     return Status::OK;
 }
 
