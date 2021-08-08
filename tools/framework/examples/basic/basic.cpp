@@ -519,6 +519,17 @@ namespace tai::basic {
         .u32 = BASIC_NUM_HOSTIF,
     };
 
+    tai_status_t module_admin_status_cap_getter(tai_attribute_capability_t* const cap, void* user) {
+        if ( cap->supportedvalues.count < 2 ) {
+            return TAI_STATUS_BUFFER_OVERFLOW;
+        }
+        cap->supportedvalues.count = 2;
+        cap->supportedvalues.list[0].s32 = TAI_MODULE_ADMIN_STATUS_DOWN;
+        cap->supportedvalues.list[1].s32 = TAI_MODULE_ADMIN_STATUS_UP;
+        cap->valid_supportedvalues = true;
+        return TAI_STATUS_SUCCESS;
+    }
+
     tai_status_t module_tributary_mapping_getter(tai_attribute_t* const attribute, void* user) {
         auto fsm = reinterpret_cast<FSM*>(user);
         return fsm->get_tributary_mapping(attribute);
@@ -534,8 +545,8 @@ namespace tai::basic {
         basic::M(TAI_MODULE_ATTR_NUM_HOST_INTERFACES)
             .set_default(&tai::basic::default_tai_module_num_host_interfaces),
         basic::M(TAI_MODULE_ATTR_ADMIN_STATUS)
-            .set_validator(EnumValidator({TAI_MODULE_ADMIN_STATUS_DOWN, TAI_MODULE_ADMIN_STATUS_UP}))
-            .set_fsm_state(FSM_STATE_WAITING_CONFIGURATION),
+            .set_fsm_state(FSM_STATE_WAITING_CONFIGURATION)
+            .set_cap_getter(tai::basic::module_admin_status_cap_getter),
         basic::M(TAI_MODULE_ATTR_TRIBUTARY_MAPPING)
             .set_getter(tai::basic::module_tributary_mapping_getter),
         basic::M(TAI_MODULE_ATTR_MODULE_SHUTDOWN_REQUEST_NOTIFY),
@@ -553,13 +564,25 @@ namespace tai::basic {
         return fsm->get_tx_dis(attribute);
     }
 
+    static const tai_attribute_value_t min_tai_netif_output_power = {
+        .flt = -20,
+    };
+
+    static const tai_attribute_value_t max_tai_netif_output_power = {
+        .flt = 1,
+    };
+
     template <> const AttributeInfoMap<TAI_OBJECT_TYPE_NETWORKIF> Config<TAI_OBJECT_TYPE_NETWORKIF>::m_info {
         basic::N(TAI_NETWORK_INTERFACE_ATTR_INDEX),
         basic::N(TAI_NETWORK_INTERFACE_ATTR_TX_DIS)
             .set_setter(tai::basic::netif_tx_dis_setter)
             .set_getter(tai::basic::netif_tx_dis_getter),
         basic::N(TAI_NETWORK_INTERFACE_ATTR_TX_LASER_FREQ),
-        basic::N(TAI_NETWORK_INTERFACE_ATTR_OUTPUT_POWER),
+        basic::N(TAI_NETWORK_INTERFACE_ATTR_OUTPUT_POWER)
+            .set_min(&tai::basic::min_tai_netif_output_power)
+            .set_max(&tai::basic::max_tai_netif_output_power),
+        basic::N(TAI_NETWORK_INTERFACE_ATTR_MODULATION_FORMAT)
+            .set_valid_enums({TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_QPSK, TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_16_QAM, TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_64_QAM})
     };
 
     template <> const AttributeInfoMap<TAI_OBJECT_TYPE_HOSTIF> Config<TAI_OBJECT_TYPE_HOSTIF>::m_info {

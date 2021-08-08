@@ -113,7 +113,8 @@ namespace tai::basic {
         public:
             Object(uint32_t count, const tai_attribute_t *list, S_FSM fsm) : tai::framework::Object<T>(count, list, fsm, reinterpret_cast<void*>(fsm.get()),
                     std::bind(&Object::default_setter, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
-                    std::bind(&Object::default_getter, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4)) {}
+                    std::bind(&Object::default_getter, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+                    std::bind(&Object::default_cap_getter, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4)) {}
 
             tai_object_id_t id() const {
                 return m_id;
@@ -160,6 +161,20 @@ namespace tai::basic {
                         }
                     } else {
                         return TAI_STATUS_UNINITIALIZED;
+                    }
+                }
+                return TAI_STATUS_SUCCESS;
+            }
+
+            tai_status_t default_cap_getter(uint32_t count, tai_attribute_capability_t* const caps, void* const user, const tai::framework::error_info* const info) {
+                for ( auto i = 0; i< count; i++ ) {
+                    auto cap = &caps[i];
+                    auto meta = tai_metadata_get_attr_metadata(T, cap->id);
+                    if ( meta == nullptr ) {
+                        return convert_tai_error_to_list(TAI_STATUS_ATTR_NOT_SUPPORTED_0, info[i].index);
+                    }
+                    if ( meta->defaultvalue != nullptr ) {
+                        cap->defaultvalue = *meta->defaultvalue;
                     }
                 }
                 return TAI_STATUS_SUCCESS;
