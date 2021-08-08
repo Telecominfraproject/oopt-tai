@@ -105,6 +105,7 @@ class TAIServiceImpl final : public taish::TAI::Service {
         ::grpc::Status ListModule(::grpc::ServerContext* context, const taish::ListModuleRequest* request, ::grpc::ServerWriter< taish::ListModuleResponse>* writer);
         ::grpc::Status ListAttributeMetadata(::grpc::ServerContext* context, const taish::ListAttributeMetadataRequest* request, ::grpc::ServerWriter< taish::ListAttributeMetadataResponse>* writer);
         ::grpc::Status GetAttributeMetadata(::grpc::ServerContext* context, const taish::GetAttributeMetadataRequest* request, taish::GetAttributeMetadataResponse* response);
+        ::grpc::Status GetAttributeCapability(::grpc::ServerContext* context, const taish::GetAttributeCapabilityRequest* request, taish::GetAttributeCapabilityResponse* response);
         ::grpc::Status GetAttribute(::grpc::ServerContext* context, const taish::GetAttributeRequest* request, taish::GetAttributeResponse* response);
         ::grpc::Status SetAttribute(::grpc::ServerContext* context, const taish::SetAttributeRequest* request, taish::SetAttributeResponse* response);
         ::grpc::Status ClearAttribute(::grpc::ServerContext* context, const taish::ClearAttributeRequest* request, taish::ClearAttributeResponse* response);

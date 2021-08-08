@@ -68,6 +68,15 @@ class TAIShellObject(Object):
             except TAIException as e:
                 print('err: {} (code: {:x})'.format(e.msg, e.code))
 
+        @self.command(TAICompleter(m, set_=False))
+        def capability(args):
+            if len(args) != 1:
+                raise InvalidInput('usage: capability <name>')
+            try:
+                print(self.client.get_attribute_capability(args[0]))
+            except TAIException as e:
+                print('err: {} (code {:x})'.format(e.msg, e.code))
+
         @self.command()
         def monitor(args):
             if len(args) == 0:

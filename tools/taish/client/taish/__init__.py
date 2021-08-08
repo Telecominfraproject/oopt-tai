@@ -62,6 +62,9 @@ class TAIObject(object):
     def get_attribute_metadata(self, attr):
         return self.client.get_attribute_metadata(self.object_type, attr, oid=self.oid)
 
+    def get_attribute_capability(self, attr, json=False):
+        return self.client.get_attribute_capability(self.oid, attr, json)
+
     def set(self, attr_id, value):
         return self.client.set(self.object_type, self.oid, attr_id, value)
 
@@ -132,6 +135,28 @@ class AsyncClient(object):
         req.oid = oid
         req.location = location
         return [res.metadata for res in await self.stub.ListAttributeMetadata(req)]
+
+    async def get_attribute_capability(self, oid, attr, json=False):
+        async with self.stub.GetAttributeCapability.open() as stream:
+
+            if type(attr) == int:
+                attr_id = attr
+            elif type(attr) == str:
+                meta = await self.get_attribute_metadata(0, attr, oid=oid)
+                attr_id = meta.attr_id
+            else:
+                attr_id = attr.attr_id
+
+            req = taish_pb2.GetAttributeCapabilityRequest()
+            set_default_serialize_option(req)
+            req.oid = oid
+            req.attr_id = attr_id
+            req.serialize_option.json = json
+            await stream.send_message(req)
+            res = await stream.recv_message()
+            await stream.recv_trailing_metadata()
+            check_metadata(stream.trailing_metadata)
+            return res.capability
 
     async def get_attribute_metadata(self, object_type, attr, oid=0, location=''):
         async with self.stub.GetAttributeMetadata.open() as stream:
