@@ -348,6 +348,14 @@ bool tai_metadata_is_condition_met(
     *result = ( lhs->value.valuename == rhs->value.valuename );\
     break;
 
+#define _TAI_META_LE(result, valuename)                       \
+    *result = ( lhs->value.valuename <= rhs->value.valuename );\
+    break;
+
+#define _TAI_META_GE(result, valuename)                       \
+    *result = ( lhs->value.valuename >= rhs->value.valuename );\
+    break;
+
 #define _TAI_META_CMP_LIST(result, valuename)                                 \
     {                                                                         \
     if( lhs->value.valuename.count != rhs->value.valuename.count ) {          \
@@ -562,7 +570,6 @@ static int _tai_list_size(
         return -1;
     }
 }
-
 
 static tai_status_t _tai_metadata_alloc_attr_value(
         _In_ const tai_attr_metadata_t* const metadata,
@@ -812,6 +819,74 @@ tai_status_t tai_metadata_deepcopy_attr_value(
     }
     out->id = in->id;
     return _tai_metadata_deepcopy_attr_value(metadata, &in->value, &out->value);
+}
+
+// if lhs <= rhs then result=1, else result=0
+tai_status_t tai_metadata_le_attr_value(
+        _In_ const tai_attr_metadata_t* const metadata,
+        _In_ const tai_attribute_t* const lhs,
+        _In_ const tai_attribute_t* const rhs,
+        _Out_ bool* result) {
+    if ( metadata == NULL || result == NULL || lhs == NULL || rhs == NULL || lhs->id != rhs->id ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    switch ( metadata->attrvaluetype ) {
+    case TAI_ATTR_VALUE_TYPE_U8:
+        _TAI_META_LE(result, u8)
+    case TAI_ATTR_VALUE_TYPE_S8:
+        _TAI_META_LE(result, s8)
+    case TAI_ATTR_VALUE_TYPE_U16:
+        _TAI_META_LE(result, u16)
+    case TAI_ATTR_VALUE_TYPE_S16:
+        _TAI_META_LE(result, s16)
+    case TAI_ATTR_VALUE_TYPE_U32:
+        _TAI_META_LE(result, u32)
+    case TAI_ATTR_VALUE_TYPE_S32:
+        _TAI_META_LE(result, s32)
+    case TAI_ATTR_VALUE_TYPE_U64:
+        _TAI_META_LE(result, u64)
+    case TAI_ATTR_VALUE_TYPE_S64:
+        _TAI_META_LE(result, s64)
+    case TAI_ATTR_VALUE_TYPE_FLT:
+        _TAI_META_LE(result, flt)
+    default:
+        return TAI_STATUS_NOT_SUPPORTED;
+    }
+    return TAI_STATUS_SUCCESS;
+}
+
+// if lhs => rhs then result=1, else result=0 
+tai_status_t tai_metadata_ge_attr_value(
+        _In_ const tai_attr_metadata_t* const metadata,
+        _In_ const tai_attribute_t* const lhs,
+        _In_ const tai_attribute_t* const rhs,
+        _Out_ bool* result) {
+    if ( metadata == NULL || result == NULL || lhs == NULL || rhs == NULL || lhs->id != rhs->id ) {
+        return TAI_STATUS_INVALID_PARAMETER;
+    }
+    switch ( metadata->attrvaluetype ) {
+    case TAI_ATTR_VALUE_TYPE_U8:
+        _TAI_META_GE(result, u8)
+    case TAI_ATTR_VALUE_TYPE_S8:
+        _TAI_META_GE(result, s8)
+    case TAI_ATTR_VALUE_TYPE_U16:
+        _TAI_META_GE(result, u16)
+    case TAI_ATTR_VALUE_TYPE_S16:
+        _TAI_META_GE(result, s16)
+    case TAI_ATTR_VALUE_TYPE_U32:
+        _TAI_META_GE(result, u32)
+    case TAI_ATTR_VALUE_TYPE_S32:
+        _TAI_META_GE(result, s32)
+    case TAI_ATTR_VALUE_TYPE_U64:
+        _TAI_META_GE(result, u64)
+    case TAI_ATTR_VALUE_TYPE_S64:
+        _TAI_META_GE(result, s64)
+    case TAI_ATTR_VALUE_TYPE_FLT:
+        _TAI_META_GE(result, flt)
+    default:
+        return TAI_STATUS_NOT_SUPPORTED;
+    }
+    return TAI_STATUS_SUCCESS;
 }
 
 tai_status_t tai_metadata_deepequal_attr_value(
