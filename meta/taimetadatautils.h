@@ -239,6 +239,18 @@ extern tai_status_t tai_metadata_deepequal_attr_value(
         _In_ const tai_attribute_t* const rhs,
         _Out_ bool* result);
 
+extern tai_status_t tai_metadata_le_attr_value(
+        _In_ const tai_attr_metadata_t* const metadata,
+        _In_ const tai_attribute_t* const lhs,
+        _In_ const tai_attribute_t* const rhs,
+        _Out_ bool* result);
+
+extern tai_status_t tai_metadata_ge_attr_value(
+        _In_ const tai_attr_metadata_t* const metadata,
+        _In_ const tai_attribute_t* const lhs,
+        _In_ const tai_attribute_t* const rhs,
+        _Out_ bool* result);
+
 /**
  * @}
  */
