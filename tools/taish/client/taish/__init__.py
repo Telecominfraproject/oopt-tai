@@ -364,13 +364,7 @@ class Client(object):
                 i = self.in_q.get()
                 if i == None:
                     return
-                if type(i) == str:
-                    fname = i
-                    args = []
-                elif type(i) == list:
-                    fname = i[0]
-                    args = i[1:]
-
+                fname, args, kwargs = i
                 try:
                     f = getattr(c, fname)
                     ret = await f(*args)
@@ -398,8 +392,8 @@ class Client(object):
             task.cancel()
 
     def __getattr__(self, name):
-        def f(*args):
-            self.in_q.put([name, *args])
+        def f(*args, **kwargs):
+            self.in_q.put((name, args, kwargs))
             ret = self.out_q.get()
             if isinstance(ret, Exception):
                 raise ret
