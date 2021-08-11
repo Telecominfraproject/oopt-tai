@@ -367,7 +367,7 @@ class Client(object):
                 fname, args, kwargs = i
                 try:
                     f = getattr(c, fname)
-                    ret = await f(*args)
+                    ret = await f(*args, **kwargs)
                 except Exception as e:
                     ret = e
 
@@ -382,11 +382,11 @@ class Client(object):
         self.in_q.put(None)
         self.t.join()
 
-    def monitor(self, *args):
+    def monitor(self, *args, **kwargs):
         try:
             c = AsyncClient(self.addr, self.port)
             loop = asyncio.get_event_loop()
-            task = loop.create_task(c.monitor(*args))
+            task = loop.create_task(c.monitor(*args, **kwargs))
             return loop.run_forever()
         except KeyboardInterrupt:
             task.cancel()
