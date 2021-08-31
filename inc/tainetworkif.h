@@ -116,6 +116,24 @@ typedef enum _tai_network_interface_fec_type_t
     TAI_NETWORK_INTERFACE_FEC_TYPE_OFEC,
 } tai_network_interface_fec_type_t;
 
+/** @brief The client signal mapping type */
+typedef enum _tai_network_interface_client_signal_mapping_type_t
+{
+    TAI_NETWORK_INTERFACE_CLIENT_SIGNAL_MAPPING_TYPE_UNKNOWN,
+    /**
+       @reference ITU-T G.709.2/Y.1331.2 "OUT4 long-reach interface"
+    */
+    TAI_NETWORK_INTERFACE_CLIENT_SIGNAL_MAPPING_TYPE_OTU4_LR,
+    /**
+       @reference ITU-T G.709.3/Y.1331.3 "Flexible OTN long-reach interfaces"
+    */
+    TAI_NETWORK_INTERFACE_CLIENT_SIGNAL_MAPPING_TYPE_FLEXO_LR,
+    /**
+       @reference OIF "Implementation Agreement 400ZR" OpenZR+ MSA "Techinal Specification"
+    */
+    TAI_NETWORK_INTERFACE_CLIENT_SIGNAL_MAPPING_TYPE_ZR,
+} tai_network_interface_client_signal_mapping_type_t;
+
 /** @brief The loopback types */
 typedef enum _tai_network_interface_loopback_type_t
 {
@@ -294,6 +312,15 @@ typedef enum _tai_network_interface_attr_t
      * @default vendor-specific
      */
     TAI_NETWORK_INTERFACE_ATTR_FEC_TYPE,
+
+    /**
+     * @brief The client signal mapping type
+     *
+     * @type #tai_network_interface_client_signal_mapping_type_t
+     * @flags CREATE_AND_SET
+     * @default vendor-specific
+     */
+    TAI_NETWORK_INTERFACE_ATTR_CLIENT_SIGNAL_MAPPING_TYPE,
 
     /**
      * @brief The current pre-FEC bit error rate
