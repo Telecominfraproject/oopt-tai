@@ -187,6 +187,10 @@ typedef enum _tai_attr_value_type_t
      */
     TAI_ATTR_VALUE_TYPE_NOTIFICATION,
 
+    /*
+     * @brief Attribute value is list of enums.
+     */
+    TAI_ATTR_VALUE_TYPE_ENUMLIST,
 } tai_attr_value_type_t;
 
 /**

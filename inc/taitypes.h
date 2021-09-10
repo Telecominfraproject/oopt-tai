@@ -250,6 +250,12 @@ typedef struct _tai_notification_handler_t {
     tai_notification_fn notify;
 } tai_notification_handler_t;
 
+typedef struct _tai_enum_list_t {
+    tai_attr_id_t id;
+    uint32_t count;
+    int32_t *list;
+} tai_enum_list_t;
+
 /**
  * @brief Data Type
  *
@@ -286,6 +292,7 @@ typedef union _tai_attribute_value_t
     tai_object_map_list_t objmaplist;
     tai_attr_value_list_t attrlist;
     tai_notification_handler_t notification;
+    tai_enum_list_t enumlist;
 } tai_attribute_value_t;
 
 typedef struct _tai_attribute_t
