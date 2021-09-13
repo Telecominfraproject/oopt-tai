@@ -101,20 +101,46 @@ def process_default_value_type(default):
     raise Exception('invalid default value: {}'.format(default))
 
 
+def parse_tai_comment(node):
+    if node.raw_comment == None:
+        return {}
+    rm = ' /*'
+    cmt = [l.strip(rm).split(' ') for l in node.raw_comment.split('\n') if l.strip(rm).startswith('@')] # this omits long description from the comment
+    return { l[0][1:]: ' '.join(l[1:]) for l in cmt }
+
+
 class TAIEnum(object):
     def __init__(self, node, exclude_range_indicator=True):
         self.name_node = node
-        value_nodes = list(node.get_children())
-        value_nodes.sort(key = lambda l : l.enum_value)
-        self.value_nodes = value_nodes
-        self.range_indicators = [v for v in self.value_nodes if v.displayname.endswith('_START') or v.displayname.endswith('_END')]
+        self.value_nodes = {n.enum_value: n for n in node.get_children()}
+
+        self.range_indicators = []
+        for v in self.value_nodes.values():
+            name = v.displayname
+            if name.endswith("_START") or name.endswith("_END"):
+                self.range_indicators.append(v)
+
         if exclude_range_indicator:
-            self.value_nodes = [v for v in self.value_nodes if not v.displayname.endswith('_START') and not v.displayname.endswith('_END')]
+            for i in self.range_indicators:
+                del self.value_nodes[i.enum_value]
+
+
+        if self.name_node.displayname[0] != '_':
+            raise Exception("enum type name must start with '_'")
         # displayname starts with '_'. remove it
         self.typename = self.name_node.displayname[1:]
+        self.cmt = parse_tai_comment(node)
+
 
     def value_names(self):
-        return [v.displayname for v in self.value_nodes]
+        return [v.displayname for v in sorted(self.value_nodes.values(), key=lambda n: n.enum_value)]
+
+    def add_custom_values(self, node):
+        for key, value in node.value_nodes.items():
+            if key in self.value_nodes:
+                name = self.value_nodes[key].displayname
+                raise Exception(f"duplicated enum value: {key} is already used by {name}")
+            self.value_nodes[key] = value
 
 class TAIAttribute(object):
     def __init__(self, node, taiobject):
@@ -124,14 +150,9 @@ class TAIAttribute(object):
         self.taiobject = taiobject
         self.object_type = taiobject.object_type
         self.object_name = taiobject.name
-
-        rm = ' /*'
-        if node.raw_comment is None:
+        self.cmt = parse_tai_comment(node)
+        if not self.cmt:
             raise Exception("no comment detected for the attribute: {}".format(node.displayname))
-
-        cmt = [l.strip(rm).split(' ') for l in node.raw_comment.split('\n') if l.strip(rm).startswith('@')] # this omits long description from the comment
-        s = { l[0][1:]: ' '.join(l[1:]) for l in cmt }
-        self.cmt = s
         # process flags command
         flags = self.cmt.get('flags', '').split('|')
         if flags[0] != '':
@@ -168,7 +189,7 @@ class TAIObject(object):
         self.taiheader = taiheader
         self.object_type = self.OBJECT_MAP.get(name, None)
         a = self.taiheader.get_enum('tai_{}_attr_t'.format(self.name))
-        self.attrs = [ TAIAttribute(e, self) for e in a.value_nodes ]
+        self.attrs = [ TAIAttribute(e, self) for e in a.value_nodes.values() ]
         self.custom_range = [0,0]
         for i in a.range_indicators:
             if i.spelling == 'TAI_{}_ATTR_CUSTOM_RANGE_START'.format(self.name.upper()):
@@ -184,13 +205,13 @@ class TAIObject(object):
 
     def add_custom_attribute(self, name, header):
         custom_attr = header.get_enum(name)
-        for node in custom_attr.value_nodes:
+        for node in custom_attr.value_nodes.values():
             if node.enum_value < self.custom_range[0] or node.enum_value > self.custom_range[1]:
                 raise Exception("custom attribute enum value out of range ({}, {}) : {}".format(self.custom_range[0], self.custom_range[1], node.enum_value))
 
-        self.attrs = self.attrs + [ TAIAttribute(e, self) for e in custom_attr.value_nodes ]
+        self.attrs = self.attrs + [ TAIAttribute(e, self) for e in custom_attr.value_nodes.values() ]
         a = self.taiheader.get_enum('tai_{}_attr_t'.format(self.name))
-        a.value_nodes = a.value_nodes + custom_attr.value_nodes
+        a.value_nodes.update(custom_attr.value_nodes)
 
 
 class Header(object):
@@ -270,9 +291,26 @@ class TAIHeader(Header):
         self.custom_headers.append(h)
 
         object_attributes = []
+
+        def deprecated_custom_attr_detection(name):
+            return name.endswith("_attr_t") and not name.startswith("tai_")
+
+        def is_custom_attr(k, v):
+            if deprecated_custom_attr_detection(k):
+                return True
+
+            c = v.cmt.get("custom")
+            return c and c.endswith("_attr_t")
+
         for k, v in h.enum_map.items():
-            if k.endswith('_attr_t') and not k.startswith('tai_'):
+            if is_custom_attr(k, v):
                 object_attributes.append((k, v))
+            elif v.cmt.get("custom"):
+                custom = v.cmt["custom"]
+                if custom not in self.enum_map:
+                    raise Exception(f"{custom} not found")
+                enum = self.enum_map[custom]
+                enum.add_custom_values(v)
             elif k not in self.enum_map:
                 # update enum_map
                 self.enum_map[k] = v
