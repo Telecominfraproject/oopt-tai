@@ -38,7 +38,7 @@ class TestTAI(unittest.TestCase):
         if TAI_TEST_NO_LOCAL_TAISH_SERVER:
             return
         self.proc.terminate()
-        self.proc.wait(timeout=0.2)
+        self.proc.wait(timeout=1)
         self.d.join()
         self.proc.stdout.close()
 
@@ -250,7 +250,7 @@ class TestTAIWithConfig(unittest.TestCase):
         if TAI_TEST_NO_LOCAL_TAISH_SERVER:
             return
         self.proc.terminate()
-        self.proc.wait(timeout=0.2)
+        self.proc.wait(timeout=1)
         self.d.join()
         self.proc.stdout.close()
 
