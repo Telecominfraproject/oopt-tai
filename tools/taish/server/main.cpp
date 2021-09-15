@@ -386,7 +386,6 @@ static void log_cb(tai_log_level_t lvl, const char *file, int line, const char *
 }
 
 void signal_handler(int sig) {
-    std::cout << "HELLO SIGNAL" << std::endl;
     uint64_t v = 1;
     std::lock_guard<std::mutex> g(m);
     q.push(std::pair<bool, std::string>(false, std::string("shutdown")));
@@ -405,6 +404,11 @@ int main(int argc, char *argv[]) {
     std::stringstream ss;
 
     if ( signal(SIGINT, signal_handler) == SIG_ERR ) {
+        std::cerr << "failed to register signal handler" << std::endl;
+        return 1;
+    }
+
+    if ( signal(SIGTERM, signal_handler) == SIG_ERR ) {
         std::cerr << "failed to register signal handler" << std::endl;
         return 1;
     }
