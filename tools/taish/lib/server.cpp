@@ -316,6 +316,8 @@ static tai_serialize_option_t convert_serialize_option(const taish::SerializeOpt
             }
         }
 
+        std::unique_lock<std::mutex> lk(m_mtx);
+
         switch (type) {
         case TAI_OBJECT_TYPE_MODULE:
             return m_api->module_api->get_module_attribute(oid, attr);
@@ -355,6 +357,7 @@ static tai_serialize_option_t convert_serialize_option(const taish::SerializeOpt
     auto ret = TAI_STATUS_SUCCESS;
     try {
         auto attr = std::make_unique<tai::Attribute>(meta, v, &option);
+        std::unique_lock<std::mutex> lk(m_mtx);
         switch (type) {
         case TAI_OBJECT_TYPE_MODULE:
             ret = m_api->module_api->set_module_attribute(oid, attr->raw());
@@ -380,6 +383,7 @@ static tai_serialize_option_t convert_serialize_option(const taish::SerializeOpt
     auto id = request->attr_id();
     auto type = tai_object_type_query(oid);
     tai_status_t ret;
+    std::unique_lock<std::mutex> lk(m_mtx);
 
     switch (type) {
     case TAI_OBJECT_TYPE_HOSTIF:
@@ -614,6 +618,7 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
     auto meta = get_metadata(m_api->meta_api, &key, TAI_MODULE_ATTR_LOCATION);
     tai::S_Attribute loc;
     if ( type != TAI_OBJECT_TYPE_MODULE ) {
+        std::unique_lock<std::mutex> lk(m_mtx);
         auto getter = [&](tai_attribute_t* attr) -> tai_status_t {
             return m_api->module_api->get_module_attribute(mid, attr);
         };
@@ -659,7 +664,13 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
         list.emplace_back(*(v->raw()));
     }
 
-    auto ret = create(&oid, list.size(), list.data());
+    tai_status_t ret;
+
+    {
+        std::unique_lock<std::mutex> lk(m_mtx);
+        ret = create(&oid, list.size(), list.data());
+    }
+
     if ( ret == TAI_STATUS_SUCCESS ) {
         response->set_oid(oid);
         m_api->object_update(type, oid, true);
@@ -672,6 +683,7 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
     auto oid = request->oid();
     auto type = tai_object_type_query(oid);
     tai_status_t ret;
+    std::unique_lock<std::mutex> lk(m_mtx);
 
     switch (type) {
     case TAI_OBJECT_TYPE_MODULE:
@@ -686,16 +698,14 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
     default:
         ret = TAI_STATUS_NOT_SUPPORTED;
     }
+
     if ( ret == TAI_STATUS_SUCCESS ) {
-        {
-            std::unique_lock<std::mutex> lk(m_mtx);
-            auto it = m_notifiers.begin();
-            while  ( it != m_notifiers.end() ) {
-                if ( it->first.first == oid ) {
-                    it = m_notifiers.erase(it);
-                } else {
-                    it++;
-                }
+        auto it = m_notifiers.begin();
+        while  ( it != m_notifiers.end() ) {
+            if ( it->first.first == oid ) {
+                it = m_notifiers.erase(it);
+            } else {
+                it++;
             }
         }
         m_api->object_update(type, oid, false);
