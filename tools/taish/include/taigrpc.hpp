@@ -122,8 +122,11 @@ class TAIServiceImpl final : public taish::TAI::Service {
             return m_notifiers[key];
         }
         const tai_api_method_table_t* const m_api;
-        std::map<std::pair<tai_object_id_t, tai_attr_id_t>, std::shared_ptr<TAINotifier>> m_notifiers;
         std::mutex m_mtx; // mutex for serialized TAI API calls
+
+        std::map<std::pair<tai_object_id_t, tai_attr_id_t>, std::shared_ptr<TAINotifier>> m_notifiers;
+        std::mutex m_notifiers_mtx; // mutex to protect m_notifiers
+
 };
 
 const tai_attr_metadata_t* const get_metadata(tai_meta_api_t* meta_api, const tai_metadata_key_t * const key, tai_attr_id_t attr_id);

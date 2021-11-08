@@ -517,7 +517,7 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
             }
 
             {
-                std::unique_lock<std::mutex> lk(m_mtx);
+                std::unique_lock<std::mutex> lk(m_notifiers_mtx);
                 if ( m_notifiers.find(key) == m_notifiers.end() ) {
                     return Status(StatusCode::UNKNOWN, "object is removed");
                 }
@@ -545,9 +545,10 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
     }
 
     {
-        std::unique_lock<std::mutex> lk(m_mtx);
+        std::unique_lock<std::mutex> lk(m_notifiers_mtx);
 
         if ( notifier->size() == 1 ) {
+            std::unique_lock<std::mutex> lk(m_mtx);
             attr.value.notification.notify = nullptr;
             attr.value.notification.context = nullptr;
             switch (type) {
@@ -683,27 +684,32 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
     auto oid = request->oid();
     auto type = tai_object_type_query(oid);
     tai_status_t ret;
-    std::unique_lock<std::mutex> lk(m_mtx);
-
-    switch (type) {
-    case TAI_OBJECT_TYPE_MODULE:
-        ret = m_api->module_api->remove_module(oid);
-        break;
-    case TAI_OBJECT_TYPE_NETWORKIF:
-        ret = m_api->netif_api->remove_network_interface(oid);
-        break;
-    case TAI_OBJECT_TYPE_HOSTIF:
-        ret = m_api->hostif_api->remove_host_interface(oid);
-        break;
-    default:
-        ret = TAI_STATUS_NOT_SUPPORTED;
+    {
+        std::unique_lock<std::mutex> lk(m_mtx);
+        switch (type) {
+        case TAI_OBJECT_TYPE_MODULE:
+            ret = m_api->module_api->remove_module(oid);
+            break;
+        case TAI_OBJECT_TYPE_NETWORKIF:
+            ret = m_api->netif_api->remove_network_interface(oid);
+            break;
+        case TAI_OBJECT_TYPE_HOSTIF:
+            ret = m_api->hostif_api->remove_host_interface(oid);
+            break;
+        default:
+            ret = TAI_STATUS_NOT_SUPPORTED;
+        }
     }
 
     if ( ret == TAI_STATUS_SUCCESS ) {
+        std::unique_lock<std::mutex> lk(m_notifiers_mtx);
         auto it = m_notifiers.begin();
         while  ( it != m_notifiers.end() ) {
             if ( it->first.first == oid ) {
+                auto notifier = it->second;
+                tai_notification_t empty;
                 it = m_notifiers.erase(it);
+                notifier->notify(empty); // signal the deletion
             } else {
                 it++;
             }
