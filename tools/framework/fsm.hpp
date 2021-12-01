@@ -2,6 +2,9 @@
 #define __TAI_FRAMEWORK_FSM_HPP__
 
 #include <thread>
+#include <functional>
+#include <queue>
+#include <mutex>
 
 #include <unistd.h>
 #include <sys/eventfd.h>
@@ -32,7 +35,7 @@ namespace tai::framework {
                 if ( m_event_fd != 0 ) {
                     return -1;
                 }
-                m_event_fd = eventfd(0, 0);
+                m_event_fd = eventfd(0, EFD_SEMAPHORE);
                 if ( m_event_fd < 0 ) {
                     return -1;
                 }
@@ -86,9 +89,10 @@ namespace tai::framework {
             }
 
             int transit(FSMState state) {
-                uint64_t v = 1;
-                m_next_state = state;
+                std::unique_lock<std::mutex> m(m_queue_mutex);
+                m_queue.push(state);
                 if ( m_event_fd > 0 ) {
+                    uint64_t v = 1;
                     return write(m_event_fd, &v, sizeof(uint64_t));
                 }
                 return 0;
@@ -103,7 +107,13 @@ namespace tai::framework {
             }
 
             FSMState next_state() {
-                return m_next_state;
+                std::unique_lock<std::mutex> m(m_queue_mutex);
+                if ( m_queue.empty() ) {
+                    return get_state();
+                }
+                auto state = m_queue.front();
+                m_queue.pop();
+                return state;
             }
 
             FSMState prev_state() {
@@ -114,6 +124,8 @@ namespace tai::framework {
             virtual fsm_callback cb(FSMState state) { return nullptr; }
             virtual fsm_state_change_callback state_change_cb() { return nullptr; }
             FSMState m_current_state, m_next_state, m_prev_state;
+            std::mutex m_queue_mutex;
+            std::queue<FSMState> m_queue;
             int m_event_fd;
             std::thread m_th;
     };
