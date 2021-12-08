@@ -163,7 +163,7 @@ typedef enum _tai_network_interface_rx_otu_status_t
     TAI_NETWORK_INTERFACE_RX_OTU_STATUS_LOSS_OF_FRAME,                 /**< LOF Alarm for OTU */
     TAI_NETWORK_INTERFACE_RX_OTU_STATUS_LOSS_OF_MULTIFRAME,            /**< LOM Alarm for OTU */
     TAI_NETWORK_INTERFACE_RX_OTU_STATUS_BACKWARD_DEFECT_INDICATION,    /**< BDI Alarm for OTU */
-    TAI_NETWORK_INTERFACE_RX_OTU_STATUS_ALARM_INIDICATION_SIGNAL,      /**< AIS Alarm for OTU */
+    TAI_NETWORK_INTERFACE_RX_OTU_STATUS_ALARM_INDICATION_SIGNAL,       /**< AIS Alarm for OTU */
     TAI_NETWORK_INTERFACE_RX_OTU_STATUS_ERR,                           /**< Other Alarm for OTU */
     TAI_NETWORK_INTERFACE_RX_OTU_STATUS_MAX                            /**< Number of states */
 } tai_network_interface_rx_otu_status_t;
@@ -172,8 +172,8 @@ typedef enum _tai_network_interface_rx_otu_status_t
 typedef enum _tai_network_interface_rx_odu_status_t
 {
     TAI_NETWORK_INTERFACE_RX_ODU_STATUS_BACKWARD_DEFECT_INDICATION,    /**< BDI Alarm for ODU */
-    TAI_NETWORK_INTERFACE_RX_ODU_STATUS_ALARM_INIDICATION_SIGNAL,      /**< AIS Alarm for ODU */
-    TAI_NETWORK_INTERFACE_RX_ODU_STATUS_OPEN_CONNECTION_INIDICATION,   /**< OCI Alarm for ODU */
+    TAI_NETWORK_INTERFACE_RX_ODU_STATUS_ALARM_INDICATION_SIGNAL,       /**< AIS Alarm for ODU */
+    TAI_NETWORK_INTERFACE_RX_ODU_STATUS_OPEN_CONNECTION_INDICATION,    /**< OCI Alarm for ODU */
     TAI_NETWORK_INTERFACE_RX_ODU_STATUS_LOCKED_DEFECT,                 /**< LCK Alarm for ODU */
     TAI_NETWORK_INTERFACE_RX_ODU_STATUS_ERR,                           /**< Other Alarm for ODU */
     TAI_NETWORK_INTERFACE_RX_ODU_STATUS_MAX                            /**< Number of states */
