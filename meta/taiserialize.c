@@ -459,10 +459,12 @@ int tai_deserialize_charlist(
         _Out_ tai_char_list_t *value,
         _In_ const tai_serialize_option_t *option)
 {
+    cJSON *j = NULL;
     if ( option != NULL && option->json ) {
-        cJSON *j = cJSON_Parse(buffer);
+        j = cJSON_Parse(buffer);
         if ( !cJSON_IsString(j) ) {
             TAI_META_LOG_WARN("failed to parse buffer as a json string");
+            cJSON_Delete(j);
             return TAI_SERIALIZE_ERROR;
         }
         buffer = j->valuestring;
@@ -470,10 +472,16 @@ int tai_deserialize_charlist(
     int count = strlen(buffer);
     if ( count > value->count ) {
         value->count = count;
+        if ( j != NULL ) {
+            cJSON_Delete(j);
+        }
         return TAI_STATUS_BUFFER_OVERFLOW;
     }
     value->count = count;
     strncpy(value->list, buffer, count);
+    if ( j != NULL ) {
+        cJSON_Delete(j);
+    }
     return count + (( option != NULL && option->json ) ? 2 : 0);
 }
 
@@ -574,29 +582,34 @@ int tai_deserialize_ ## listname (\
     if ( option != NULL && option->json ) { \
         cJSON *j = cJSON_Parse(buffer), *elem = NULL; \
         char *p = NULL; \
-        int size = 0;\
+        int size = 0, ret = TAI_SERIALIZE_ERROR;\
         if ( j == NULL ) {\
             TAI_META_LOG_WARN("failed to parse buffer as json: %s", buffer);\
-            return TAI_SERIALIZE_ERROR;\
+            goto json_err;\
         }\
         if ( !cJSON_IsArray(j) ) {\
             TAI_META_LOG_WARN("failed to parse buffer as json array");\
-            return TAI_SERIALIZE_ERROR; \
+            goto json_err;\
         }\
         size = cJSON_GetArraySize(j);\
         if ( size > value->count ) {\
             value->count = size;\
             TAI_META_LOG_WARN("deserialize listname buffer overflow"); \
-            return TAI_STATUS_BUFFER_OVERFLOW;\
+            ret = TAI_STATUS_BUFFER_OVERFLOW;\
+            goto json_err;\
         }\
         for ( i = 0 ; i < size; i++ ) {\
             elem = cJSON_GetArrayItem(j, i);\
             p = cJSON_Print(elem);\
             ret = tai_deserialize_ ## itemname(p, &value->list[i]);\
+            if ( ret < 0 ) goto json_err;\
             free(p);\
         }\
         value->count = size;\
-        return 0;\
+        ret = 0;\
+    json_err:\
+        cJSON_Delete(j);\
+        return ret;\
     }\
     while(true) { \
         itemtype tmp;\
@@ -692,11 +705,13 @@ int tai_deserialize_enum(
         j = cJSON_Parse(buffer);
         if ( j == NULL ) {
             TAI_META_LOG_WARN("failed to parse buffer as json: %s", buffer);
+            cJSON_Delete(j);
             return -1;
         }
         ptr = cJSON_GetStringValue(j);
         if ( ptr == NULL ) {
             TAI_META_LOG_WARN("failed to parse buffer as json string");
+            cJSON_Delete(j);
             return -1;
         }
     }
@@ -716,6 +731,9 @@ int tai_deserialize_enum(
             tai_serialize_is_char_allowed(ptr[len]))
         {
             *value = meta->values[idx];
+            if ( j != NULL ) {
+                cJSON_Delete(j);
+            }
             return (int)len;
         }
     }
@@ -746,17 +764,20 @@ int tai_deserialize_enumlist(
         int size = 0;
         if ( j == NULL ) {
             TAI_META_LOG_WARN("failed to parse buffer as json: %s", buffer);
-            return TAI_SERIALIZE_ERROR;
+            ret = TAI_SERIALIZE_ERROR;
+            goto json_err;
         }
         if ( !cJSON_IsArray(j) ) {
             TAI_META_LOG_WARN("failed to parse buffer as json array");
-            return TAI_SERIALIZE_ERROR;
+            ret = TAI_SERIALIZE_ERROR;
+            goto json_err;
         }
         size = cJSON_GetArraySize(j);
         if ( size > value->count ) {
             value->count = size;
             TAI_META_LOG_WARN("deserialize listname buffer overflow");
-            return TAI_STATUS_BUFFER_OVERFLOW;
+            ret = TAI_STATUS_BUFFER_OVERFLOW;
+            goto json_err;
         }
         for ( i = 0 ; i < size; i++ ) {
             elem = cJSON_GetArrayItem(j, i);
@@ -765,8 +786,10 @@ int tai_deserialize_enumlist(
             free(p);
         }
         value->count = size;
-        return 0;
-
+        ret = 0;
+json_err:
+        cJSON_Delete(j);
+        return ret;
     }
     while(true) {
         if ( i > value->count ) {
@@ -809,18 +832,21 @@ int tai_deserialize_attrlist(
     int size = 0, i, ret;
     if ( j == NULL ) {
         TAI_META_LOG_WARN("failed to parse buffer as json: %s", buffer);
-        return TAI_SERIALIZE_ERROR;
+        ret = TAI_SERIALIZE_ERROR;
+        goto err;
     }
     if ( !cJSON_IsArray(j) ) {
         TAI_META_LOG_WARN("failed to parse buffer as json array");
-        return TAI_SERIALIZE_ERROR;
+        ret = TAI_SERIALIZE_ERROR;
+        goto err;
     }
 
     size = cJSON_GetArraySize(j);
     if ( size > value->count ) {
         value->count = size;
         TAI_META_LOG_WARN("deserialize listname buffer overflow");
-        return TAI_STATUS_BUFFER_OVERFLOW;
+        ret = TAI_STATUS_BUFFER_OVERFLOW;
+        goto err;
     }
 
     for ( i = 0 ; i < size; i++ ) {
@@ -829,11 +855,14 @@ int tai_deserialize_attrlist(
         ret = tai_deserialize_attribute_value(p, &m, &value->list[i], &o);
         free(p);
         if ( ret != 0 ) {
-            return ret;
+            goto err;
         }
     }
     value->count = size;
-    return 0;
+    ret = 0;
+err:
+    cJSON_Delete(j);
+    return ret;
 }
 
 #define _SERIALIZE(sentence, count, ptr, n) \
