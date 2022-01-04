@@ -83,7 +83,7 @@ typedef struct _tai_object_list_t
     tai_object_id_t *list;
 } tai_object_list_t;
 
-typedef struct _tai_object_map_item_t
+typedef struct _tai_object_map_t
 {
     tai_object_id_t key;
     tai_object_list_t value;

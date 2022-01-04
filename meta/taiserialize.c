@@ -571,6 +571,53 @@ int tai_deserialize_object_id(
     return TAI_SERIALIZE_ERROR;
 }
 
+int tai_deserialize_tai_object_map(
+    _In_ const char *buffer,
+    _Out_ tai_object_map_t *omi)
+{
+    cJSON *j = cJSON_Parse(buffer), *elem;
+    int ret = TAI_SERIALIZE_ERROR;
+    if ( j == NULL ) {
+        TAI_META_LOG_WARN("failed to parse buffer as json: %s", buffer);
+        goto err;
+    }
+    if ( !cJSON_IsObject(j) ) {
+        TAI_META_LOG_WARN("failed to parse buffer as json object: %s", buffer);
+        goto err;
+    }
+    if (cJSON_GetArraySize(j) != 1) {
+        TAI_META_LOG_WARN("invalid input. tai_object_map_t size must be 1: %s", buffer);
+        goto err;
+    }
+    if (cJSON_GetArraySize(j->child) > omi->value.count) {
+        omi->value.count = cJSON_GetArraySize(j->child);
+        ret = TAI_STATUS_BUFFER_OVERFLOW;
+        goto err;
+    }
+    omi->value.count = cJSON_GetArraySize(j->child);
+    cJSON_ArrayForEach(elem, j) {
+        tai_object_id_t oid;
+        ret = tai_deserialize_object_id(elem->string, &oid);
+        if ( ret < 0 ) {
+            goto err;
+        }
+        omi->key = oid;
+    }
+    int i = 0;
+    cJSON_ArrayForEach(elem, j->child) {
+        tai_object_id_t oid;
+        ret = tai_deserialize_object_id(elem->valuestring, &oid);
+        if ( ret < 0 ) {
+            goto err;
+        }
+        omi->value.list[i++] = oid;
+    }
+    ret = 0;
+err:
+    cJSON_Delete(j);
+    return ret;
+}
+
 #define DEFINE_TAI_DESERIALIZE_LIST(listname, listtypename, itemname, itemtype) \
 int tai_deserialize_ ## listname (\
         _In_ const char *buffer,\
@@ -647,6 +694,7 @@ DEFINE_TAI_DESERIALIZE_LIST(s32list, tai_s32_list_t, int32, int32_t)
 DEFINE_TAI_DESERIALIZE_LIST(u64list, tai_u64_list_t, uint64, uint64_t)
 DEFINE_TAI_DESERIALIZE_LIST(s64list, tai_s64_list_t, int64, int64_t)
 DEFINE_TAI_DESERIALIZE_LIST(floatlist, tai_float_list_t, float, float)
+DEFINE_TAI_DESERIALIZE_LIST(objmaplist, tai_object_map_list_t, tai_object_map, tai_object_map_t)
 
 int tai_serialize_enum(
         _Out_ char *buffer,
@@ -1196,6 +1244,15 @@ int tai_deserialize_attribute_value(
         return tai_deserialize_floatlist(buffer, &value->floatlist, option);
     case TAI_ATTR_VALUE_TYPE_ATTRLIST:
         return tai_deserialize_attrlist(buffer, meta, &value->attrlist, option);
+    case TAI_ATTR_VALUE_TYPE_OBJMAPLIST:
+        {
+            tai_serialize_option_t o = {};
+            if ( option != NULL ) {
+                o = *option;
+            }
+            o.json = true; // only json deserialization is supported
+            return tai_deserialize_objmaplist(buffer, &value->objmaplist, &o);
+        }
     default:
         return TAI_SERIALIZE_ERROR;
     }
@@ -1312,7 +1369,7 @@ int tai_serialize_attr_value_type(
     CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_FLOATLIST, "float-list")
     CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_U32RANGE, "uint32-range")
     CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_S32RANGE, "int32-range")
-    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_OBJMAPLIST, "objet-map-list")
+    CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_OBJMAPLIST, "object-map-list")
     CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_ATTRLIST, "attribute-list")
     CASE_SERIALIZE_VALUE(TAI_ATTR_VALUE_TYPE_NOTIFICATION, "notification")
     default:
