@@ -533,6 +533,10 @@ int testDeserializeJSONAttrList() {
     if ( attr.value.attrlist.count != 2 || attr.value.attrlist.list[0].floatlist.count != 2 || attr.value.attrlist.list[1].floatlist.count != 3 ) {
         return -1;
     }
+    ret = tai_metadata_free_attr_value(&meta, &attr, NULL);
+    if ( ret != 0 ) {
+        return -1;
+    }
     return 0;
 }
 
@@ -563,6 +567,10 @@ int testDeserializeJSONAttrList2() {
         return -1;
     }
     if ( attr.value.attrlist.list[1].s32list.list[0] != TAI_HOST_INTERFACE_LANE_FAULT_LOSS_OF_LOCK ) {
+        return -1;
+    }
+    ret = tai_metadata_free_attr_value(meta, &attr, NULL);
+    if ( ret != 0 ) {
         return -1;
     }
     return 0;
@@ -632,6 +640,7 @@ int testSerializeStatus() {
     if ( ret != 0 ) {
         return -1;
     }
+    return 0;
 }
 
 int testSerializeAttrValueType() {
@@ -647,11 +656,12 @@ int testSerializeAttrValueType() {
     if ( ret != 0 ) {
         return -1;
     }
+    return 0;
 }
 
 int testDeepequalAttrValue() {
     const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORKIF, TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS);
-    tai_attribute_t src, dst = {0};
+    tai_attribute_t src = {.id = TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS}, dst = {.id=TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS};
     tai_status_t status;
     status = tai_metadata_alloc_attr_value(meta, &src, NULL);
     if ( status != TAI_STATUS_SUCCESS ) {
@@ -712,6 +722,14 @@ int testDeepequalAttrValue() {
     if ( result != true ) {
         return -1;
     }
+    status = tai_metadata_free_attr_value(meta, &src, NULL);
+    if ( status != 0 ) {
+        return -1;
+    }
+    status = tai_metadata_free_attr_value(meta, &dst, NULL);
+    if ( status != 0 ) {
+        return -1;
+    }
     return 0;
 }
 
@@ -741,11 +759,15 @@ int testSerializeJSONEnumList() {
         return -1;
     }
     free(p);
+    ret = tai_metadata_free_attr_value(meta, &attr, NULL);
+    if ( ret != 0 ) {
+        return -1;
+    }
     return 0;
 }
 
 int testDeserializeJSONCharlist() {
-    uint8_t list[10] = {0};
+    char list[10] = {0};
     tai_char_list_t value;
     tai_serialize_option_t option = {
         .json = true,
