@@ -455,6 +455,234 @@ int testSerializeObjectMapList() {
     return 0;
 }
 
+int testDeserializeObjectMapList() {
+    tai_object_id_t ids[10][10];
+    tai_object_map_t lists[10];
+    for ( int i = 0; i < 10; i++ ) {
+        lists[i].value.count = 10;
+        lists[i].value.list = ids[i];
+    }
+    tai_object_map_list_t value;
+    value.count = 10;
+    value.list = lists;
+    tai_serialize_option_t option = {
+        .json = true,
+    };
+    int ret = tai_deserialize_objmaplist("[{\"oid:0x1000\": [\"oid:0x2000\", \"oid:0x3000\", \"oid:0x4000\", \"oid:0x5000\"]}, {\"oid:0x1100\": [\"oid:0x2000\", \"oid:0x3000\"]}]", &value, &option);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    if ( value.count != 2 ) {
+        return -1;
+    }
+    if ( value.list[0].key != 0x1000 ) {
+        return -1;
+    }
+    if ( value.list[0].value.count != 4 ) {
+        return -1;
+    }
+    if ( value.list[0].value.list[0] != 0x2000 ) {
+        return -1;
+    }
+    if ( value.list[0].value.list[1] != 0x3000 ) {
+        return -1;
+    }
+    if ( value.list[0].value.list[2] != 0x4000 ) {
+        return -1;
+    }
+    if ( value.list[0].value.list[3] != 0x5000 ) {
+        return -1;
+    }
+
+    if ( value.list[1].key != 0x1100 ) {
+        return -1;
+    }
+    if ( value.list[1].value.count != 2 ) {
+        return -1;
+    }
+    if ( value.list[0].value.list[0] != 0x2000 ) {
+        return -1;
+    }
+    if ( value.list[0].value.list[1] != 0x3000 ) {
+        return -1;
+    }
+    return 0;
+}
+
+int testAllocObjectMapList() {
+    const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_MODULE, TAI_MODULE_ATTR_TRIBUTARY_MAPPING);
+    tai_attribute_t attr = {};
+    int ret = tai_metadata_alloc_attr_value(meta, &attr, NULL);
+    if ( ret != 0 ) {
+        return -1;
+
+    }
+    tai_serialize_option_t option = {
+        .json = true,
+    };
+    ret = tai_deserialize_objmaplist("[{\"oid:0x1000\": [\"oid:0x2000\", \"oid:0x3000\", \"oid:0x4000\", \"oid:0x5000\"]}, {\"oid:0x1100\": [\"oid:0x2000\", \"oid:0x3000\"]}]", &attr.value.objmaplist, &option);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    ret = tai_metadata_free_attr_value(meta, &attr, NULL);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    tai_alloc_info_t info = {.list_size = 1};
+    ret = tai_metadata_alloc_attr_value(meta, &attr, &info);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    if ( attr.value.objmaplist.count != 1 ) {
+        return -1;
+    }
+    if ( attr.value.objmaplist._alloced != 1 ) {
+        return -1;
+    }
+    ret = tai_deserialize_objmaplist("[{\"oid:0x1000\": [\"oid:0x2000\", \"oid:0x3000\", \"oid:0x4000\", \"oid:0x5000\"]}, {\"oid:0x1100\": [\"oid:0x2000\", \"oid:0x3000\"]}]", &attr.value.objmaplist, &option);
+    if ( ret != TAI_STATUS_BUFFER_OVERFLOW ) {
+        return -1;
+    }
+    if ( attr.value.objmaplist.count != 2 ) {
+        return -1;
+    }
+    ret = tai_metadata_free_attr_value(meta, &attr, NULL);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    ret = tai_metadata_alloc_attr_value(meta, &attr, NULL);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    ret = tai_deserialize_objmaplist("[{\"oid:0x1000\": [\"oid:0x2000\", \"oid:0x3000\", \"oid:0x4000\", \"oid:0x5000\"]}, {\"oid:0x1100\": [\"oid:0x2000\", \"oid:0x3000\"]}]", &attr.value.objmaplist, &option);
+    if ( ret != 0 ) {
+        return -1;
+    }
+
+    tai_attribute_t attr2 = {};
+    info.reference = &attr;
+    ret = tai_metadata_alloc_attr_value(meta, &attr2, &info);
+    if ( ret != 0 ) {
+        return -1;
+    }
+
+    if ( attr2.value.objmaplist.count != 2 ) {
+        return -1;
+    }
+    if ( attr2.value.objmaplist.list[0].value.count != 4 ) {
+        return -1;
+    }
+    if ( attr2.value.objmaplist.list[1].value.count != 2 ) {
+        return -1;
+    }
+    ret = tai_metadata_free_attr_value(meta, &attr, NULL);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    ret = tai_metadata_free_attr_value(meta, &attr2, NULL);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    return 0;
+}
+
+int testDeepcopyObjectMapList() {
+    const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_MODULE, TAI_MODULE_ATTR_TRIBUTARY_MAPPING);
+    tai_attribute_t src = {}, dst = {};
+    int ret = tai_metadata_alloc_attr_value(meta, &src, NULL);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    tai_serialize_option_t option = {
+        .json = true,
+    };
+    ret = tai_deserialize_objmaplist("[{\"oid:0x1000\": [\"oid:0x2000\", \"oid:0x3000\", \"oid:0x4000\", \"oid:0x5000\"]}, {\"oid:0x1100\": [\"oid:0x2000\", \"oid:0x3000\"]}]", &src.value.objmaplist, &option);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    ret = tai_metadata_deepcopy_attr_value(meta, &src, &dst);
+    if ( ret != TAI_STATUS_BUFFER_OVERFLOW ) {
+        return -1;
+    }
+    ret = tai_metadata_alloc_attr_value(meta, &dst, NULL);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    ret = tai_metadata_deepcopy_attr_value(meta, &src, &dst);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    if ( src.value.objmaplist.count != dst.value.objmaplist.count ) {
+        return -1;
+    }
+    for ( int i = 0; i < src.value.objmaplist.count; i++ ) {
+        if ( src.value.objmaplist.list[i].key != dst.value.objmaplist.list[i].key ) {
+            return -1;
+        }
+        if ( src.value.objmaplist.list[i].value.count != dst.value.objmaplist.list[i].value.count ) {
+            return -1;
+        }
+        for ( int j = 0; j < src.value.objmaplist.list[i].value.count; j++ ) {
+            if ( src.value.objmaplist.list[i].value.list[j] != dst.value.objmaplist.list[i].value.list[j] ) {
+                return -1;
+            }
+        }
+    }
+    return 0;
+}
+
+int testDeepequalObjectMapList() {
+    const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_MODULE, TAI_MODULE_ATTR_TRIBUTARY_MAPPING);
+    tai_attribute_t src = {}, dst = {};
+    int ret = tai_metadata_alloc_attr_value(meta, &src, NULL);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    ret = tai_metadata_alloc_attr_value(meta, &dst, NULL);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    tai_serialize_option_t option = {
+        .json = true,
+    };
+    ret = tai_deserialize_objmaplist("[{\"oid:0x1000\": [\"oid:0x2000\", \"oid:0x3000\", \"oid:0x4000\", \"oid:0x5000\"]}, {\"oid:0x1100\": [\"oid:0x2000\", \"oid:0x3000\"]}]", &src.value.objmaplist, &option);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    dst.value.objmaplist.count = 2;
+    dst.value.objmaplist.list[0].key = 0x1000;
+    dst.value.objmaplist.list[0].value.count = 4;
+    dst.value.objmaplist.list[0].value.list[0] = 0x2000;
+    dst.value.objmaplist.list[0].value.list[1] = 0x3000;
+    dst.value.objmaplist.list[0].value.list[2] = 0x4000;
+    dst.value.objmaplist.list[0].value.list[3] = 0x5000;
+
+    dst.value.objmaplist.list[1].key = 0x1100;
+    dst.value.objmaplist.list[1].value.count = 2;
+    dst.value.objmaplist.list[1].value.list[0] = 0x2000;
+    dst.value.objmaplist.list[1].value.list[1] = 0x3000;
+
+    bool result;
+
+    ret = tai_metadata_deepequal_attr_value(meta, &src, &dst, &result);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    if ( result != true ) {
+        return -1;
+    }
+
+    dst.value.objmaplist.list[1].value.list[1] = 0x3001;
+    ret = tai_metadata_deepequal_attr_value(meta, &src, &dst, &result);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    if ( result != false ) {
+        return -1;
+    }
+    return 0;
+}
+
 int testDeserializeJSONU8List() {
     uint8_t list[10] = {0};
     tai_u8_list_t value;
@@ -861,7 +1089,6 @@ struct testCase tests[] = {
     D(testDeserializeU8listInvalidValue),
     D(testDeserializeFloatlist),
     D(testSerializeListJSON),
-    D(testSerializeObjectMapList),
     D(testDeserializeJSONU8List),
     D(testDeserializeJSONFloatList),
     D(testDeserializeJSONEnumList),
@@ -874,6 +1101,11 @@ struct testCase tests[] = {
     D(testDeepequalAttrValue),
     D(testSerializeJSONEnumList),
     D(testDeserializeJSONCharlist),
+    D(testSerializeObjectMapList),
+    D(testDeserializeObjectMapList),
+    D(testAllocObjectMapList),
+    D(testDeepcopyObjectMapList),
+    D(testDeepequalObjectMapList),
     D(testClearAttrValue),
     D(NULL),
 };

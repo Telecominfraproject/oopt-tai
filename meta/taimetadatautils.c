@@ -640,7 +640,10 @@ static tai_status_t _tai_metadata_alloc_attr_value(
         for ( i = 0; i < size; i++ ) {
             int ssize = size;
             if ( info != NULL && info->reference != NULL ) {
-                int s = info->reference->value.objmaplist.list[i].value.count;
+                int s = 0;
+                if ( info->reference->value.objmaplist.count > i ) {
+                    s = info->reference->value.objmaplist.list[i].value.count;
+                }
                 ssize = (s > 0) ? s : DEFAULT_LIST_SIZE;
             }
             value->objmaplist.list[i].value.count = ssize;
@@ -781,18 +784,24 @@ static tai_status_t _tai_metadata_deepcopy_attr_value(
         _TAI_META_COPY_LIST(floatlist, float);
         break;
     case TAI_ATTR_VALUE_TYPE_OBJMAPLIST:
-        _TAI_META_COPY_LIST(objmaplist, tai_object_map_list_t);
+        if( out->objmaplist.count < in->objmaplist.count ) {
+            out->objmaplist.count = in->objmaplist.count;
+            return TAI_STATUS_BUFFER_OVERFLOW;
+        }
+        out->objmaplist.count = in->objmaplist.count;
         for ( i = 0; i < in->objmaplist.count ; i++ ) {
             if ( out->objmaplist.list[i].value.count < in->objmaplist.list[i].value.count ) {
                 out->objmaplist.list[i].value.count = in->objmaplist.list[i].value.count;
                 return TAI_STATUS_BUFFER_OVERFLOW;
             }
+            out->objmaplist.list[i].key = in->objmaplist.list[i].key;
             out->objmaplist.list[i].value.count = in->objmaplist.list[i].value.count;
             memcpy(out->objmaplist.list[i].value.list, in->objmaplist.list[i].value.list, sizeof(tai_object_map_t) * in->objmaplist.list[i].value.count);
         }
         break;
     case TAI_ATTR_VALUE_TYPE_ATTRLIST:
         if( out->attrlist.count < in->attrlist.count ) {
+            out->attrlist.count = in->attrlist.count;
             return TAI_STATUS_BUFFER_OVERFLOW;
         }
         out->attrlist.count = in->attrlist.count;
@@ -963,6 +972,31 @@ tai_status_t tai_metadata_deepequal_attr_value(
         _TAI_META_CMP_LIST(result, s32list)
     case TAI_ATTR_VALUE_TYPE_FLOATLIST:
         _TAI_META_CMP_LIST(result, floatlist)
+    case TAI_ATTR_VALUE_TYPE_OBJMAPLIST:
+        {
+            if( lhs->value.objmaplist.count != rhs->value.objmaplist.count ) {
+                *result = false;
+                return TAI_STATUS_SUCCESS;
+            }
+            for ( int i = 0; i < lhs->value.objmaplist.count; i++ ) {
+                if ( lhs->value.objmaplist.list[i].key != rhs->value.objmaplist.list[i].key ) {
+                    *result = false;
+                    return TAI_STATUS_SUCCESS;
+                }
+                if ( lhs->value.objmaplist.list[i].value.count != rhs->value.objmaplist.list[i].value.count ) {
+                    *result = false;
+                    return TAI_STATUS_SUCCESS;
+                }
+                for ( int j = 0; j < lhs->value.objmaplist.list[i].value.count; j++ ) {
+                    if ( lhs->value.objmaplist.list[i].value.list[j] != rhs->value.objmaplist.list[i].value.list[j] ) {
+                        *result = false;
+                        return TAI_STATUS_SUCCESS;
+                    }
+                }
+            }
+            *result = true;
+        }
+        break;
     default:
         TAI_META_LOG_ERROR("unsupported value type: %d", metadata->attrvaluetype);
         return TAI_STATUS_NOT_SUPPORTED;
