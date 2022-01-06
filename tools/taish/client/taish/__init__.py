@@ -20,8 +20,9 @@ import functools
 import inspect
 from typing import Any, Optional
 
-DEFAULT_SERVER_ADDRESS = 'localhost'
-DEFAULT_SERVER_PORT = '50051'
+DEFAULT_SERVER_ADDRESS = "localhost"
+DEFAULT_SERVER_PORT = "50051"
+
 
 def is_async_func(func: Any) -> bool:
     if inspect.iscoroutinefunction(func):
@@ -30,21 +31,25 @@ def is_async_func(func: Any) -> bool:
         return is_async_func(func.func)
     return False
 
+
 def set_default_serialize_option(req):
     req.serialize_option.human = True
     req.serialize_option.value_only = True
     req.serialize_option.json = False
+
 
 class TAIException(Exception):
     def __init__(self, code, msg):
         self.code = code
         self.msg = msg
 
+
 def check_metadata(metadata):
-    code = int(metadata.get('tai-status-code', 0))
+    code = int(metadata.get("tai-status-code", 0))
     if code:
-        msg = metadata.get('tai-status-msg', '')
+        msg = metadata.get("tai-status-msg", "")
         raise TAIException(code, msg)
+
 
 class TAIObject(object):
     def __init__(self, client, object_type, obj):
@@ -68,30 +73,60 @@ class TAIObject(object):
     def set(self, attr_id, value):
         return self.client.set(self.object_type, self.oid, attr_id, value)
 
+    def set_multiple(self, attributes):
+        return self.client.set_multiple(self.object_type, self.oid, attributes)
+
     def get(self, attr_id, with_metadata=False, value=None, json=False):
-        return self.client.get(self.object_type, self.oid, attr_id, with_metadata, value, json)
+        return self.client.get(
+            self.object_type, self.oid, attr_id, with_metadata, value, json
+        )
+
+    def get_multiple(self, attributes, with_metadata=False, json=False):
+        return self.client.get_multiple(
+            self.object_type, self.oid, attributes, with_metadata, json
+        )
 
     def monitor(self, attr_id, callback, json=False):
         return self.client.monitor(self, attr_id, callback, json)
 
 
 class NetIf(TAIObject):
-    def __init__(self, client, obj):
+    def __init__(self, client, obj, module):
         super().__init__(client, taish_pb2.NETIF, obj)
+        self._module = module
+
+    @property
+    def module(self):
+        return self._module
+
 
 class HostIf(TAIObject):
-    def __init__(self, client, obj):
+    def __init__(self, client, obj, module):
         super().__init__(client, taish_pb2.HOSTIF, obj)
+        self._module = module
+
+    @property
+    def module(self):
+        return self._module
+
 
 class Module(TAIObject):
     def __init__(self, client, obj):
         super().__init__(client, taish_pb2.MODULE, obj)
 
+    @property
+    def netifs(self):
+        return [self.get_netif(i) for i in range(len(self.obj.netifs))]
+
+    @property
+    def hostifs(self):
+        return [self.get_hostif(i) for i in range(len(self.obj.hostifs))]
+
     def get_netif(self, index=0):
-        return NetIf(self.client, self.obj.netifs[index])
+        return NetIf(self.client, self.obj.netifs[index], self)
 
     def get_hostif(self, index=0):
-        return HostIf(self.client, self.obj.hostifs[index])
+        return HostIf(self.client, self.obj.hostifs[index], self)
 
     async def create_netif(self, index=0, attrs=None):
         if attrs is None:
@@ -127,9 +162,13 @@ class AsyncClient(object):
     async def list(self):
         req = taish_pb2.ListModuleRequest()
         future = await self.stub.ListModule(req)
-        return { res.module.location: res.module for res in future }
+        ret = {}
+        for res in future:
+            module = Module(self, res.module) if res.module.oid else None
+            ret[res.module.location] = module
+        return ret
 
-    async def list_attribute_metadata(self, object_type, oid=0, location=''):
+    async def list_attribute_metadata(self, object_type, oid=0, location=""):
         req = taish_pb2.ListAttributeMetadataRequest()
         req.object_type = object_type
         req.oid = oid
@@ -158,7 +197,7 @@ class AsyncClient(object):
             check_metadata(stream.trailing_metadata)
             return res.capability
 
-    async def get_attribute_metadata(self, object_type, attr, oid=0, location=''):
+    async def get_attribute_metadata(self, object_type, attr, oid=0, location=""):
         async with self.stub.GetAttributeMetadata.open() as stream:
             req = taish_pb2.GetAttributeMetadataRequest()
             req.object_type = object_type
@@ -178,15 +217,20 @@ class AsyncClient(object):
             return res.metadata
 
     async def get_module(self, location):
-        l = await self.list()
-        if location not in l:
-            raise Exception("no module {} found".format(location))
-        m = l[location]
-        if not m.present:
-            raise Exception("module {} not present".format(location))
-        if not m.oid:
-            raise Exception("module {} not created yet".format(location))
-        return Module(self, m)
+        req = taish_pb2.ListModuleRequest()
+        future = await self.stub.ListModule(req)
+        ret = {}
+        for res in future:
+            m = res.module
+            if m.location != location:
+                continue
+            if not m.present:
+                raise TAIException(-1, f"module {location} not present")
+            if not m.oid:
+                raise TAIException(-1, f"module {location} not created yet")
+            return Module(self, m)
+
+        raise TAIException(-1, f"no module {location} found")
 
     async def create_module(self, location, attrs=None):
         if attrs is None:
@@ -198,23 +242,23 @@ class AsyncClient(object):
     async def create(self, object_type, attrs, module_id=0):
 
         if module_id != 0:
-            location = await self.get(taish_pb2.MODULE, module_id, 'location')
+            location = await self.get(taish_pb2.MODULE, module_id, "location")
         else:
             for attr in attrs:
                 key, value = attr
-                if key == 'location':
+                if key == "location":
                     location = value
                     break
             else:
-                raise TAIException(0xe, 'mandatory-attribute-missing')
+                raise TAIException(0xE, "mandatory-attribute-missing")
 
         async with self.stub.Create.open() as stream:
             if type(object_type) == str:
-                if object_type == 'module':
+                if object_type == "module":
                     object_type = taish_pb2.MODULE
-                elif object_type == 'netif':
+                elif object_type == "netif":
                     object_type = taish_pb2.NETIF
-                elif object_type == 'hostif':
+                elif object_type == "hostif":
                     object_type = taish_pb2.HOSTIF
             req = taish_pb2.CreateRequest()
             req.object_type = object_type
@@ -222,7 +266,9 @@ class AsyncClient(object):
             set_default_serialize_option(req)
             for attr in attrs:
                 attr_id, value = attr
-                meta = await self.get_attribute_metadata(object_type, attr_id, location=location)
+                meta = await self.get_attribute_metadata(
+                    object_type, attr_id, location=location
+                )
                 attr_id = meta.attr_id
                 a = taish_pb2.Attribute()
                 a.attr_id = attr_id
@@ -244,61 +290,101 @@ class AsyncClient(object):
             check_metadata(stream.trailing_metadata)
 
     async def set(self, object_type, oid, attr_id, value):
-        async with self.stub.SetAttribute.open() as stream:
-            if type(attr_id) == int:
-                pass
-            elif type(attr_id) == str:
-                metadata = await self.get_attribute_metadata(object_type, attr_id, oid=oid)
-                attr_id = metadata.attr_id
-            else:
-                attr_id = attr_id.attr_id
+        return await self.set_multiple(object_type, oid, [(attr_id, value)])
 
+    async def set_multiple(self, object_type, oid, attributes):
+        async with self.stub.SetAttribute.open() as stream:
             req = taish_pb2.SetAttributeRequest()
             req.oid = oid
-            req.attribute.attr_id = attr_id
-            req.attribute.value = str(value)
+
+            for attr in attributes:
+                attr_id = attr[0]
+                if type(attr_id) == int:
+                    pass
+                elif type(attr_id) == str:
+                    metadata = await self.get_attribute_metadata(
+                        object_type, attr_id, oid=oid
+                    )
+                    attr_id = metadata.attr_id
+                else:
+                    attr_id = attr_id.attr_id
+
+                a = taish_pb2.Attribute()
+                a.attr_id = attr_id
+                a.value = str(attr[1])
+                req.attributes.append(a)
+
             set_default_serialize_option(req)
             await stream.send_message(req)
             res = await stream.recv_message()
             await stream.recv_trailing_metadata()
             check_metadata(stream.trailing_metadata)
 
-    async def get(self, object_type, oid, attr, with_metadata=False, value=None, json=False):
-        async with self.stub.GetAttribute.open() as stream:
-            if type(attr) == int:
-                attr_id = attr
-                if with_metadata:
-                    meta = await self.get_attribute_metadata(object_type, attr_id, oid=oid)
-            elif type(attr) == str:
-                meta = await self.get_attribute_metadata(object_type, attr, oid=oid)
-                attr_id = meta.attr_id
-            else:
-                attr_id = attr.attr_id
-                meta = attr
+    async def get(
+        self, object_type, oid, attr, with_metadata=False, value=None, json=False
+    ):
+        v = await self.get_multiple(
+            object_type, oid, [(attr, value)], with_metadata, json
+        )
+        return v[0]
 
+    async def get_multiple(
+        self, object_type, oid, attributes, with_metadata=False, json=False
+    ):
+        async with self.stub.GetAttribute.open() as stream:
             req = taish_pb2.GetAttributeRequest()
             req.oid = oid
-            req.attribute.attr_id = attr_id
+
+            for attr in attributes:
+                value = None
+                if type(attr) == tuple:
+                    value = attr[1]
+                    attr = attr[0]
+
+                attr_id = attr
+                if type(attr) == int:
+                    if with_metadata:
+                        meta = await self.get_attribute_metadata(
+                            object_type, attr_id, oid=oid
+                        )
+                elif type(attr) == str:
+                    meta = await self.get_attribute_metadata(object_type, attr, oid=oid)
+                    attr_id = meta.attr_id
+                else:
+                    attr_id = attr.attr_id
+                    meta = attr
+
+                    if value:
+                        a.value = str(value)
+
+                a = taish_pb2.Attribute()
+                a.attr_id = attr_id
+                req.attributes.append(a)
+
             set_default_serialize_option(req)
             req.serialize_option.json = json
-            if value:
-                req.attribute.value = str(value)
-
             await stream.send_message(req)
             res = await stream.recv_message()
             await stream.recv_trailing_metadata()
             check_metadata(stream.trailing_metadata)
-            value = res.attribute.value
-            if with_metadata:
-                return (value, meta)
-            else:
-                return value
+
+            ret = []
+            for attr in res.attributes:
+                value = attr.value
+                if with_metadata:
+                    ret.append((value, meta))
+                else:
+                    ret.append(value)
+
+            return ret
 
     async def monitor(self, obj, attr_id, callback, json=False):
         async with self.stub.Monitor.open() as stream:
             m = await self.get_attribute_metadata(obj.object_type, attr_id, oid=obj.oid)
-            if m.usage != '<notification>':
-                raise Exception('the type of attribute {} is not notification'.format(attr_id))
+            if m.usage != "<notification>":
+                raise Exception(
+                    "the type of attribute {} is not notification".format(attr_id)
+                )
 
             req = taish_pb2.MonitorRequest()
             req.oid = obj.oid
@@ -314,31 +400,37 @@ class AsyncClient(object):
                 else:
                     callback(obj, m, await stream.recv_message())
 
-    async def set_log_level(self, l, api='unspecified'):
-        if l == 'debug':
+    async def set_log_level(self, l, api="unspecified"):
+        if l == "debug":
             level = taish_pb2.DEBUG
-        elif l == 'info':
+        elif l == "info":
             level = taish_pb2.INFO
-        elif l == 'notice':
+        elif l == "notice":
             level = taish_pb2.NOTICE
-        elif l == 'warn':
+        elif l == "warn":
             level = taish_pb2.WARN
-        elif l == 'error':
+        elif l == "error":
             level = taish_pb2.ERROR
-        elif l == 'critical':
+        elif l == "critical":
             level = taish_pb2.CRITICAL
         else:
-            raise Exception('invalid log level: {}. choose from [debug, info, notice, warn, error, critical]'.format(l))
-        if api == 'module':
+            raise Exception(
+                "invalid log level: {}. choose from [debug, info, notice, warn, error, critical]".format(
+                    l
+                )
+            )
+        if api == "module":
             api = taish_pb2.MODULE_API
-        elif api == 'netif':
+        elif api == "netif":
             api = taish_pb2.NETIF_API
-        elif api == 'hostif':
+        elif api == "hostif":
             api = taish_pb2.HOSTIF_API
-        elif api == 'unspecified':
+        elif api == "unspecified":
             api = taish_pb2.UNSPECIFIED_API
         else:
-            raise Exception('invalid api type. choose from [module, netif, hostif, unspecified]')
+            raise Exception(
+                "invalid api type. choose from [module, netif, hostif, unspecified]"
+            )
 
         req = taish_pb2.SetLogLevelRequest()
         req.level = level
@@ -347,11 +439,10 @@ class AsyncClient(object):
 
 
 class Client(object):
-
     def __init__(self, addr=DEFAULT_SERVER_ADDRESS, port=DEFAULT_SERVER_PORT):
         self.in_q = Queue()
         self.out_q = Queue()
-        self.t = Thread(target = self.loop, args=(addr, port))
+        self.t = Thread(target=self.loop, args=(addr, port))
         self.t.daemon = True
         self.t.start()
         self.addr = addr
@@ -398,5 +489,6 @@ class Client(object):
             if isinstance(ret, Exception):
                 raise ret
             return ret
+
         f.__name__ = name
         return f

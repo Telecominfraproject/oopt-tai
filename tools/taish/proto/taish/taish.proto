@@ -89,18 +89,21 @@ message GetAttributeCapabilityResponse {
 
 message GetAttributeRequest {
     uint64 oid = 1;
-    Attribute attribute = 2;
+    reserved 2;
     SerializeOption serialize_option = 3;
+    repeated Attribute attributes = 4;
 }
 
 message GetAttributeResponse {
-    Attribute attribute = 1;
+    reserved 1;
+    repeated Attribute attributes = 2;
 }
 
 message SetAttributeRequest {
     uint64 oid = 1;
-    Attribute attribute = 2;
+    reserved 2;
     SerializeOption serialize_option = 3;
+    repeated Attribute attributes = 4;
 }
 
 message SetAttributeResponse {

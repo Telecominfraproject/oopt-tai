@@ -298,75 +298,85 @@ static tai_serialize_option_t convert_serialize_option(const taish::SerializeOpt
 
 ::grpc::Status TAIServiceImpl::GetAttribute(::grpc::ServerContext* context, const taish::GetAttributeRequest* request, taish::GetAttributeResponse* response) {
     auto oid = request->oid();
-    taish::Attribute a = request->attribute();
-    taish::Attribute* res;
-    auto id = a.attr_id();
-    auto value = a.value();
     auto type = tai_object_type_query(oid);
-    tai_metadata_key_t key{.oid = oid};
-    auto meta = get_metadata(m_api->meta_api, &key, id);
     auto option = convert_serialize_option(request->serialize_option());
 
-    auto getter = [&](tai_attribute_t* attr) -> tai_status_t {
+    for ( int i = 0; i < request->attributes_size(); i++ ) {
+        auto a = request->attributes(i);
+        auto id = a.attr_id();
+        auto value = a.value();
+        tai_metadata_key_t key{.oid = oid};
+        auto meta = get_metadata(m_api->meta_api, &key, id);
 
-        if ( value.size() > 0 ) {
-            auto ret = tai_deserialize_attribute_value(value.c_str(), meta, &attr->value, &option);
-            if ( ret < 0 ) {
-                return ret;
+        auto getter = [&](tai_attribute_t* attr) -> tai_status_t {
+
+            if ( value.size() > 0 ) {
+                auto ret = tai_deserialize_attribute_value(value.c_str(), meta, &attr->value, &option);
+                if ( ret < 0 ) {
+                    return ret;
+                }
             }
+
+            std::unique_lock<std::mutex> lk(m_mtx);
+
+            switch (type) {
+            case TAI_OBJECT_TYPE_MODULE:
+                return m_api->module_api->get_module_attribute(oid, attr);
+            case TAI_OBJECT_TYPE_NETWORKIF:
+                return m_api->netif_api->get_network_interface_attribute(oid, attr);
+            case TAI_OBJECT_TYPE_HOSTIF:
+                return m_api->hostif_api->get_host_interface_attribute(oid, attr);
+            default:
+                return TAI_STATUS_NOT_SUPPORTED;
+            }
+        };
+
+        try {
+            auto attr = std::make_unique<tai::Attribute>(meta, getter);
+            auto a = response->add_attributes();
+            a->set_attr_id(id);
+            a->set_value(attr->to_string(&option));
+        } catch (tai::Exception& e) {
+            add_status(context, e.err());
+            return Status::OK;
         }
-
-        std::unique_lock<std::mutex> lk(m_mtx);
-
-        switch (type) {
-        case TAI_OBJECT_TYPE_MODULE:
-            return m_api->module_api->get_module_attribute(oid, attr);
-        case TAI_OBJECT_TYPE_NETWORKIF:
-            return m_api->netif_api->get_network_interface_attribute(oid, attr);
-        case TAI_OBJECT_TYPE_HOSTIF:
-            return m_api->hostif_api->get_host_interface_attribute(oid, attr);
-        default:
-            return TAI_STATUS_NOT_SUPPORTED;
-        }
-    };
-
-    auto ret = TAI_STATUS_SUCCESS;
-    try {
-        auto attr = std::make_unique<tai::Attribute>(meta, getter);
-        auto v = attr->to_string(&option);
-        res = response->mutable_attribute();
-        res->set_attr_id(id);
-        res->set_value(v);
-    } catch (tai::Exception& e) {
-        ret = e.err();
     }
-    add_status(context, ret);
+
+    add_status(context, TAI_STATUS_SUCCESS);
     return Status::OK;
 }
 
 ::grpc::Status TAIServiceImpl::SetAttribute(::grpc::ServerContext* context, const taish::SetAttributeRequest* request, taish::SetAttributeResponse* response) {
     auto oid = request->oid();
-    auto a = request->attribute();
-    auto id = a.attr_id();
-    auto v = a.value();
     auto type = tai_object_type_query(oid);
-    tai_metadata_key_t key{.oid = oid};
-    auto meta = get_metadata(m_api->meta_api, &key, id);
     auto option = convert_serialize_option(request->serialize_option());
+
+    std::vector<tai_attribute_t> attrs;
+    std::vector<tai::S_Attribute> ptrs; // only used for memory management
+
+    for ( int i = 0; i < request->attributes_size(); i++ ) {
+        auto a = request->attributes(i);
+        auto id = a.attr_id();
+        auto v = a.value();
+        tai_metadata_key_t key{.oid = oid};
+        auto meta = get_metadata(m_api->meta_api, &key, id);
+        auto attr = std::make_shared<tai::Attribute>(meta, v, &option);
+        ptrs.emplace_back(attr);
+        attrs.emplace_back(*attr->raw());
+    }
 
     auto ret = TAI_STATUS_SUCCESS;
     try {
-        auto attr = std::make_unique<tai::Attribute>(meta, v, &option);
         std::unique_lock<std::mutex> lk(m_mtx);
         switch (type) {
         case TAI_OBJECT_TYPE_MODULE:
-            ret = m_api->module_api->set_module_attribute(oid, attr->raw());
+            ret = m_api->module_api->set_module_attributes(oid, attrs.size(), attrs.data());
             break;
         case TAI_OBJECT_TYPE_NETWORKIF:
-            ret = m_api->netif_api->set_network_interface_attribute(oid, attr->raw());
+            ret = m_api->netif_api->set_network_interface_attributes(oid, attrs.size(), attrs.data());
             break;
         case TAI_OBJECT_TYPE_HOSTIF:
-            ret = m_api->hostif_api->set_host_interface_attribute(oid, attr->raw());
+            ret = m_api->hostif_api->set_host_interface_attributes(oid, attrs.size(), attrs.data());
             break;
         default:
             ret = TAI_STATUS_NOT_SUPPORTED;
