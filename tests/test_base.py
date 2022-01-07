@@ -53,10 +53,28 @@ class TestTAI(unittest.TestCase):
         module = m[TAI_TEST_MODULE_LOCATION]
         print("module oid: 0x{:x}".format(module.oid))
 
+    def test_taish_list(self):
+        output = sp.run(
+            [
+                "taish",
+                "--port",
+                TAI_TEST_TAISH_SERVER_PORT,
+                "--addr",
+                TAI_TEST_TAISH_SERVER_ADDRESS,
+                "-c",
+                "list",
+            ],
+            capture_output=True,
+        )
+        self.assertEqual(output.returncode, 0)
+        self.assertNotEqual(output.stdout.decode(), "")
+        self.assertEqual(output.stderr.decode(), "")
+
     def test_get_module(self):
         cli = taish.Client(TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT)
         m = cli.get_module(TAI_TEST_MODULE_LOCATION)
         self.assertNotEqual(m, None)
+        self.assertEqual(m.location, TAI_TEST_MODULE_LOCATION)
         print("module oid: 0x{:x}".format(m.oid))
 
     def test_get_netif(self):
@@ -65,6 +83,7 @@ class TestTAI(unittest.TestCase):
         self.assertNotEqual(m, None)
         netif = m.get_netif()
         self.assertNotEqual(netif, None)
+        self.assertEqual(netif.index, 0)
         print("netif oid: 0x{:x}".format(netif.oid))
 
     def test_get_hostif(self):
@@ -73,6 +92,7 @@ class TestTAI(unittest.TestCase):
         self.assertNotEqual(m, None)
         hostif = m.get_hostif()
         self.assertNotEqual(hostif, None)
+        self.assertEqual(hostif.index, 0)
         print("hostif oid: 0x{:x}".format(hostif.oid))
 
     def test_module(self):
