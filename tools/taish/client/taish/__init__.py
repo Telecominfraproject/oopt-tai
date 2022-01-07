@@ -99,6 +99,10 @@ class NetIf(TAIObject):
     def module(self):
         return self._module
 
+    @property
+    def index(self):
+        return self.obj.index
+
 
 class HostIf(TAIObject):
     def __init__(self, client, obj, module):
@@ -108,6 +112,10 @@ class HostIf(TAIObject):
     @property
     def module(self):
         return self._module
+
+    @property
+    def index(self):
+        return self.obj.index
 
 
 class Module(TAIObject):
@@ -122,6 +130,10 @@ class Module(TAIObject):
     def hostifs(self):
         return [self.get_hostif(i) for i in range(len(self.obj.hostifs))]
 
+    @property
+    def location(self):
+        return self.obj.location
+
     def get_netif(self, index=0):
         return NetIf(self.client, self.obj.netifs[index], self)
 
@@ -133,7 +145,7 @@ class Module(TAIObject):
             attrs = []
         attrs.append(("index", index))
         await self.client.create(taish_pb2.NETIF, attrs, self.oid)
-        self.obj = (await self.client.list())[self.obj.location]
+        self.obj = (await self.client.list())[self.location]
         return self.get_netif(index)
 
     async def create_hostif(self, index=0, attrs=None):
@@ -141,7 +153,7 @@ class Module(TAIObject):
             attrs = []
         attrs.append(("index", index))
         await self.client.create(taish_pb2.HOSTIF, attrs, self.oid)
-        self.obj = (await self.client.list())[self.obj.location]
+        self.obj = (await self.client.list())[self.location]
         return self.get_hostif(index)
 
 
