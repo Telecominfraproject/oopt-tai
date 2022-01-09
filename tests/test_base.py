@@ -199,7 +199,7 @@ class TestTAI(unittest.TestCase):
         cli.remove(module.oid)
         l = cli.list()
         module = l[TAI_TEST_MODULE_LOCATION]
-        self.assertEqual(module, None)
+        self.assertEqual(module.oid, 0)
 
     def test_create(self):
         self.test_remove()
@@ -286,6 +286,50 @@ class TestTAIWithConfig(unittest.TestCase):
         m.set("custom", "false")
 
         self.assertEqual(m.get("custom"), "false")
+
+    def tearDown(self):
+        if TAI_TEST_NO_LOCAL_TAISH_SERVER:
+            return
+        self.proc.terminate()
+        self.proc.wait(timeout=1)
+        self.d.join()
+        self.proc.stdout.close()
+
+
+class TestTAIWithoutObjectCreation(unittest.TestCase):
+    def setUp(self):
+        if TAI_TEST_NO_LOCAL_TAISH_SERVER:
+            return
+        proc = sp.Popen(["taish_server", "-n"], stderr=sp.STDOUT, stdout=sp.PIPE)
+        self.d = threading.Thread(target=output_reader, args=(proc,))
+        self.d.start()
+        self.proc = proc
+        time.sleep(5)  # wait for the server to be ready
+
+    def test_list(self):
+        cli = taish.Client(TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT)
+        m = cli.list()
+        self.assertNotEqual(m, None)
+        self.assertTrue(TAI_TEST_MODULE_LOCATION in m)
+        module = m[TAI_TEST_MODULE_LOCATION]
+        print("module oid: 0x{:x}".format(module.oid))
+
+    def test_taish_list(self):
+        output = sp.run(
+            [
+                "taish",
+                "--port",
+                TAI_TEST_TAISH_SERVER_PORT,
+                "--addr",
+                TAI_TEST_TAISH_SERVER_ADDRESS,
+                "-c",
+                "list",
+            ],
+            capture_output=True,
+        )
+        self.assertEqual(output.returncode, 0)
+        self.assertNotEqual(output.stdout.decode(), "")
+        self.assertEqual(output.stderr.decode(), "")
 
     def tearDown(self):
         if TAI_TEST_NO_LOCAL_TAISH_SERVER:
