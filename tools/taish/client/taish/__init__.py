@@ -131,6 +131,10 @@ class Module(TAIObject):
         return [self.get_hostif(i) for i in range(len(self.obj.hostifs))]
 
     @property
+    def present(self):
+        return self.obj.present
+
+    @property
     def location(self):
         return self.obj.location
 
@@ -176,8 +180,7 @@ class AsyncClient(object):
         future = await self.stub.ListModule(req)
         ret = {}
         for res in future:
-            module = Module(self, res.module) if res.module.oid else None
-            ret[res.module.location] = module
+            ret[res.module.location] = Module(self, res.module)
         return ret
 
     async def list_attribute_metadata(self, object_type, oid=0, location=""):
