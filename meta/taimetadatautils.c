@@ -426,6 +426,12 @@ tai_status_t _tai_metadata_free_attr_value(
     case TAI_ATTR_VALUE_TYPE_S32LIST:
         _TAI_META_FREE_LIST(s32list);
         break;
+    case TAI_ATTR_VALUE_TYPE_U64LIST:
+        _TAI_META_FREE_LIST(u64list);
+        break;
+    case TAI_ATTR_VALUE_TYPE_S64LIST:
+        _TAI_META_FREE_LIST(s64list);
+        break;
     case TAI_ATTR_VALUE_TYPE_FLOATLIST:
         _TAI_META_FREE_LIST(floatlist);
         break;
@@ -505,6 +511,12 @@ static tai_status_t _tai_metadata_clear_attr_value(
     case TAI_ATTR_VALUE_TYPE_S32LIST:
         value->s32list.count = 0;
         break;
+    case TAI_ATTR_VALUE_TYPE_U64LIST:
+        value->u64list.count = 0;
+        break;
+    case TAI_ATTR_VALUE_TYPE_S64LIST:
+        value->s64list.count = 0;
+        break;
     case TAI_ATTR_VALUE_TYPE_FLOATLIST:
         value->floatlist.count = 0;
         break;
@@ -559,6 +571,10 @@ static int _tai_list_size(
         return value->u32list.count;
     case TAI_ATTR_VALUE_TYPE_S32LIST:
         return value->s32list.count;
+    case TAI_ATTR_VALUE_TYPE_U64LIST:
+        return value->u64list.count;
+    case TAI_ATTR_VALUE_TYPE_S64LIST:
+        return value->s64list.count;
     case TAI_ATTR_VALUE_TYPE_FLOATLIST:
         return value->floatlist.count;
     case TAI_ATTR_VALUE_TYPE_OBJMAPLIST:
@@ -630,6 +646,12 @@ static tai_status_t _tai_metadata_alloc_attr_value(
         break;
     case TAI_ATTR_VALUE_TYPE_S32LIST:
         _TAI_META_ALLOC_LIST(s32list, int32_t);
+        break;
+    case TAI_ATTR_VALUE_TYPE_U64LIST:
+        _TAI_META_ALLOC_LIST(u64list, uint64_t);
+        break;
+    case TAI_ATTR_VALUE_TYPE_S64LIST:
+        _TAI_META_ALLOC_LIST(s64list, int64_t);
         break;
     case TAI_ATTR_VALUE_TYPE_FLOATLIST:
         _TAI_META_ALLOC_LIST(floatlist, float);
@@ -779,6 +801,12 @@ static tai_status_t _tai_metadata_deepcopy_attr_value(
         break;
     case TAI_ATTR_VALUE_TYPE_S32LIST:
         _TAI_META_COPY_LIST(s32list, int32_t);
+        break;
+    case TAI_ATTR_VALUE_TYPE_U64LIST:
+        _TAI_META_COPY_LIST(u64list, uint64_t);
+        break;
+    case TAI_ATTR_VALUE_TYPE_S64LIST:
+        _TAI_META_COPY_LIST(s64list, int64_t);
         break;
     case TAI_ATTR_VALUE_TYPE_FLOATLIST:
         _TAI_META_COPY_LIST(floatlist, float);
@@ -970,6 +998,10 @@ tai_status_t tai_metadata_deepequal_attr_value(
         _TAI_META_CMP_LIST(result, u32list)
     case TAI_ATTR_VALUE_TYPE_S32LIST:
         _TAI_META_CMP_LIST(result, s32list)
+    case TAI_ATTR_VALUE_TYPE_U64LIST:
+        _TAI_META_CMP_LIST(result, u64list)
+    case TAI_ATTR_VALUE_TYPE_S64LIST:
+        _TAI_META_CMP_LIST(result, s64list)
     case TAI_ATTR_VALUE_TYPE_FLOATLIST:
         _TAI_META_CMP_LIST(result, floatlist)
     case TAI_ATTR_VALUE_TYPE_OBJMAPLIST:
