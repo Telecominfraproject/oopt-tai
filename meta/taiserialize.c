@@ -658,6 +658,10 @@ int tai_deserialize_ ## listname (\
         cJSON_Delete(j);\
         return ret;\
     }\
+    if ( strlen(ptr) == 0 ) {\
+        value->count = 0;\
+        return 0;\
+    }\
     while(true) { \
         itemtype tmp;\
         ret = tai_deserialize_ ## itemname(ptr, &tmp); \
