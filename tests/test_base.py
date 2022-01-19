@@ -300,6 +300,42 @@ class TestTAIWithConfig(unittest.TestCase):
         m.set("custom-list", "")
         self.assertEqual(m.get("custom-list"), "")
 
+    def test_set_custom_list_attribute_module_taish(self):
+
+        cli = taish.Client(TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT)
+        m = cli.get_module(TAI_TEST_MODULE_LOCATION)
+
+        output = sp.run(
+            [
+                "taish",
+                "--port",
+                TAI_TEST_TAISH_SERVER_PORT,
+                "--addr",
+                TAI_TEST_TAISH_SERVER_ADDRESS,
+                "-c",
+                f"module {TAI_TEST_MODULE_LOCATION}; set custom-list 1,2,3,4",
+            ],
+            capture_output=True,
+        )
+
+        self.assertEqual(output.returncode, 0)
+        self.assertEqual(m.get("custom-list"), "1,2,3,4")
+
+        output = sp.run(
+            [
+                "taish",
+                "--port",
+                TAI_TEST_TAISH_SERVER_PORT,
+                "--addr",
+                TAI_TEST_TAISH_SERVER_ADDRESS,
+                "-c",
+                f"module {TAI_TEST_MODULE_LOCATION}; set custom-list",
+            ],
+            capture_output=True,
+        )
+        self.assertEqual(output.returncode, 0)
+        self.assertEqual(m.get("custom-list"), "")
+
     def tearDown(self):
         if TAI_TEST_NO_LOCAL_TAISH_SERVER:
             return

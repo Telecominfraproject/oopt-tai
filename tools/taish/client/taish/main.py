@@ -71,10 +71,10 @@ class TAIShellObject(Object):
 
         @self.command(TAICompleter(m, set_=True))
         def set(args):
-            if len(args) != 2:
+            if len(args) < 1:
                 raise InvalidInput("usage: set <name> <value>")
             try:
-                self.client.set(args[0], args[1])
+                self.client.set(args[0], " ".join(args[1:]))
             except TAIException as e:
                 print("err: {} (code: {:x})".format(e.msg, e.code))
 
