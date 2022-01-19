@@ -360,9 +360,14 @@ static tai_serialize_option_t convert_serialize_option(const taish::SerializeOpt
         auto v = a.value();
         tai_metadata_key_t key{.oid = oid};
         auto meta = get_metadata(m_api->meta_api, &key, id);
-        auto attr = std::make_shared<tai::Attribute>(meta, v, &option);
-        ptrs.emplace_back(attr);
-        attrs.emplace_back(*attr->raw());
+        try {
+            auto attr = std::make_shared<tai::Attribute>(meta, v, &option);
+            ptrs.emplace_back(attr);
+            attrs.emplace_back(*attr->raw());
+        } catch ( tai::Exception& e ) {
+            add_status(context, e.err());
+            return Status::OK;
+        }
     }
 
     auto ret = TAI_STATUS_SUCCESS;
