@@ -287,6 +287,19 @@ class TestTAIWithConfig(unittest.TestCase):
 
         self.assertEqual(m.get("custom"), "false")
 
+    def test_set_custom_list_attribute_module(self):
+        cli = taish.Client(TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT)
+        m = cli.get_module(TAI_TEST_MODULE_LOCATION)
+        self.assertNotEqual(m, None)
+        print("module oid: 0x{:x}".format(m.oid))
+
+        m.set("custom-list", "1,2,3,4")
+
+        self.assertEqual(m.get("custom-list"), "1,2,3,4")
+
+        m.set("custom-list", "")
+        self.assertEqual(m.get("custom-list"), "")
+
     def tearDown(self):
         if TAI_TEST_NO_LOCAL_TAISH_SERVER:
             return

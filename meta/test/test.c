@@ -268,6 +268,13 @@ int testDeserializeU8list() {
     if ( value.count != 4 || list[0] != 1 || list[1] != 2 || list[2] != 3 || list[3] != 4) {
         return -1;
     }
+    ret = tai_deserialize_u8list("", &value, &option);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    if ( value.count != 0 ) {
+        return -1;
+    }
     return 0;
 }
 
