@@ -1016,7 +1016,7 @@ int tai_serialize_attribute_value(
     case TAI_ATTR_VALUE_TYPE_S16LIST:
         _TAI_SERIALIZE_LIST(s16list, int16);
     case TAI_ATTR_VALUE_TYPE_U32LIST:
-        _TAI_SERIALIZE_LIST(u32list, int32);
+        _TAI_SERIALIZE_LIST(u32list, uint32);
     case TAI_ATTR_VALUE_TYPE_S32LIST:
         if ( option != NULL && option->json ) {
             _SERIALIZE(snprintf(ptr, n, "["), count, ptr, n);
