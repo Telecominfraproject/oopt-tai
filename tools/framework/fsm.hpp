@@ -90,6 +90,9 @@ namespace tai::framework {
 
             int transit(FSMState state) {
                 std::unique_lock<std::mutex> m(m_queue_mutex);
+                if (m_queue.size() > 0 && m_queue.back() == state) {
+                    return 0;
+                }
                 m_queue.push(state);
                 if ( m_event_fd > 0 ) {
                     uint64_t v = 1;
