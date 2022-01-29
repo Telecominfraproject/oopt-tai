@@ -498,6 +498,11 @@ int tai_deserialize_objmaplist(
         _Out_ tai_object_map_list_t *value,
         _In_ const tai_serialize_option_t *option);
 
+int tai_deserialize_objlist(
+        _In_ const char *buffer,
+        _Out_ tai_object_list_t *value,
+        _In_ const tai_serialize_option_t *option);
+
 int tai_deserialize_enumlist(
         _In_ const char *buffer,
         _In_ const tai_enum_metadata_t *meta,

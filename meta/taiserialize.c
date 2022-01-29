@@ -699,6 +699,7 @@ DEFINE_TAI_DESERIALIZE_LIST(u64list, tai_u64_list_t, uint64, uint64_t)
 DEFINE_TAI_DESERIALIZE_LIST(s64list, tai_s64_list_t, int64, int64_t)
 DEFINE_TAI_DESERIALIZE_LIST(floatlist, tai_float_list_t, float, float)
 DEFINE_TAI_DESERIALIZE_LIST(objmaplist, tai_object_map_list_t, tai_object_map, tai_object_map_t)
+DEFINE_TAI_DESERIALIZE_LIST(objlist, tai_object_list_t, object_id, tai_object_id_t)
 
 int tai_serialize_enum(
         _Out_ char *buffer,
