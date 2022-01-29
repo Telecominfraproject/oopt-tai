@@ -300,6 +300,30 @@ int testDeserializeU32list() {
     return 0;
 }
 
+int testDeserializeObjlist() {
+    tai_object_id_t list[10] = {0};
+    tai_object_list_t value;
+    tai_serialize_option_t option = {
+        .json = false,
+    };
+    value.count = 10;
+    value.list = list;
+    int ret = tai_deserialize_objlist("oid:0x1,oid:0x2,oid:0x3,oid:0x4", &value, &option);
+    if ( ret != 0 ) {
+        return -1;
+    }
+    if (value.count != 4 || list[0] != 0x1 || list[1] != 0x2 || list[2] != 0x3 || list[3] != 0x4) {
+        return -1;
+    }
+    ret = tai_deserialize_objlist("-1,-1,-1,-1", &value, &option);
+    if ( ret >= 0 ) {
+        return -1;
+    }
+    return 0;
+}
+
+
+
 int testDeserializeU8listLengthCheck() {
     tai_u8_list_t value;
     tai_serialize_option_t option = {
@@ -1115,6 +1139,7 @@ struct testCase tests[] = {
     D(testSerializeValueAttrList),
     D(testDeserializeU8list),
     D(testDeserializeU32list),
+    D(testDeserializeObjlist),
     D(testDeserializeU8listLengthCheck),
     D(testDeserializeU8listInvalidValue),
     D(testDeserializeFloatlist),
