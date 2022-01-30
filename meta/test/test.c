@@ -302,22 +302,37 @@ int testDeserializeU32list() {
 
 int testDeserializeObjlist() {
     tai_object_id_t list[10] = {0};
-    tai_object_list_t value;
-    tai_serialize_option_t option = {
-        .json = false,
-    };
-    value.count = 10;
-    value.list = list;
-    int ret = tai_deserialize_objlist("oid:0x1,oid:0x2,oid:0x3,oid:0x4", &value, &option);
-    if ( ret != 0 ) {
-        return -1;
+    {
+        tai_object_list_t value;
+        tai_serialize_option_t option = {
+            .json = false,
+        };
+        value.count = 10;
+        value.list = list;
+        int ret = tai_deserialize_objlist("oid:0x1,oid:0x2,oid:0x3,oid:0x4", &value, &option);
+        if ( ret != 0 ) {
+            return -1;
+        }
+        if (value.count != 4 || list[0] != 0x1 || list[1] != 0x2 || list[2] != 0x3 || list[3] != 0x4) {
+            return -1;
+        }
+        ret = tai_deserialize_objlist("-1,-1,-1,-1", &value, &option);
+        if ( ret >= 0 ) {
+            return -1;
+        }
     }
-    if (value.count != 4 || list[0] != 0x1 || list[1] != 0x2 || list[2] != 0x3 || list[3] != 0x4) {
-        return -1;
-    }
-    ret = tai_deserialize_objlist("-1,-1,-1,-1", &value, &option);
-    if ( ret >= 0 ) {
-        return -1;
+    {
+        tai_attribute_value_t value;
+        value.objlist.count = 10;
+        value.objlist.list = list;
+        tai_attr_metadata_t meta = { .attrvaluetype = TAI_ATTR_VALUE_TYPE_OBJLIST };
+        int ret = tai_deserialize_attribute_value("oid:0x10,oid:0x20,oid:0x30", &meta, &value, NULL);
+        if ( ret != 0 ) {
+            return -1;
+        }
+        if (value.objlist.count != 3 || list[0] != 0x10 || list[1] != 0x20 || list[2] != 0x30) {
+            return -1;
+        }
     }
     return 0;
 }

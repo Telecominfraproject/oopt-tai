@@ -1258,7 +1258,10 @@ int tai_deserialize_attribute_value(
             o.json = true; // only json deserialization is supported
             return tai_deserialize_objmaplist(buffer, &value->objmaplist, &o);
         }
+    case TAI_ATTR_VALUE_TYPE_OBJLIST:
+        return tai_deserialize_objlist(buffer, &value->objlist, option);
     default:
+        TAI_META_LOG_WARN("attribute value type: 0x%x not supported", meta->attrvaluetype);
         return TAI_SERIALIZE_ERROR;
     }
 }
