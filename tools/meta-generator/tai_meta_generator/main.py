@@ -18,13 +18,14 @@ from jinja2 import Environment
 
 class TAIAttributeFlag(Enum):
     MANDATORY_ON_CREATE = 0
-    CREATE_ONLY         = 1
-    CREATE_AND_SET      = 2
-    READ_ONLY           = 3
-    KEY                 = 4
-    DYNAMIC             = 5
-    SPECIAL             = 6
-    CLEARABLE           = 7
+    CREATE_ONLY = 1
+    CREATE_AND_SET = 2
+    READ_ONLY = 3
+    KEY = 4
+    DYNAMIC = 5
+    SPECIAL = 6
+    CLEARABLE = 7
+
 
 class TAIDefaultValueType(Enum):
     NONE = 0
@@ -36,27 +37,27 @@ class TAIDefaultValueType(Enum):
 
 
 def process_type(header, type_):
-    ts = [v.strip('#') for v in type_.split(' ')]
-    t = e = v = attrlistvaluetype  = None
+    ts = [v.strip("#") for v in type_.split(" ")]
+    t = e = v = attrlistvaluetype = None
     if len(ts) == 1:
         t = ts[0]
     elif len(ts) == 2:
-        if ts[0] == 'tai_s32_list_t':
+        if ts[0] == "tai_s32_list_t":
             t = ts[0]
             e = ts[1]
-        elif ts[0] == 'tai_pointer_t':
+        elif ts[0] == "tai_pointer_t":
             t = ts[0]
-        elif ts[0] == 'tai_attr_value_list_t':
+        elif ts[0] == "tai_attr_value_list_t":
             t = ts[0]
-            if ts[1] == 'tai_attr_value_list_t':
+            if ts[1] == "tai_attr_value_list_t":
                 raise Exception("unsupported type format: {}".format(type_))
             attrlistvaluetype = ts[1]
         else:
             raise Exception("unsupported type format: {}".format(type_))
     elif len(ts) == 3:
-        if ts[0] == 'tai_attr_value_list_t':
+        if ts[0] == "tai_attr_value_list_t":
             t = ts[0]
-            if ts[1] == 'tai_attr_value_list_t':
+            if ts[1] == "tai_attr_value_list_t":
                 raise Exception("unsupported type format: {}".format(type_))
             attrlistvaluetype = ts[1]
             e = ts[2]
@@ -71,7 +72,7 @@ def process_type(header, type_):
         v = field
     else:
         e = t
-        v = 's32'
+        v = "s32"
 
     if attrlistvaluetype:
         attrlistvaluetype = header.attr_value_map.get(attrlistvaluetype, None)
@@ -83,30 +84,34 @@ def process_type(header, type_):
 
 
 def process_default_value_type(default):
-    if default == '':
+    if default == "":
         return TAIDefaultValueType.NONE
 
-    if default in ['NULL', 'true', 'false'] or default.isdigit():
+    if default in ["NULL", "true", "false"] or default.isdigit():
         return TAIDefaultValueType.CONST
 
     try:
-        default = default.upper().replace('-', '_').strip()
+        default = default.upper().replace("-", "_").strip()
         return TAIDefaultValueType[default]
     except KeyError:
         pass
 
-    if default.startswith('TAI_'):
+    if default.startswith("TAI_"):
         return TAIDefaultValueType.CONST
 
-    raise Exception('invalid default value: {}'.format(default))
+    raise Exception("invalid default value: {}".format(default))
 
 
 def parse_tai_comment(node):
     if node.raw_comment == None:
         return {}
-    rm = ' /*'
-    cmt = [l.strip(rm).split(' ') for l in node.raw_comment.split('\n') if l.strip(rm).startswith('@')] # this omits long description from the comment
-    return { l[0][1:]: ' '.join(l[1:]) for l in cmt }
+    rm = " /*"
+    cmt = [
+        l.strip(rm).split(" ")
+        for l in node.raw_comment.split("\n")
+        if l.strip(rm).startswith("@")
+    ]  # this omits long description from the comment
+    return {l[0][1:]: " ".join(l[1:]) for l in cmt}
 
 
 class TAIEnum(object):
@@ -124,23 +129,27 @@ class TAIEnum(object):
             for i in self.range_indicators:
                 del self.value_nodes[i.enum_value]
 
-
-        if self.name_node.displayname[0] != '_':
+        if self.name_node.displayname[0] != "_":
             raise Exception("enum type name must start with '_'")
         # displayname starts with '_'. remove it
         self.typename = self.name_node.displayname[1:]
         self.cmt = parse_tai_comment(node)
 
-
     def value_names(self):
-        return [v.displayname for v in sorted(self.value_nodes.values(), key=lambda n: n.enum_value)]
+        return [
+            v.displayname
+            for v in sorted(self.value_nodes.values(), key=lambda n: n.enum_value)
+        ]
 
     def add_custom_values(self, node):
         for key, value in node.value_nodes.items():
             if key in self.value_nodes:
                 name = self.value_nodes[key].displayname
-                raise Exception(f"duplicated enum value: {key} is already used by {name}")
+                raise Exception(
+                    f"duplicated enum value: {key} is already used by {name}"
+                )
             self.value_nodes[key] = value
+
 
 class TAIAttribute(object):
     def __init__(self, node, taiobject):
@@ -152,65 +161,83 @@ class TAIAttribute(object):
         self.object_name = taiobject.name
         self.cmt = parse_tai_comment(node)
         if not self.cmt:
-            raise Exception("no comment detected for the attribute: {}".format(node.displayname))
+            raise Exception(
+                "no comment detected for the attribute: {}".format(node.displayname)
+            )
         # process flags command
-        flags = self.cmt.get('flags', '').split('|')
-        if flags[0] != '':
+        flags = self.cmt.get("flags", "").split("|")
+        if flags[0] != "":
             self.flags = set(TAIAttributeFlag[e.strip()] for e in flags)
         else:
             self.flags = None
         # process type command
-        t = self.cmt['type']
-        self.type, self.enum_type, self.value_field, self.attrlist_value_type = process_type(self.taiobject.taiheader, t)
+        t = self.cmt["type"]
+        (
+            self.type,
+            self.enum_type,
+            self.value_field,
+            self.attrlist_value_type,
+        ) = process_type(self.taiobject.taiheader, t)
 
         # check if the attribute value contains object id
-        self.is_oid_attribute = (self.value_field in ['oid', 'objlist', 'objmaplist'])
+        self.is_oid_attribute = self.value_field in ["oid", "objlist", "objmaplist"]
 
         # process default command
-        self.default = self.cmt.get('default', '')
+        self.default = self.cmt.get("default", "")
         self.default_type = process_default_value_type(self.default)
 
     def __str__(self):
         return self.name
 
     def __repr__(self):
-        return '{}[{}:{}]'.format(self.name, self.type, self.flags)
+        return "{}[{}:{}]".format(self.name, self.type, self.flags)
 
 
 class TAIObject(object):
     OBJECT_MAP = {
-        'module'           : 'TAI_OBJECT_TYPE_MODULE',
-        'host_interface'   : 'TAI_OBJECT_TYPE_HOSTIF',
-        'network_interface': 'TAI_OBJECT_TYPE_NETWORKIF',
+        "module": "TAI_OBJECT_TYPE_MODULE",
+        "host_interface": "TAI_OBJECT_TYPE_HOSTIF",
+        "network_interface": "TAI_OBJECT_TYPE_NETWORKIF",
     }
 
     def __init__(self, name, taiheader):
         self.name = name
         self.taiheader = taiheader
         self.object_type = self.OBJECT_MAP.get(name, None)
-        a = self.taiheader.get_enum('tai_{}_attr_t'.format(self.name))
-        self.attrs = [ TAIAttribute(e, self) for e in a.value_nodes.values() ]
-        self.custom_range = [0,0]
+        a = self.taiheader.get_enum("tai_{}_attr_t".format(self.name))
+        self.attrs = [TAIAttribute(e, self) for e in a.value_nodes.values()]
+        self.custom_range = [0, 0]
         for i in a.range_indicators:
-            if i.spelling == 'TAI_{}_ATTR_CUSTOM_RANGE_START'.format(self.name.upper()):
+            if i.spelling == "TAI_{}_ATTR_CUSTOM_RANGE_START".format(self.name.upper()):
                 self.custom_range[0] = i.enum_value
-            elif i.spelling == 'TAI_{}_ATTR_CUSTOM_RANGE_END'.format(self.name.upper()):
+            elif i.spelling == "TAI_{}_ATTR_CUSTOM_RANGE_END".format(self.name.upper()):
                 self.custom_range[1] = i.enum_value
 
     def get_attributes(self):
         return self.attrs
 
     def get_enums(self):
-        return set(self.taiheader.enum_map[a.enum_type] for a in self.attrs if a.enum_type)
+        return set(
+            self.taiheader.enum_map[a.enum_type] for a in self.attrs if a.enum_type
+        )
 
     def add_custom_attribute(self, name, header):
         custom_attr = header.get_enum(name)
         for node in custom_attr.value_nodes.values():
-            if node.enum_value < self.custom_range[0] or node.enum_value > self.custom_range[1]:
-                raise Exception("custom attribute enum value out of range ({}, {}) : {}".format(self.custom_range[0], self.custom_range[1], node.enum_value))
+            if (
+                node.enum_value < self.custom_range[0]
+                or node.enum_value > self.custom_range[1]
+            ):
+                raise Exception(
+                    "custom attribute enum value out of range ({}, {}) : {}".format(
+                        self.custom_range[0], self.custom_range[1], node.enum_value
+                    )
+                )
 
-        self.attrs = self.attrs + [ TAIAttribute(e, self) for e in custom_attr.value_nodes.values() ]
-        a = self.taiheader.get_enum('tai_{}_attr_t'.format(self.name))
+        self.attrs = self.attrs + [
+            TAIAttribute(e, self) for e in custom_attr.value_nodes.values()
+        ]
+        a = self.taiheader.get_enum("tai_{}_attr_t".format(self.name))
         a.value_nodes.update(custom_attr.value_nodes)
 
 
@@ -222,7 +249,7 @@ class Header(object):
         self.tu = tu
 
         self.enum_map = {}
-        for v in self.kinds('ENUM_DECL'):
+        for v in self.kinds("ENUM_DECL"):
             e = TAIEnum(v)
             self.enum_map[e.typename] = e
 
@@ -265,27 +292,40 @@ class TAIHeader(Header):
     def __init__(self, header):
         super(TAIHeader, self).__init__(header)
 
-        v = self.get_name('_tai_attribute_value_t')
+        v = self.get_name("_tai_attribute_value_t")
         self.attr_value_map = {}
         for f in v.get_children():
             # bool needs special handling since its type.spelling appears as 'int'
-            key = 'bool' if f.displayname == 'booldata' else f.type.spelling
+            key = "bool" if f.displayname == "booldata" else f.type.spelling
             self.attr_value_map[key] = f.displayname
 
-        self.objects = [TAIObject(name, self) for name in ['module', 'host_interface', 'network_interface']]
+        self.objects = [
+            TAIObject(name, self)
+            for name in ["module", "host_interface", "network_interface"]
+        ]
         self.custom_headers = []
 
     def add_custom(self, filename):
-        h = Header(filename, args=['-I{}'.format(os.path.dirname(self.filename))])
+        h = Header(filename, args=["-I{}".format(os.path.dirname(self.filename))])
 
         idx = Index.create()
-        tu = idx.parse(filename, options=clang.cindex.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD)
-        guard = [node.displayname for node in tu.cursor.get_children() if (node.location.file and node.kind == clang.cindex.CursorKind.MACRO_DEFINITION)]
+        tu = idx.parse(
+            filename,
+            options=clang.cindex.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD,
+        )
+        guard = [
+            node.displayname
+            for node in tu.cursor.get_children()
+            if (
+                node.location.file
+                and node.kind == clang.cindex.CursorKind.MACRO_DEFINITION
+            )
+        ]
         if len(guard) == 0:
             Exception("malformed custom header. couldn't find include guard")
 
         h.include_guard_name = guard[0]
-        with open(filename, 'r') as f:
+        with open(filename, "r") as f:
             h.content = f.read()
 
         self.custom_headers.append(h)
@@ -317,7 +357,7 @@ class TAIHeader(Header):
 
         for k, v in object_attributes:
             for obj in self.objects:
-                if k.endswith('_{}_attr_t'.format(obj.name)):
+                if k.endswith("_{}_attr_t".format(obj.name)):
                     obj.add_custom_attribute(k, h)
                     break
             else:
@@ -325,28 +365,28 @@ class TAIHeader(Header):
 
 
 class Generator(object):
-    HEADER_TEMPLATE = ''
+    HEADER_TEMPLATE = ""
 
     def __init__(self, env=Environment()):
         self.env = env
 
     def implementation(self):
-        if not getattr(self, 'env', None):
+        if not getattr(self, "env", None):
             self.env = Environment()
         return self.env.from_string(self.IMPL_TEMPLATE).render(self.data)
 
     def header(self):
-        if not getattr(self, 'env', None):
+        if not getattr(self, "env", None):
             self.env = Environment()
         return self.env.from_string(self.HEADER_TEMPLATE).render(self.data)
 
 
 class ObjectMetadataGenerator(Generator):
-    HEADER_TEMPLATE = '''
+    HEADER_TEMPLATE = """
 extern const tai_object_type_info_t tai_metadata_object_type_info_{{ name }};
-'''
+"""
 
-    IMPL_TEMPLATE = '''
+    IMPL_TEMPLATE = """
 const tai_attr_metadata_t* const tai_metadata_object_type_tai_{{ name }}_attr_t[] = {
     {% for a in attrs -%}
     &tai_metadata_attr_{{ a }},
@@ -361,16 +401,18 @@ const tai_object_type_info_t tai_metadata_object_type_info_{{ name }} = {
     .attrmetadata       = tai_metadata_object_type_tai_{{ name }}_attr_t,
     .attrmetadatalength = {{ attrs | count }},
 };
-'''
+"""
 
     def __init__(self, obj):
-        self.data = {'name': obj.name,
-                     'object_type' : obj.object_type,
-                     'attrs': [a.name for a in obj.get_attributes()]}
+        self.data = {
+            "name": obj.name,
+            "object_type": obj.object_type,
+            "attrs": [a.name for a in obj.get_attributes()],
+        }
 
 
 class AttrMetadataGenerator(Generator):
-    IMPL_TEMPLATE = '''
+    IMPL_TEMPLATE = """
 {%- if defaultvalue %}
 const tai_attribute_value_t tai_metadata_{{ typename }}_default_value = { .{{ value_field }} = {{ defaultvalue }} };
 {%- endif %}
@@ -406,61 +448,79 @@ const tai_attr_metadata_t tai_metadata_attr_{{ typename }} = {
     .defaultvalue        = &tai_metadata_{{ typename }}_default_value,
 {%- endif %}
 };
-'''
+"""
 
     def __init__(self, attr):
         obj = attr.object_type
         objname = attr.object_name
         typename = attr.name
-        prefix = 'TAI_{}_ATTR_'.format(objname.upper())
+        prefix = "TAI_{}_ATTR_".format(objname.upper())
         if not typename.startswith(prefix):
             raise Exception("invalid attr type name: {}, obj: {}".format(typename, obj))
-        shorttypename = typename[len(prefix):].lower().replace('_', '-')
-        attr_type = 'TAI_ATTR_VALUE_TYPE_{}'.format(attr.value_field.upper())
+        shorttypename = typename[len(prefix) :].lower().replace("_", "-")
+        attr_type = "TAI_ATTR_VALUE_TYPE_{}".format(attr.value_field.upper())
         attrlist_value_type = None
         if attr.attrlist_value_type:
-            attrlist_value_type = 'TAI_ATTR_VALUE_TYPE_{}'.format(attr.attrlist_value_type.upper())
-        is_enum = 'false'
+            attrlist_value_type = "TAI_ATTR_VALUE_TYPE_{}".format(
+                attr.attrlist_value_type.upper()
+            )
+        is_enum = "false"
         enum_meta_data = None
         if attr.enum_type:
-            is_enum = 'true'
-            enum_meta_data = 'tai_metadata_enum_{}'.format(attr.enum_type)
+            is_enum = "true"
+            enum_meta_data = "tai_metadata_enum_{}".format(attr.enum_type)
         attr_flags = None
         if attr.flags:
-            attr_flags = '|'.join('TAI_ATTR_FLAGS_{}'.format(e.name) for e in list(attr.flags))
+            attr_flags = "|".join(
+                "TAI_ATTR_FLAGS_{}".format(e.name) for e in list(attr.flags)
+            )
 
         default_value = None
         if attr.default_type == TAIDefaultValueType.CONST:
             default_value = attr.default
 
-        self.data = {'object': obj,
-                     'typename': typename,
-                     'shorttypename': shorttypename,
-                     'attr_type': attr_type,
-                     'attrlist_value_type': attrlist_value_type,
-                     'attr_flags': attr_flags,
-                     'value_field': attr.value_field,
-                     'is_enum': is_enum,
-                     'enum_meta_data': enum_meta_data,
-                     'isoidattribute': 'true' if attr.is_oid_attribute else 'false',
-                     'ismandatoryoncreate': 'true' if attr.flags and TAIAttributeFlag.MANDATORY_ON_CREATE in attr.flags else 'false',
-                     'iscreateonly': 'true' if attr.flags and TAIAttributeFlag.CREATE_ONLY in attr.flags else 'false',
-                     'iscreateandset': 'true' if attr.flags and TAIAttributeFlag.CREATE_AND_SET in attr.flags else 'false',
-                     'isreadonly': 'true' if attr.flags and TAIAttributeFlag.READ_ONLY in attr.flags else 'false',
-                     'iskey': 'true' if attr.flags and TAIAttributeFlag.KEY in attr.flags else 'false',
-                     'isclearable': 'true' if attr.flags and TAIAttributeFlag.CLEARABLE in attr.flags else 'false',
-                     'defaultvaluetype': 'TAI_DEFAULT_VALUE_TYPE_{}'.format(attr.default_type.name),
-                     'defaultvalue': default_value,
-                     }
+        self.data = {
+            "object": obj,
+            "typename": typename,
+            "shorttypename": shorttypename,
+            "attr_type": attr_type,
+            "attrlist_value_type": attrlist_value_type,
+            "attr_flags": attr_flags,
+            "value_field": attr.value_field,
+            "is_enum": is_enum,
+            "enum_meta_data": enum_meta_data,
+            "isoidattribute": "true" if attr.is_oid_attribute else "false",
+            "ismandatoryoncreate": "true"
+            if attr.flags and TAIAttributeFlag.MANDATORY_ON_CREATE in attr.flags
+            else "false",
+            "iscreateonly": "true"
+            if attr.flags and TAIAttributeFlag.CREATE_ONLY in attr.flags
+            else "false",
+            "iscreateandset": "true"
+            if attr.flags and TAIAttributeFlag.CREATE_AND_SET in attr.flags
+            else "false",
+            "isreadonly": "true"
+            if attr.flags and TAIAttributeFlag.READ_ONLY in attr.flags
+            else "false",
+            "iskey": "true"
+            if attr.flags and TAIAttributeFlag.KEY in attr.flags
+            else "false",
+            "isclearable": "true"
+            if attr.flags and TAIAttributeFlag.CLEARABLE in attr.flags
+            else "false",
+            "defaultvaluetype": "TAI_DEFAULT_VALUE_TYPE_{}".format(
+                attr.default_type.name
+            ),
+            "defaultvalue": default_value,
+        }
 
 
 class EnumMetadataGenerator(Generator):
-    HEADER_TEMPLATE = '''int tai_serialize_{{ typename | simplify }}( _Out_ char *buffer, _In_ size_t n, _In_ {{ typename }} {{ typename | simplify }}, _In_ const tai_serialize_option_t *option);;
+    HEADER_TEMPLATE = """int tai_serialize_{{ typename | simplify }}( _Out_ char *buffer, _In_ size_t n, _In_ {{ typename }} {{ typename | simplify }}, _In_ const tai_serialize_option_t *option);;
 int tai_deserialize_{{ typename | simplify }}( _In_ const char *buffer, _Out_ int32_t *value, _In_ const tai_serialize_option_t *option);
-'''
+"""
 
-
-    IMPL_TEMPLATE = '''const {{ typename }} tai_metadata_{{ typename }}_enum_values[] = {
+    IMPL_TEMPLATE = """const {{ typename }} tai_metadata_{{ typename }}_enum_values[] = {
     {% for t in enums -%}
     {{ t }},
     {% endfor -%}
@@ -506,31 +566,33 @@ int tai_deserialize_{{ typename | simplify }}(
 {
     return tai_deserialize_enum(buffer, &tai_metadata_enum_{{ typename }}, value, option);
 }
-'''
+"""
 
     def __init__(self, enum):
         typename = enum.typename
         enums = enum.value_names()
 
         env = Environment()
+
         def shorten(v, typename):
-            if not typename.endswith('_t'):
+            if not typename.endswith("_t"):
                 raise Exception("invalid type name: {}".format(typename))
             t = typename[:-1].upper()
             if not v.startswith(t):
                 raise Exception("invalid enum value name: {}".format(v))
-            return v[len(t):].lower().replace('_', '-')
+            return v[len(t) :].lower().replace("_", "-")
 
         def simplify(typename):
             return typename[4:-2]
-        env.filters['shorten'] = shorten
-        env.filters['simplify'] = simplify
+
+        env.filters["shorten"] = shorten
+        env.filters["simplify"] = simplify
         super(EnumMetadataGenerator, self).__init__(env)
-        self.data = {'typename': typename, 'enums': enums}
+        self.data = {"typename": typename, "enums": enums}
 
 
 class TAIMetadataGenerator(Generator):
-    HEADER_TEMPLATE = '''/* AUTOGENERATED FILE! DO NOT EDIT */
+    HEADER_TEMPLATE = """/* AUTOGENERATED FILE! DO NOT EDIT */
 #ifndef __TAI_METADATA_H__
 #define __TAI_METADATA_H__
 
@@ -568,9 +630,9 @@ extern const size_t tai_metadata_attr_sorted_by_id_name_count;
 }
 #endif
 
-#endif'''
+#endif"""
 
-    IMPL_TEMPLATE = '''/* AUTOGENERATED FILE! DO NOT EDIT */
+    IMPL_TEMPLATE = """/* AUTOGENERATED FILE! DO NOT EDIT */
 #include <stdio.h>
 #include "taimetadata.h"
 
@@ -607,7 +669,7 @@ const tai_attr_metadata_t* const tai_metadata_attr_sorted_by_id_name[] = {
 
 const size_t tai_metadata_attr_sorted_by_id_name_count = {{ attrs | count }};
 
-'''
+"""
 
     def __init__(self, header):
         generators = []
@@ -624,7 +686,7 @@ const size_t tai_metadata_attr_sorted_by_id_name_count = {{ attrs | count }};
                 g = AttrMetadataGenerator(a)
                 generators.append(g)
 
-            e = header.get_enum('tai_{}_attr_t'.format(obj.name))
+            e = header.get_enum("tai_{}_attr_t".format(obj.name))
             g = EnumMetadataGenerator(e)
             generators.append(g)
 
@@ -633,18 +695,21 @@ const size_t tai_metadata_attr_sorted_by_id_name_count = {{ attrs | count }};
 
             all_attrs += [a.name for a in attrs]
 
-        self.data = {'impls': [g.implementation() for g in generators],
-                     'headers': [x for x in [g.header() for g in generators] if len(x) > 0],
-                     'object_names': [o.name for o in h.objects],
-                     'attrs': sorted(all_attrs),
-                     'custom_headers': header.custom_headers }
+        self.data = {
+            "impls": [g.implementation() for g in generators],
+            "headers": [x for x in [g.header() for g in generators] if len(x) > 0],
+            "object_names": [o.name for o in header.objects],
+            "attrs": sorted(all_attrs),
+            "custom_headers": header.custom_headers,
+        }
 
-if __name__ == '__main__':
+
+def main():
     parser = ArgumentParser()
-    parser.add_argument('--clang-lib', default='/usr/lib/llvm-6.0/lib/libclang.so.1')
-    parser.add_argument('--out-dir', default='.')
-    parser.add_argument('header')
-    parser.add_argument('custom', nargs='*', default=[])
+    parser.add_argument("--clang-lib", default="/usr/lib/llvm-6.0/lib/libclang.so.1")
+    parser.add_argument("--out-dir", default=".")
+    parser.add_argument("header")
+    parser.add_argument("custom", nargs="*", default=[])
     args = parser.parse_args()
 
     Config.set_library_file(args.clang_lib)
@@ -654,8 +719,12 @@ if __name__ == '__main__':
         h.add_custom(c)
 
     g = TAIMetadataGenerator(h)
-    with open('{}/taimetadata.h'.format(args.out_dir), 'w') as f:
+    with open("{}/taimetadata.h".format(args.out_dir), "w") as f:
         f.write(g.header())
 
-    with open('{}/taimetadata.c'.format(args.out_dir), 'w') as f:
+    with open("{}/taimetadata.c".format(args.out_dir), "w") as f:
         f.write(g.implementation())
+
+
+if __name__ == "__main__":
+    main()
