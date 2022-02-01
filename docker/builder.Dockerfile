@@ -12,9 +12,11 @@ apt update && DEBIAN_FRONTEND=noninteractive apt install -qy libgrpc++-dev g++ p
 
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 RUN update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 10
-RUN --mount=type=cache,target=/root/.cache,sharing=private pip install grpcio-tools prompt_toolkit clang jinja2 tabulate grpclib
+RUN --mount=type=cache,target=/root/.cache,sharing=private pip install grpcio-tools prompt_toolkit tabulate grpclib
 
 RUN `([ $TARGETARCH = arm64 ] && echo /usr/lib/aarch64-linux-gnu > /tmp/lib ) || ([ $TARGETARCH = amd64 ] && echo /usr/lib/x86_64-linux-gnu > /tmp/lib )`
+
+RUN --mount=type=bind,target=/root,rw cd /root && cd tools/meta-generator && pip install .
 RUN --mount=type=bind,target=/root,rw cd /root && make -C meta && cp meta/libmetatai.so `cat /tmp/lib` && cp meta/tai*.h /usr/local/include/
 RUN --mount=type=bind,target=/root,rw cd /root && make -C tools/framework/examples/basic && cp tools/framework/examples/basic/libtai.so `cat /tmp/lib`/libtai-basic.so
 RUN cd `cat /tmp/lib` && ln -s libtai-basic.so libtai.so

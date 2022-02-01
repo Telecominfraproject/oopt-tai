@@ -3,8 +3,8 @@
 all: taimetadata.c taimetadata.h taiserialize.c taimetadatautils.c
 	gcc -g3 -Werror -Wall -shared -fPIC -I ../inc taiserialize.c taimetadatautils.c taimetadata.c cJSON.c -o libmetatai.so
 
-taimetadata.c taimetadata.h: main.py $(TAI_META_CUSTOM_FILES) $(wildcard ../inc/*)
-	python main.py ../inc/tai.h $(TAI_META_CUSTOM_FILES)
+taimetadata.c taimetadata.h: $(TAI_META_CUSTOM_FILES) $(wildcard ../inc/*)
+	tai_meta_generator ../inc/tai.h $(TAI_META_CUSTOM_FILES)
 
 test:
 	make -C sample
