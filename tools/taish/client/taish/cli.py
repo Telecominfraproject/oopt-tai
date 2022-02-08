@@ -11,6 +11,7 @@ from prompt_toolkit import print_formatted_text as print
 
 import sys
 
+
 class InvalidInput(Exception):
     def __init__(self, msg, candidates=[]):
         self.msg = msg
@@ -19,15 +20,56 @@ class InvalidInput(Exception):
     def __str__(self):
         return self.msg
 
+
+class AsyncWordCompleter(WordCompleter):
+    async def get_completions_async(self, document, complete_event):
+        # Get list of words.
+        words = self.words
+        if callable(words):
+            words = await words()
+
+        # Get word/text before cursor.
+        if self.sentence:
+            word_before_cursor = document.text_before_cursor
+        else:
+            word_before_cursor = document.get_word_before_cursor(
+                WORD=self.WORD, pattern=self.pattern
+            )
+
+        if self.ignore_case:
+            word_before_cursor = word_before_cursor.lower()
+
+        def word_matches(word: str) -> bool:
+            """True when the word before the cursor matches."""
+            if self.ignore_case:
+                word = word.lower()
+
+            if self.match_middle:
+                return word_before_cursor in word
+            else:
+                return word.startswith(word_before_cursor)
+
+        for a in words:
+            if word_matches(a):
+                display = self.display_dict.get(a, a)
+                display_meta = self.meta_dict.get(a, "")
+                yield Completion(
+                    text=a,
+                    start_position=-len(word_before_cursor),
+                    display=display,
+                    display_meta=display_meta,
+                )
+
+
 class Completer(PromptCompleter):
     def __init__(self, attrnames, valuenames=[], hook=None):
         if type(attrnames) == list:
-            self._attrnames = lambda : attrnames
+            self._attrnames = lambda: attrnames
         else:
             self._attrnames = attrnames
 
         if type(valuenames) == list:
-            self._valuenames = lambda _ : valuenames
+            self._valuenames = lambda _: valuenames
         else:
             self._valuenames = valuenames
 
@@ -35,12 +77,12 @@ class Completer(PromptCompleter):
 
     def get_completions(self, document, complete_event=None):
         t = document.text.split()
-        if len(t) == 0 or (len(t) == 1 and document.text[-1] != ' '):
+        if len(t) == 0 or (len(t) == 1 and document.text[-1] != " "):
             # attribute name completion
             for c in self._attrnames():
                 if c.startswith(document.text):
                     yield Completion(c, start_position=-len(document.text))
-        elif len(t) > 2 or (len(t) == 2 and document.text[-1] == ' '):
+        elif len(t) > 2 or (len(t) == 2 and document.text[-1] == " "):
             # invalid input for both get() and set(). no completion possible
             return
         else:
@@ -63,7 +105,7 @@ class Completer(PromptCompleter):
             else:
                 attrname = c[0].text
 
-            text = t[1] if len(t) > 1 else ''
+            text = t[1] if len(t) > 1 else ""
 
             for c in self._valuenames(attrname):
                 if c.startswith(text):
@@ -71,14 +113,14 @@ class Completer(PromptCompleter):
 
 
 class Object(object):
-    XPATH = ''
+    XPATH = ""
 
     def __init__(self, parent):
         self.parent = parent
         self._commands = {}
 
         @self.command()
-        def quit(line):
+        async def quit(line):
             return self.parent if self.parent else sys.exit(0)
 
     def add_command(self, handler, completer=None, name=None):
@@ -89,33 +131,38 @@ class Object(object):
 
     def command(self, completer=None, name=None):
         def f(func):
-            def _inner(line):
-                v = func(line)
+            async def _inner(line):
+                v = await func(line)
                 return v if v else self
-            self._commands[name if name else func.__name__] = {'func': _inner, 'completer': completer}
+
+            self._commands[name if name else func.__name__] = {
+                "func": _inner,
+                "completer": completer,
+            }
+
         return f
 
-    def help(self, text='', short=True):
+    async def help(self, text="", short=True):
         text = text.lstrip()
         try:
             v = text.split()
-            if len(text) > 0 and text[-1] == ' ':
+            if len(text) > 0 and text[-1] == " ":
                 # needs to show all candidates for the next argument
-                v.append(' ')
-            line = self.complete_input(v)
+                v.append(" ")
+            line = await self.complete_input(v)
         except InvalidInput as e:
-            return ', '.join(e.candidates)
+            return ", ".join(e.candidates)
         return line[-1].strip()
 
     def commands(self):
         return list(self._commands.keys())
 
-    def completion(self, document, complete_event=None):
+    async def completion(self, document, complete_event=None):
         # complete_event is None when this method is called by complete_input()
         if complete_event == None and len(document.text) == 0:
             return
         t = document.text.split()
-        if len(t) == 0 or (len(t) == 1 and document.text[-1] != ' '):
+        if len(t) == 0 or (len(t) == 1 and document.text[-1] != " "):
             # command completion
             for cmd in self.commands():
                 if cmd.startswith(document.text):
@@ -124,44 +171,55 @@ class Object(object):
             # argument completion
             # complete command(t[0]) first
             try:
-                cmd = self.complete_input([t[0]])[0]
+                cmd = (await self.complete_input([t[0]]))[0]
             except InvalidInput:
                 return
             v = self._commands.get(cmd)
             if not v:
                 return
-            c = v['completer']
+            c = v["completer"]
             if c:
                 # do argument completion with text after the command (t[0])
-                new_document = Document(document.text[len(t[0]):].lstrip())
-                for v in c.get_completions(new_document, complete_event):
+                new_document = Document(document.text[len(t[0]) :].lstrip())
+                async for v in c.get_completions_async(new_document, complete_event):
                     yield v
 
-    def complete_input(self, line):
+    async def complete_input(self, line):
 
         if len(line) == 0:
-            raise InvalidInput('invalid command. available commands: {}'.format(self.commands()), self.commands())
+            raise InvalidInput(
+                "invalid command. available commands: {}".format(self.commands()),
+                self.commands(),
+            )
 
         for i in range(len(line)):
-            doc = Document(' '.join(line[:i+1]))
-            c = list(self.completion(doc))
+            doc = Document(" ".join(line[: i + 1]))
+            c = [v async for v in self.completion(doc)]
             if len(c) == 0:
                 if i == 0:
-                    raise InvalidInput('invalid command. available commands: {}'.format(self.commands()), self.commands())
+                    raise InvalidInput(
+                        "invalid command. available commands: {}".format(
+                            self.commands()
+                        ),
+                        self.commands(),
+                    )
                 else:
                     # t[0] must be already completed
                     v = self._commands.get(line[0])
-                    assert(v)
-                    cmpl = v['completer']
+                    assert v
+                    cmpl = v["completer"]
                     if cmpl:
-                        doc = Document(' '.join(line[:i] + [' ']))
-                        candidates = list(v.text for v in self.completion(doc))
+                        doc = Document(" ".join(line[:i] + [" "]))
+                        candidates = [v.text async for v in self.completion(doc)]
                         # if we don't have any candidates with empty input, it means the value needs
                         # to be passed as an opaque value
                         if len(candidates) == 0:
                             continue
 
-                        raise InvalidInput('invalid argument. candidates: {}'.format(candidates), candidates)
+                        raise InvalidInput(
+                            "invalid argument. candidates: {}".format(candidates),
+                            candidates,
+                        )
                     else:
                         # no command completer, the command doesn't take any argument
                         continue
@@ -170,19 +228,26 @@ class Object(object):
                 t = [v for v in c if v.text == line[i]]
                 if len(t) == 0:
                     candidates = [v.text for v in c]
-                    raise InvalidInput('ambiguous {}. candidates: {}'.format('command' if i == 0 else 'argument', candidates), candidates)
+                    raise InvalidInput(
+                        "ambiguous {}. candidates: {}".format(
+                            "command" if i == 0 else "argument", candidates
+                        ),
+                        candidates,
+                    )
                 c[0] = t[0]
             line[i] = c[0].text
-        return line 
+        return line
 
-    def exec(self, cmd):
+    async def exec(self, cmd):
         line = cmd.split()
         try:
-            line = self.complete_input(line)
+            line = await self.complete_input(line)
             if line[0] in self._commands:
-                return self._commands[line[0]]['func'](line=line[1:])
+                return await self._commands[line[0]]["func"](line=line[1:])
             else:
-                raise InvalidInput('invalid command. available commands: {}'.format(self.commands()))
+                raise InvalidInput(
+                    "invalid command. available commands: {}".format(self.commands())
+                )
         except InvalidInput as e:
             print(str(e))
         return self
