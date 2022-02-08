@@ -6,7 +6,7 @@
 
 import taish
 from taish import TAIException
-from taish.cli import Object, InvalidInput, Completer
+from taish.cli import Object, InvalidInput, Completer, AsyncWordCompleter
 
 from optparse import OptionParser
 
@@ -24,6 +24,8 @@ from tabulate import tabulate
 from itertools import chain
 
 import json
+import asyncio
+import signal
 
 TAI_ATTR_CUSTOM_RANGE_START = 0x10000000
 
@@ -58,43 +60,45 @@ class TAIShellObject(Object):
         self.client = client
         self.name = name
 
-        m = self.client.list_attribute_metadata()
+    async def _init(self):
+
+        m = await self.client.list_attribute_metadata()
 
         @self.command(TAICompleter(m, set_=False))
-        def get(args):
+        async def get(args):
             if len(args) != 1:
                 raise InvalidInput("usage: get <name>")
             try:
-                print(self.client.get(args[0], json=JSON_OUTPUT))
+                print(await self.client.get(args[0], json=JSON_OUTPUT))
             except TAIException as e:
                 print("err: {} (code {:x})".format(e.msg, e.code))
 
         @self.command(TAICompleter(m, set_=True))
-        def set(args):
+        async def set(args):
             if len(args) < 1:
                 raise InvalidInput("usage: set <name> <value>")
             try:
-                self.client.set(args[0], " ".join(args[1:]))
+                await self.client.set(args[0], " ".join(args[1:]))
             except TAIException as e:
                 print("err: {} (code: {:x})".format(e.msg, e.code))
 
         @self.command(TAICompleter(m, set_=False))
-        def capability(args):
+        async def capability(args):
             if len(args) != 1:
                 raise InvalidInput("usage: capability <name>")
             try:
-                print(self.client.get_attribute_capability(args[0]))
+                print(await self.client.get_attribute_capability(args[0]))
             except TAIException as e:
                 print("err: {} (code {:x})".format(e.msg, e.code))
 
         @self.command()
-        def monitor(args):
+        async def monitor(args):
             if len(args) == 0:
                 args = ["notify"]  # TODO default value handling
             if len(args) != 1:
                 raise InvalidInput("usage: monitor <name>")
 
-            l = self.client.list_attribute_metadata()
+            l = await self.client.list_attribute_metadata()
 
             def cb(obj, m, res):
                 for attr in res.attrs:
@@ -127,23 +131,31 @@ class TAIShellObject(Object):
                             )
                         )
 
+            loop = asyncio.get_event_loop()
+            stop_event = asyncio.Event()
+            loop.add_signal_handler(signal.SIGINT, stop_event.set)
+
             try:
-                self.client.monitor(args[0], cb, json=JSON_OUTPUT)
+                monitor = self.client.monitor(args[0], cb, json=JSON_OUTPUT)
+                done, pending = await asyncio.wait(
+                    [monitor, stop_event.wait()], return_when=asyncio.FIRST_COMPLETED
+                )
+                [t.cancel() for t in pending]
                 print()
             except TAIException as e:
                 print("err: {} (code: {:x})".format(e.msg, e.code))
 
         @self.command(name="list-attr")
-        def list(args):
+        async def list(args):
             if len(args) > 1 or (len(args) == 1 and args[0] not in ["simple"]):
                 raise InvalidInput("usage: list-attr [simple]")
             simple = len(args) == 1
             if simple:
-                for m in self.client.list_attribute_metadata():
+                for m in await self.client.list_attribute_metadata():
                     print(m.short_name)
             else:
                 d = []
-                for m in self.client.list_attribute_metadata():
+                for m in await self.client.list_attribute_metadata():
                     d.append(
                         [
                             m.short_name,
@@ -180,18 +192,22 @@ class Module(TAIShellObject):
         @self.command(
             WordCompleter([str(v) for v in range(len(self.client.obj.netifs))])
         )
-        def netif(line):
+        async def netif(line):
             if len(line) != 1:
                 raise InvalidInput("usage: netif <index>")
-            return NetIf(self.client.get_netif(int(line[0])), line[0], self)
+            netif = NetIf(self.client.get_netif(int(line[0])), line[0], self)
+            await netif._init()
+            return netif
 
         @self.command(
             WordCompleter([str(v) for v in range(len(self.client.obj.hostifs))])
         )
-        def hostif(line):
+        async def hostif(line):
             if len(line) != 1:
                 raise InvalidInput("usage: hostif <index>")
-            return HostIf(self.client.get_hostif(int(line[0])), line[0], self)
+            hostif = HostIf(self.client.get_hostif(int(line[0])), line[0], self)
+            await hostif._init()
+            return hostif
 
     def __str__(self):
         return "module({})".format(self.name)
@@ -202,17 +218,23 @@ class Root(Object):
         super(Root, self).__init__(None)
         self.client = client
 
-        @self.command(WordCompleter(self.client.list().keys(), WORD=True))
-        def module(line):
+        async def modules():
+            l = await self.client.list()
+            return l.keys()
+
+        @self.command(AsyncWordCompleter(modules, WORD=True))
+        async def module(line):
             if len(line) != 1:
                 raise InvalidInput("usage: module <name>")
-            return Module(self.client.get_module(line[0]), line[0], self)
+            module = Module(await self.client.get_module(line[0]), line[0], self)
+            await module._init()
+            return module
 
         @self.command(name="list")
-        def _list(line):
+        async def _list(line):
             if len(line) != 0:
                 raise InvalidInput("usage: list")
-            for k, m in self.client.list().items():
+            for k, m in (await self.client.list()).items():
                 stroid = lambda oid: "0x{:08x}".format(oid)
                 print("module:", k, stroid(m.oid) if m.oid else "not present")
                 for v in m.hostifs:
@@ -225,13 +247,13 @@ class Root(Object):
             WordCompleter(["debug", "info", "notice", "warn", "error", "critical"]),
             "log-level",
         )
-        def set_log_level(line):
+        async def set_log_level(line):
             if len(line) != 1:
                 raise InvalidInput("usage: log-level <level>")
-            self.client.set_log_level(line[0])
+            await self.client.set_log_level(line[0])
 
         @self.command(NestedCompleter({"module": None, "netif": None, "hostif": None}))
-        def create(line):
+        async def create(line):
             if len(line) < 1:
                 raise InvalidInput(
                     "invalid input: create [module| netif <module-oid> | hostif <module-oid>] [<attr-name>:<attr-value> ]..."
@@ -255,27 +277,29 @@ class Root(Object):
             try:
                 print(
                     "oid: 0x{:x}".format(
-                        self.client.create(object_type, attrs, module_id)
+                        await self.client.create(object_type, attrs, module_id)
                     )
                 )
             except TAIException as e:
                 print("err: {} (code: {:x})".format(e.msg, e.code))
 
-        get_oids = lambda: (
-            "0x{:x}".format(elem.oid)
-            for elem in chain.from_iterable(
-                [v] + list(v.netifs) + list(v.hostifs)
-                for v in self.client.list().values()
-                if v.oid > 0
-            )
-        )
+    async def _init(self):
+        async def oids():
+            return [
+                "0x{:x}".format(elem.oid)
+                for elem in chain.from_iterable(
+                    [v] + list(v.netifs) + list(v.hostifs)
+                    for v in await self.client.list().values()
+                    if v.oid > 0
+                )
+            ]
 
-        @self.command(WordCompleter(get_oids))
-        def remove(line):
+        @self.command(AsyncWordCompleter(oids))
+        async def remove(line):
             if len(line) != 1:
                 raise InvalidInput("usage: remove <oid>")
             try:
-                self.client.remove(int(line[0], 0))
+                await self.client.remove(int(line[0], 0))
             except TAIException as e:
                 print("err: {} (code: {:x})".format(e.msg, e.code))
 
@@ -287,17 +311,21 @@ class TAIShellCompleter(Completer):
     def __init__(self, context):
         self.context = context
 
-    def get_completions(self, document, complete_event):
-        return self.context.completion(document, complete_event)
+    async def get_completions_async(self, document, complete_event):
+        async for completion in self.context.completion(document, complete_event):
+            yield completion
 
 
 class TAIShell(object):
     def __init__(self, addr, port):
-        client = taish.Client(addr, port)
+        client = taish.AsyncClient(addr, port)
         self.client = client
         self.context = Root(client)
         self.completer = TAIShellCompleter(self.context)
         self.default_input = ""
+
+    async def _init(self):
+        await self.context._init()
 
     def prompt(self):
         c = self.context
@@ -309,8 +337,8 @@ class TAIShell(object):
             return "> "
         return "/".join(l)[1:] + "> "
 
-    def exec(self, cmd: list):
-        self.context = self.context.exec(cmd)
+    async def exec(self, cmd: list):
+        self.context = await self.context.exec(cmd)
         self.completer.context = self.context
         self.default_input = ""
 
@@ -318,10 +346,10 @@ class TAIShell(object):
         b = KeyBindings()
 
         @b.add("?")
-        def _(event):
+        async def _(event):
             buf = event.current_buffer
             original_text = buf.text
-            help_msg = event.app.shell.context.help(buf.text)
+            help_msg = await event.app.shell.context.help(buf.text)
             buf.insert_text("?")
             buf.insert_line_below(copy_margin=False)
             buf.insert_text(help_msg)
@@ -331,24 +359,25 @@ class TAIShell(object):
         return b
 
 
-def loop(addr, port):
+async def loop(addr, port):
     session = PromptSession()
 
     default_prompt = "> "
     prompt = default_prompt
 
     shell = TAIShell(addr, port)
+    await shell._init()
 
     while True:
         c = shell.completer
         p = shell.prompt()
         b = shell.bindings()
         session.app.shell = shell
-        line = session.prompt(
+        line = await session.prompt_async(
             p, completer=c, key_bindings=b, default=shell.default_input
         )
         if len(line) > 0:
-            shell.exec(line)
+            await shell.exec(line)
 
 
 def main():
@@ -363,13 +392,16 @@ def main():
     global JSON_OUTPUT
     JSON_OUTPUT = options.json
 
-    if options.command_string:
-        shell = TAIShell(options.addr, options.port)
-        for line in options.command_string.split(";"):
-            shell.exec(line)
-        return
+    async def _main():
+        if options.command_string:
+            shell = TAIShell(options.addr, options.port)
+            for line in options.command_string.split(";"):
+                await shell.exec(line)
+            return
 
-    loop(options.addr, options.port)
+        await loop(options.addr, options.port)
+
+    asyncio.run(_main())
 
 
 if __name__ == "__main__":
