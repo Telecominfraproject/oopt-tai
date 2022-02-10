@@ -197,7 +197,10 @@ namespace tai::framework {
                 }
             }
         }
-        n.notify(n.context, id(), attrs.size(), attrs.data());
+        if (attrs.size()) {
+            TAI_DEBUG("sending notification 0x%lx", id());
+            n.notify(n.context, id(), attrs.size(), attrs.data());
+        }
         return TAI_STATUS_SUCCESS;
     }
 
