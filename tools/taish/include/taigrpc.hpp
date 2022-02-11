@@ -32,8 +32,8 @@ struct tai_api_module_t
     std::string       location;
     bool              present;
     tai_object_id_t   id;
-    std::vector<tai_object_id_t> hostifs;
-    std::vector<tai_object_id_t> netifs;
+    std::map<int, tai_object_id_t> hostifs;
+    std::map<int, tai_object_id_t> netifs;
 };
 
 typedef tai_status_t (*tai_api_list_module_fn)(_Inout_ std::vector<tai_api_module_t>& list);
@@ -43,7 +43,7 @@ typedef tai_status_t (*tai_api_list_module_fn)(_Inout_ std::vector<tai_api_modul
 //        already removed when this function is called
 // oid : the object id of the created or removed object
 // is_create : a flag to indicated whether the update is create or remove
-typedef void (*tai_object_update_fn)(tai_object_type_t type, tai_object_id_t oid, bool is_create);
+typedef void (*tai_object_update_fn)(tai_object_type_t type, tai_object_id_t oid, int index, bool is_create);
 
 struct tai_api_method_table_t
 {

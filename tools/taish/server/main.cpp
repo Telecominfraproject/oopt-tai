@@ -168,8 +168,8 @@ class module {
             return;
         }
 
-        std::vector<tai_object_id_t> netifs;
-        std::vector<tai_object_id_t> hostifs;
+        std::map<int, tai_object_id_t> netifs;
+        std::map<int, tai_object_id_t> hostifs;
 
         bool present;
     private:
@@ -221,7 +221,7 @@ int module::create_hostif(uint32_t num, const json& config, const std::string& l
             throw std::runtime_error("failed to create host interface");
         }
         std::cout << "hostif: 0x" << std::hex << id << std::endl;
-        hostifs.push_back(id);
+        hostifs[i] = id;
     }
     return 0;
 }
@@ -261,7 +261,7 @@ int module::create_netif(uint32_t num, const json& config, const std::string& lo
             throw std::runtime_error("failed to create network interface");
         }
         std::cout << "netif: 0x" << std::hex << id << std::endl;
-        netifs.push_back(id);
+        netifs[i] = id;
     }
     return 0;
 }
@@ -284,7 +284,8 @@ int start_grpc_server(std::string addr) {
     return 0;
 }
 
-void object_update(tai_object_type_t type, tai_object_id_t oid, bool is_create) {
+// when type == module or is_create == false, index value is meaningless
+void object_update(tai_object_type_t type, tai_object_id_t oid, int index, bool is_create) {
     if ( type == TAI_OBJECT_TYPE_MODULE ) {
         if ( is_create ) {
             tai_attribute_t attr;
@@ -314,25 +315,34 @@ void object_update(tai_object_type_t type, tai_object_id_t oid, bool is_create) 
 
     auto mid = tai_module_id_query(oid);
 
-    std::vector<tai_object_id_t> *v;
+    std::map<int, tai_object_id_t> *v;
 
-    for ( auto& m : g_modules ) {
-        if ( type == TAI_OBJECT_TYPE_HOSTIF ) {
+    for (auto& m : g_modules) {
+        if (is_create && m.second->id() != mid) {
+            continue;
+        }
+
+        if (type == TAI_OBJECT_TYPE_HOSTIF) {
             v = &m.second->hostifs;
-        } else if ( type == TAI_OBJECT_TYPE_NETWORKIF ) {
+        } else if (type == TAI_OBJECT_TYPE_NETWORKIF) {
             v = &m.second->netifs;
         }
 
-        if ( is_create ) {
-            if ( m.second->id() == mid ) {
-                v->emplace_back(oid);
-                return;
-            }
+        if (is_create) {
+            v->emplace(index, oid);
+            break;
         } else {
-            auto it = std::find(v->begin(), v->end(), oid);
-            if ( it != v->end() ) {
-                v->erase(it);
-                return;
+            index = -1;
+            for (auto it = v->begin(); it != v->end(); it++) {
+                if (it->second == oid) {
+                    index = it->first;
+                    break;
+                }
+            }
+            TAI_INFO("removing object: %lx, index: %d", oid, index);
+            if (index >= 0) {
+                v->erase(index);
+                break;
             }
         }
     }
@@ -346,12 +356,8 @@ tai_status_t list_module(std::vector<tai_api_module_t>& l) {
         auto m = v.second;
         list.present = m->present;
         list.id =  m->id();
-        for ( auto i = 0; i < static_cast<int>(m->hostifs.size()); i++ ) {
-            list.hostifs.emplace_back(m->hostifs[i]);
-        }
-        for ( auto i = 0; i < static_cast<int>(m->netifs.size()); i++ ) {
-            list.netifs.emplace_back(m->netifs[i]);
-        }
+        list.hostifs = m->hostifs;
+        list.netifs = m->netifs;
         l.emplace_back(list);
     }
     return TAI_STATUS_SUCCESS;
