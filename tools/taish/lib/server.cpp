@@ -66,17 +66,17 @@ const tai_attr_metadata_t* const get_metadata(tai_meta_api_t* meta_api, const ta
 
         if ( module.id != TAI_NULL_OBJECT_ID ) {
             m->clear_hostifs();
-            for ( uint32_t i = 0; i < module.hostifs.size(); i++ ) {
+            for (auto& pair : module.hostifs) {
                 auto hostif = m->add_hostifs();
-                hostif->set_index(i);
-                hostif->set_oid(module.hostifs[i]);
+                hostif->set_index(pair.first);
+                hostif->set_oid(pair.second);
                 hostif->set_module_oid(module.id);
             }
             m->clear_netifs();
-            for ( uint32_t i = 0; i < module.netifs.size(); i++ ) {
+            for (auto& pair : module.netifs) {
                 auto netif = m->add_netifs();
-                netif->set_index(i);
-                netif->set_oid(module.netifs[i]);
+                netif->set_index(pair.first);
+                netif->set_oid(pair.second);
                 netif->set_module_oid(module.id);
             }
         }
@@ -659,6 +659,8 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
         }
     }
 
+    int index = 0;
+
     try {
         for ( auto i = 0; i < request->attrs_size(); i++ ) {
             auto a = request->attrs(i);
@@ -668,6 +670,12 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
             auto meta = get_metadata(m_api->meta_api, &key, id);
             auto attr = std::make_shared<tai::Attribute>(meta, v, &option);
             attrs.emplace_back(attr);
+
+            if (type == TAI_OBJECT_TYPE_HOSTIF && attr->id() == TAI_HOST_INTERFACE_ATTR_INDEX) {
+                index = attr->raw()->value.u32;
+            } else if (type == TAI_OBJECT_TYPE_NETWORKIF && attr->id() == TAI_NETWORK_INTERFACE_ATTR_INDEX) {
+                index = attr->raw()->value.u32;
+            }
         }
     } catch (tai::Exception& e) {
         add_status(context, e.err());
@@ -689,7 +697,7 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
 
     if ( ret == TAI_STATUS_SUCCESS ) {
         response->set_oid(oid);
-        m_api->object_update(type, oid, true);
+        m_api->object_update(type, oid, index, true);
     }
     add_status(context, ret);
     return Status::OK;
@@ -729,7 +737,7 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
                 it++;
             }
         }
-        m_api->object_update(type, oid, false);
+        m_api->object_update(type, oid, 0, false);
     }
     add_status(context, ret);
     return Status::OK;
