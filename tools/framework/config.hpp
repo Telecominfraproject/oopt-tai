@@ -63,6 +63,7 @@ namespace tai::framework {
 
     template<tai_object_type_t T>
     struct AttributeInfo {
+
         AttributeInfo(int32_t id) : id(id), defaultvalue(nullptr), min(nullptr), max(nullptr), fsm(FSM_STATE_INIT), meta(tai_metadata_get_attr_metadata(T, id)), no_store(false), setter(nullptr), getter(nullptr), validator(nullptr), cap_getter(nullptr) {}
         AttributeInfo(int32_t id,
                 FSMState fsm,
@@ -117,23 +118,24 @@ namespace tai::framework {
         }
 
         int id;
-        const tai_attr_metadata_t* const meta;
-
-         // the FSM state which we need to transit after changing the value
-        FSMState fsm;
-
         // overrides the default value specified in TAI headers by @default
         const tai_attribute_value_t* const defaultvalue;
         const tai_attribute_value_t* const min;
         const tai_attribute_value_t* const max;
+         // the FSM state which we need to transit after changing the value
         std::set<int32_t> valid_enums;
 
-        validator_f validator;
+        FSMState fsm;
+        const tai_attr_metadata_t* const meta;
+
+        bool no_store; // only execute the set_hook and don't store the attribute to the config
+
         setter_f setter;
         getter_f getter;
-        bool no_store; // only execute the set_hook and don't store the attribute to the config
+        validator_f validator;
         cap_getter_f cap_getter;
-    };
+
+  };
 
     template<tai_object_type_t T>
     class AttributeInfoMap : public std::map<tai_attr_id_t, AttributeInfo<T>> {
@@ -175,7 +177,7 @@ namespace tai::framework {
     template<tai_object_type_t T>
     class Config {
         public:
-            Config(uint32_t attr_count = 0, const tai_attribute_t* attr_list = nullptr, void* user = nullptr, default_setter_f setter = nullptr, default_getter_f getter = nullptr, default_cap_getter_f cap_getter = nullptr) : m_user(user), m_default_setter(setter), m_default_getter(getter), m_default_cap_getter(cap_getter) {
+            Config(uint32_t attr_count = 0, const tai_attribute_t* attr_list = nullptr, void* user = nullptr, default_setter_f setter = nullptr, default_getter_f getter = nullptr, default_cap_getter_f cap_getter = nullptr) : m_default_setter(setter), m_default_getter(getter), m_default_cap_getter(cap_getter), m_user(user) {
                 FSMState tmp;
                 auto ret = set_attributes(attr_count, attr_list, tmp, true);
                 if ( ret != TAI_STATUS_SUCCESS ) {
@@ -220,10 +222,9 @@ namespace tai::framework {
 
             tai_status_t get_capabilities(uint32_t count, tai_attribute_capability_t * const list) {
                 std::vector<std::pair<tai_attribute_capability_t * const, error_info>> failed_caps;
-                for ( auto i = 0; i < count; i++ ) {
+                for ( auto i = 0; i < static_cast<int>(count); i++ ) {
                     auto cap = &list[i];
                     std::unique_lock<std::mutex> lk(m_mtx);
-                    tai_attribute_capability_t capability;
                     auto status = _get_capability(cap);
                     if ( status != TAI_STATUS_SUCCESS ) {
                         status = convert_tai_error_to_list(status, i);
@@ -243,7 +244,7 @@ namespace tai::framework {
                         err_list.emplace_back(a.second);
                     }
                     auto ret = m_default_cap_getter(l.size(), l.data(), m_user, err_list.data());
-                    for ( auto i = 0; i < l.size(); i++ ) {
+                    for ( auto i = 0; i < static_cast<int>(l.size()); i++ ) {
                         const auto& a = failed_caps[i];
                         list[a.second.index] = l[i];
                     }
@@ -256,7 +257,7 @@ namespace tai::framework {
 
             tai_status_t get_attributes(uint32_t attr_count, tai_attribute_t * const attr_list) {
                 std::vector<std::pair<tai_attribute_t*const, error_info>> failed_attributes;
-                for ( auto i = 0; i < attr_count; i++ ) {
+                for ( auto i = 0; i < static_cast<int>(attr_count); i++ ) {
                     auto attr = &attr_list[i];
                     auto info = m_info.find(attr->id);
                     if ( info == m_info.end() ) {
@@ -302,7 +303,7 @@ namespace tai::framework {
                         err_list.emplace_back(a.second);
                     }
                     auto ret = m_default_getter(list.size(), list.data(), m_user, err_list.data());
-                    for ( auto i = 0; i < list.size(); i++ ) {
+                    for ( auto i = 0; i < static_cast<int>(list.size()); i++ ) {
                         const auto& a = failed_attributes[i];
                         attr_list[a.second.index] = list[i];
                     }
@@ -321,7 +322,7 @@ namespace tai::framework {
                 std::vector<const tai_attribute_t*> diff;
                 {
                     std::unique_lock<std::mutex> lk(m_mtx);
-                    for ( auto i = 0; i < attr_count; i++ ) {
+                    for ( auto i = 0; i < static_cast<int>(attr_count); i++ ) {
                         const auto& attr = attr_list[i];
                         auto info = m_info.find(attr.id);
                         if ( m_default_setter == nullptr && info == m_info.end() ) {
@@ -353,7 +354,7 @@ namespace tai::framework {
                 const auto current = next_state;
                 std::vector<std::pair<const tai_attribute_t*const, error_info>> failed_attributes;
                 std::vector<FSMState> states;
-                for ( auto i = 0; i < diff.size(); i++ ) {
+                for ( auto i = 0; i < static_cast<int>(diff.size()); i++ ) {
                     auto state = current;
                     auto ret = _set(*diff[i], readonly, false, &state);
                     if ( ret != TAI_STATUS_SUCCESS ) {
@@ -393,7 +394,7 @@ namespace tai::framework {
 
             tai_status_t clear_attributes(uint32_t attr_count, const tai_attr_id_t* const attr_list, FSMState& next_state, bool force = false) {
                 std::unique_lock<std::mutex> lk(m_mtx);
-                for ( auto i = 0; i < attr_count; i++ ) {
+                for ( auto i = 0; i < static_cast<int>(attr_count); i++ ) {
                     auto id = attr_list[i];
                     auto info = m_info.find(id);
                     if ( info == m_info.end() ) {
@@ -616,7 +617,7 @@ namespace tai::framework {
                         if ( cap->valid_supportedvalues ) {
                             auto valids = cap->supportedvalues;
                             bool found = false;
-                            for ( int i = 0; i < valids.count; i++ ) {
+                            for ( int i = 0; i < static_cast<int>(valids.count); i++ ) {
                                 if ( valids.list[i].s32 == attr.value.s32 ) {
                                     found = true;
                                     break;

@@ -34,10 +34,10 @@ namespace tai::basic {
             oids.emplace_back(it.first);
         }
         for ( auto oid : oids ) {
-            auto ret = remove(oid);
+            remove(oid);
         }
         for ( auto oid : oids ) {
-            auto ret = remove(oid);
+            remove(oid);
         }
         m_fsms.erase(m_fsms.begin(), m_fsms.end());
     }
@@ -49,7 +49,7 @@ namespace tai::basic {
             case TAI_OBJECT_TYPE_MODULE:
                 {
                     tai::framework::Location loc;
-                    for ( auto i = 0; i < count; i++ ) {
+                    for ( auto i = 0; i < static_cast<int>(count); i++ ) {
                         if ( list[i].id == TAI_MODULE_ATTR_LOCATION ) {
                             loc = tai::framework::Location(list[i].value.charlist.list, list[i].value.charlist.count);
                             break;
@@ -171,8 +171,9 @@ namespace tai::basic {
         case TAI_OBJECT_TYPE_NETWORKIF:
         case TAI_OBJECT_TYPE_HOSTIF:
             return type;
+        default:
+            return TAI_OBJECT_TYPE_NULL;
         }
-        return TAI_OBJECT_TYPE_NULL;
     }
 
     tai_object_id_t Platform::get_module_id(tai_object_id_t id) {
@@ -195,8 +196,9 @@ namespace tai::basic {
                 }
                 return module_id;
             }
+        default:
+            return TAI_OBJECT_TYPE_NULL;
         }
-        return TAI_OBJECT_TYPE_NULL;
     }
 
     bool FSM::configured() {

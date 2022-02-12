@@ -183,7 +183,7 @@ void module_presence(bool present, char* location) {
     uint64_t v = 1;
     std::lock_guard<std::mutex> g(m);
     q.push(std::pair<bool, std::string>(present, std::string(location)));
-    write(event_fd, &v, sizeof(uint64_t));
+    v = write(event_fd, &v, sizeof(uint64_t));
 }
 
 int module::create_hostif(uint32_t num, const json& config, const std::string& location) {
@@ -395,7 +395,7 @@ void signal_handler(int sig) {
     uint64_t v = 1;
     std::lock_guard<std::mutex> g(m);
     q.push(std::pair<bool, std::string>(false, std::string("shutdown")));
-    write(event_fd, &v, sizeof(uint64_t));
+    v = write(event_fd, &v, sizeof(uint64_t));
 }
 
 int main(int argc, char *argv[]) {
@@ -510,7 +510,7 @@ int main(int argc, char *argv[]) {
 
     while (true) {
         uint64_t v;
-        read(event_fd, &v, sizeof(uint64_t));
+        v = read(event_fd, &v, sizeof(uint64_t));
         {
             std::lock_guard<std::mutex> g(m);
             while ( !q.empty() ) {

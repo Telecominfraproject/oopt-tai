@@ -126,10 +126,11 @@ namespace tai::framework {
         private:
             virtual fsm_callback cb(FSMState state) { return nullptr; }
             virtual fsm_state_change_callback state_change_cb() { return nullptr; }
+
+            int m_event_fd;
             FSMState m_current_state, m_next_state, m_prev_state;
             std::mutex m_queue_mutex;
             std::queue<FSMState> m_queue;
-            int m_event_fd;
             std::thread m_th;
     };
 }

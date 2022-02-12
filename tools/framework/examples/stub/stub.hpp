@@ -71,7 +71,7 @@ namespace tai::stub {
         public:
             Module(uint32_t count, const tai_attribute_t *list) : Object(count, list) {
                 std::string loc;
-                for ( auto i = 0; i < count; i++ ) {
+                for ( auto i = 0; i < static_cast<int>(count); i++ ) {
                     if ( list[i].id == TAI_MODULE_ATTR_LOCATION ) {
                         loc = std::string(list[i].value.charlist.list, list[i].value.charlist.count);
                         break;
@@ -94,7 +94,7 @@ namespace tai::stub {
         public:
             NetIf(tai_object_id_t module_id, uint32_t count, const tai_attribute_t *list) : Object(count, list) {
                 int index = -1;
-                for ( auto i = 0; i < count; i++ ) {
+                for ( auto i = 0; i < static_cast<int>(count); i++ ) {
                     if ( list[i].id == TAI_NETWORK_INTERFACE_ATTR_INDEX ) {
                         index = list[i].value.u32;
                         break;
@@ -116,7 +116,7 @@ namespace tai::stub {
         public:
             HostIf(tai_object_id_t module_id, uint32_t count, const tai_attribute_t *list) : Object(count, list) {
                 int index = -1;
-                for ( auto i = 0; i < count; i++ ) {
+                for ( auto i = 0; i < static_cast<int>(count); i++ ) {
                     if ( list[i].id == TAI_HOST_INTERFACE_ATTR_INDEX ) {
                         index = list[i].value.u32;
                         break;
