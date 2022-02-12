@@ -14,7 +14,7 @@ apt update && DEBIAN_FRONTEND=noninteractive apt install -qy --no-install-recomm
 
 RUN --mount=type=bind,source=/tmp,target=/tmp,from=builder python -m pip install /tmp/*.tar.gz
 RUN --mount=type=bind,target=/tmp,from=builder cp /tmp/`cat /tmp/tmp/lib`/libtai-basic.so `cat /tmp/tmp/lib`
-RUN cd `cat /tmp/tmp/lib` && ln -s libtai-basic.so libtai.so
+RUN --mount=type=bind,source=/tmp,target=/tmp,from=builder cd `cat /tmp/lib` && ln -s libtai-basic.so libtai.so
 
 RUN --mount=type=bind,target=/tmp,from=builder cp /tmp/`cat /tmp/tmp/lib`/libmetatai.so `cat /tmp/tmp/lib`
 RUN --mount=type=bind,target=/tmp,from=builder cp /tmp/usr/local/bin/taish_server /usr/local/bin/
