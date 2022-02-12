@@ -469,7 +469,7 @@ int tai_deserialize_charlist(
         }
         buffer = j->valuestring;
     }
-    int count = strlen(buffer);
+    int count = strnlen(buffer, TAI_CHARDATA_LENGTH);
     if ( count > value->count ) {
         value->count = count;
         if ( j != NULL ) {

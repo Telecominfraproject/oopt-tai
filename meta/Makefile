@@ -1,7 +1,19 @@
 .PHONY: test
 
+INCLUDE ?= -I ../inc
+
+CFLAGS ?= -fPIC $(INCLUDE) -Wall -Werror
+
+ifdef DEBUG
+    CFLAGS += -g3 -O0
+else
+    CFLAGS += -O2
+endif
+
+LDFLAGS ?= -shared
+
 all: taimetadata.c taimetadata.h taiserialize.c taimetadatautils.c
-	gcc -g3 -Werror -Wall -shared -fPIC -I ../inc taiserialize.c taimetadatautils.c taimetadata.c cJSON.c -o libmetatai.so
+	$(CC) $(LDFLAGS) $(CFLAGS) taiserialize.c taimetadatautils.c taimetadata.c cJSON.c -o libmetatai.so
 
 taimetadata.c taimetadata.h: $(TAI_META_CUSTOM_FILES) $(wildcard ../inc/*)
 	tai_meta_generator ../inc/tai.h $(TAI_META_CUSTOM_FILES)

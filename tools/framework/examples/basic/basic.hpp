@@ -98,12 +98,11 @@ namespace tai::basic {
             FSMState _waiting_configuration_cb(FSMState current, void* user);
             FSMState _ready_cb(FSMState current, void* user);
 
+            Location m_loc;
             S_Module m_module;
             S_NetIf m_netif;
             S_HostIf m_hostif[BASIC_NUM_HOSTIF];
-
             std::atomic<bool> m_no_transit;
-            Location m_loc;
     };
 
     using S_FSM = std::shared_ptr<FSM>;
@@ -125,7 +124,7 @@ namespace tai::basic {
 
         private:
             tai_status_t default_setter(uint32_t count, const tai_attribute_t* const attrs, FSMState* fsm, void* const user, const tai::framework::error_info* const info) {
-                for ( auto i = 0; i < count; i++ ) {
+                for ( auto i = 0; i < static_cast<int>(count); i++ ) {
                     auto attribute = &attrs[i];
                     auto meta = tai_metadata_get_attr_metadata(T, attribute->id);
                     if ( meta == nullptr ) {
@@ -141,7 +140,7 @@ namespace tai::basic {
             }
 
             tai_status_t default_getter(uint32_t count, tai_attribute_t* const attrs, void* const user, const tai::framework::error_info* const info) {
-                for ( auto i = 0; i< count; i++ ) {
+                for ( auto i = 0; i< static_cast<int>(count); i++ ) {
                     auto attribute = &attrs[i];
                     auto meta = tai_metadata_get_attr_metadata(T, attribute->id);
                     auto value = tai::framework::Object<T>::config().direct_get(attribute->id);
@@ -167,7 +166,7 @@ namespace tai::basic {
             }
 
             tai_status_t default_cap_getter(uint32_t count, tai_attribute_capability_t* const caps, void* const user, const tai::framework::error_info* const info) {
-                for ( auto i = 0; i< count; i++ ) {
+                for ( auto i = 0; i< static_cast<int>(count); i++ ) {
                     auto cap = &caps[i];
                     auto meta = tai_metadata_get_attr_metadata(T, cap->id);
                     if ( meta == nullptr ) {
@@ -185,9 +184,9 @@ namespace tai::basic {
         public:
             // 4th argument to the Object constructor is a user context which is passed in getter()/setter() callbacks
             // getter()/setter() callbacks is explained in basic.hpp
-            Module(uint32_t count, const tai_attribute_t *list, S_FSM fsm) : m_fsm(fsm), Object(count, list, fsm) {
+            Module(uint32_t count, const tai_attribute_t *list, S_FSM fsm) : Object(count, list, fsm), m_fsm(fsm) {
                 std::string loc;
-                for ( auto i = 0; i < count; i++ ) {
+                for ( auto i = 0; i < static_cast<int>(count); i++ ) {
                     if ( list[i].id == TAI_MODULE_ATTR_LOCATION ) {
                         loc = std::string(list[i].value.charlist.list, list[i].value.charlist.count);
                         break;
@@ -215,7 +214,7 @@ namespace tai::basic {
         public:
             NetIf(S_Module module, uint32_t count, const tai_attribute_t *list) : Object(count, list, module->fsm()) {
                 int index = -1;
-                for ( auto i = 0; i < count; i++ ) {
+                for ( auto i = 0; i < static_cast<int>(count); i++ ) {
                     if ( list[i].id == TAI_NETWORK_INTERFACE_ATTR_INDEX ) {
                         index = list[i].value.u32;
                         break;
@@ -235,7 +234,7 @@ namespace tai::basic {
         public:
             HostIf(S_Module module, uint32_t count, const tai_attribute_t *list) : Object(count, list, module->fsm()) {
                 int index = -1;
-                for ( auto i = 0; i < count; i++ ) {
+                for ( auto i = 0; i < static_cast<int>(count); i++ ) {
                     if ( list[i].id == TAI_HOST_INTERFACE_ATTR_INDEX ) {
                         index = list[i].value.u32;
                         break;

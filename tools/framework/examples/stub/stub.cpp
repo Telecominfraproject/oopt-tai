@@ -69,8 +69,9 @@ namespace tai::stub {
         case TAI_OBJECT_TYPE_NETWORKIF:
         case TAI_OBJECT_TYPE_HOSTIF:
             return type;
+        default:
+            return TAI_OBJECT_TYPE_NULL;
         }
-        return TAI_OBJECT_TYPE_NULL;
     }
 
     tai_object_id_t Platform::get_module_id(tai_object_id_t id) {
@@ -93,8 +94,9 @@ namespace tai::stub {
                 }
                 return module_id;
             }
+        default:
+            return TAI_OBJECT_TYPE_NULL;
         }
-        return TAI_OBJECT_TYPE_NULL;
     }
 
     // List all attributes which is supported by the library in tai::framework::Config<T>::m_info
