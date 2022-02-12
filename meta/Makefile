@@ -1,27 +1,33 @@
 .PHONY: test
 
-INCLUDE ?= -I ../inc
+TAI_META_OUT_DIR ?= $(abspath .)
+
+INCLUDE ?= -I $(TAI_META_OUT_DIR) -I ../inc
 
 CFLAGS ?= -fPIC $(INCLUDE) -Wall -Werror
 
 ifdef DEBUG
-    CFLAGS += -g3 -O0
+    CFLAGS += -ggdb -g3 -O0
 else
     CFLAGS += -O2
 endif
 
 LDFLAGS ?= -shared
 
-all: taimetadata.c taimetadata.h taiserialize.c taimetadatautils.c
-	$(CC) $(LDFLAGS) $(CFLAGS) taiserialize.c taimetadatautils.c taimetadata.c cJSON.c -o libmetatai.so
+SRCS ?= $(TAI_META_OUT_DIR)/taimetadata.c $(filter-out taimetadata.c,$(wildcard *.c))
+HEADERS ?= $(TAI_META_OUT_DIR)/taimetadata.h $(filter-out taimetadata.h,$(wildcard *.h))
+OBJS = $(addsuffix .o,$(basename $(SRCS)))
 
-taimetadata.c taimetadata.h: $(TAI_META_CUSTOM_FILES) $(wildcard ../inc/*)
-	tai_meta_generator ../inc/tai.h $(TAI_META_CUSTOM_FILES)
+$(TAI_META_OUT_DIR)/libmetatai.so: $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS)
+
+$(TAI_META_OUT_DIR)/taimetadata.c $(TAI_META_OUT_DIR)/taimetadata.h: $(TAI_META_CUSTOM_FILES) $(wildcard ../inc/*)
+	tai_meta_generator --out-dir $(TAI_META_OUT_DIR) ../inc/tai.h $(TAI_META_CUSTOM_FILES)
 
 test:
 	make -C sample
-	make -C test
-	LD_LIBRARY_PATH=. ./test/test
+	make -C test TAI_META_OUT_DIR=$(abspath sample)
+	LD_LIBRARY_PATH=$(abspath sample) ./test/test
 
 clean:
-	rm libmetatai.so taimetadata.c taimetadata.h
+	$(RM) $(addprefix $(TAI_META_OUT_DIR)/,libmetatai.so taimetadata.c taimetadata.h) *.o

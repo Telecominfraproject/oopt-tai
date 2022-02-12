@@ -130,7 +130,7 @@ int testDeserializeNetworkInterfaceAttr() {
 
 int testDeepcopyAttrValue() {
     const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORKIF, TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS);
-    tai_attribute_t src, dst = {0};
+    tai_attribute_t src = {0}, dst = {0};
     tai_status_t status;
     status = tai_metadata_alloc_attr_value(meta, &src, NULL);
     if ( status != TAI_STATUS_SUCCESS ) {
