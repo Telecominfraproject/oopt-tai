@@ -37,7 +37,7 @@ endif
 
 CXXFLAGS ?= $(VENDOR_CXXFLAGS) $(CFLAGS) -std=c++17 -include $(TAI_FRAMEWORK_PLATFORM_HEADER)
 
-LDFLAGS ?= $(VENDOR_LDFLAGS) -shared -L $(TAI_META_OUT_DIR) -lmetatai -lpthread -static-libstdc++
+LDFLAGS ?= $(VENDOR_LDFLAGS) -shared -L $(TAI_META_OUT_DIR) -lmetatai -lpthread
 
 $(TAI_PROG): meta $(OBJS) $(HEADERS) Makefile
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(LDFLAGS)
