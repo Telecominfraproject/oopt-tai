@@ -706,13 +706,10 @@ const size_t tai_metadata_attr_sorted_by_id_name_count = {{ attrs | count }};
 
 def main():
     parser = ArgumentParser()
-    parser.add_argument("--clang-lib", default="/usr/lib/llvm-6.0/lib/libclang.so.1")
     parser.add_argument("--out-dir", default=".")
     parser.add_argument("header")
     parser.add_argument("custom", nargs="*", default=[])
     args = parser.parse_args()
-
-    Config.set_library_file(args.clang_lib)
 
     h = TAIHeader(args.header)
     for c in args.custom:
