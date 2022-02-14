@@ -1,28 +1,12 @@
 .PHONY: doc stub test docker meta
 
-ifndef TAI_DOCKER_CMD
-    TAI_DOCKER_CMD := bash
-endif
-
-ifndef TAI_DOCKER_IMAGE
-    TAI_DOCKER_IMAGE := tai
-endif
-
-ifndef TAI_DOCKER_BUILDER_IMAGE
-    TAI_DOCKER_BUILDER_IMAGE := tai-builder
-endif
-
-ifndef TAI_DOCKER_MOUNT
-    TAI_DOCKER_MOUNT := "$(PWD):/data"
-endif
-
-ifndef TAI_DOCKER_WORKDIR
-    TAI_DOCKER_WORKDIR := "/data"
-endif
-
-ifndef TAI_DOCKER_RUN_OPTION
-    TAI_DOCKER_RUN_OPTION := -it --rm
-endif
+TAI_DOCKER_CMD ?= bash
+TAI_DOCKER_IMAGE ?= tai
+TAI_DOCKER_BUILDER_IMAGE ?= tai-builder
+TAI_DOCKER_CMD_IMAGE ?= $(TAI_DOCKER_BUILDER_IMAGE)
+TAI_DOCKER_MOUNT ?= "$(PWD):/data"
+TAI_DOCKER_WORKDIR ?= "/data"
+TAI_DOCKER_RUN_OPTION ?= -it --rm
 
 all: meta stub
 
@@ -39,7 +23,7 @@ test:
 	$(MAKE) -C ./tests
 
 cmd:
-	docker run $(TAI_DOCKER_RUN_OPTION) -v $(TAI_DOCKER_MOUNT) -w $(TAI_DOCKER_WORKDIR) $(TAI_DOCKER_BUILDER_IMAGE) $(TAI_DOCKER_CMD)
+	docker run $(TAI_DOCKER_RUN_OPTION) -v $(TAI_DOCKER_MOUNT) -w $(TAI_DOCKER_WORKDIR) $(TAI_DOCKER_CMD_IMAGE) $(TAI_DOCKER_CMD)
 
 image:
 	DOCKER_BUILDKIT=1 docker build $(TAI_DOCKER_BUILD_OPTION) --build-arg TAI_DOCKER_BUILDER_IMAGE=$(TAI_DOCKER_BUILDER_IMAGE) \
@@ -53,7 +37,7 @@ builder:
 bash:
 	$(MAKE) cmd
 
-ci: builder
+ci:
 	TAI_DOCKER_RUN_OPTION='--rm' TAI_DOCKER_CMD="make test" $(MAKE) cmd
 
 clean:

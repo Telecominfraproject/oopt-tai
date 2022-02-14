@@ -2,6 +2,7 @@
 #define __EXCEPTION_HPP__
 
 #include "tai.h"
+#include <string>
 
 namespace tai {
 

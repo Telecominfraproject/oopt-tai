@@ -54,3 +54,5 @@ jobs:
         - 
           name: Run test
           run: make ci
+          env:
+            TAI_DOCKER_CMD_IMAGE: localhost:5000/tai-builder:${{ github.sha }}

@@ -4,9 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import taish
-from taish import TAIException
-from taish.cli import Object, InvalidInput, Completer, AsyncWordCompleter
+from taish import TAIException, AsyncClient
+from .cli import Object, InvalidInput, Completer, AsyncWordCompleter
 
 from optparse import OptionParser
 
@@ -318,7 +317,7 @@ class TAIShellCompleter(Completer):
 
 class TAIShell(object):
     def __init__(self, addr, port):
-        client = taish.AsyncClient(addr, port)
+        client = AsyncClient(addr, port)
         self.client = client
         self.context = Root(client)
         self.completer = TAIShellCompleter(self.context)

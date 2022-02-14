@@ -57,8 +57,11 @@ lib/taish.grpc.pb.cc lib/taish.grpc.pb.h: proto/taish/taish.proto
 	protoc --grpc_out=./lib --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` -I proto/taish taish.proto
 
 python:
-	python setup.py sdist
-	pip install dist/*.tar.gz
+	python -m pip install wheel grpcio-tools
+	$(MAKE) -C client
+	python setup.py bdist_wheel
+	python -m pip wheel -r requirements.txt -w dist
+	pip install dist/*.whl
 
 clean:
 	-rm -f ${OBJS} */*.pb\.* ${PROG} ${LIB_PROG}
