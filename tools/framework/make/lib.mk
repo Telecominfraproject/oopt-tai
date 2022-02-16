@@ -13,7 +13,7 @@ TAI_LIB_DIR ?= $(TAI_DIR)/tools/lib
 
 TAI_META_OUT_DIR ?= $(abspath .)
 
-SRCS ?= $(wildcard *.cpp $(TAI_LIB_DIR)/*.cpp $(TAI_FRAMEWORK_DIR)/*.cpp $(TAI_META_OUT_DIR)/taimetadata.c)
+SRCS ?= $(wildcard *.cpp $(TAI_LIB_DIR)/*.cpp $(TAI_FRAMEWORK_DIR)/*.cpp $(TAI_META_OUT_DIR)/*.c)
 HEADERS ?= $(wildcard *.hpp $(TAI_LIB_DIR)/*.hpp $(TAI_FRAMEWORK_DIR)/*.hpp $(TAI_META_OUT_DIR)/*.h) $(TAI_META_CUSTOM_FILES)
 OBJS = $(addsuffix .o,$(basename $(SRCS)))
 
@@ -41,10 +41,11 @@ LDFLAGS ?= $(VENDOR_LDFLAGS) -shared -L $(TAI_META_OUT_DIR) -lmetatai -lpthread
 
 $(TAI_PROG): meta $(OBJS) $(HEADERS) Makefile
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(LDFLAGS)
+	if [ $(TAI_PROG) != libtai.so ]; then ln -sf $(TAI_PROG) libtai.so; fi
 
 meta:
 	$(MAKE) -C $(TAI_DIR)/meta TAI_META_CUSTOM_FILES="$(TAI_META_CUSTOM_FILES)" TAI_META_OUT_DIR=$(TAI_META_OUT_DIR)
 
 clean:
-	$(RM) $(TAI_PROG) $(OBJS)
+	$(RM) $(TAI_PROG) $(OBJS) libtai.so
 	$(MAKE) -C $(TAI_DIR)/meta clean TAI_META_OUT_DIR=$(TAI_META_OUT_DIR)
