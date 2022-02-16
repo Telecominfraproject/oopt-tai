@@ -34,6 +34,7 @@ $(TAI_META_DIR)/taimetadata.h $(TAI_META_DIR)/libmetatai.so:
 	$(MAKE) -C $(TAI_META_DIR)
 
 libtai.so: Makefile
+	$(MAKE) -C $(TAI_BASIC_LIB_DIR) clean
 	$(MAKE) -C $(TAI_BASIC_LIB_DIR)
 	ln -sf $(TAI_BASIC_LIB_DIR)/$@ $@
 
