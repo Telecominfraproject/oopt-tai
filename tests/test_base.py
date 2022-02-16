@@ -4,6 +4,7 @@ import threading
 import os
 import time
 import taish
+import asyncio
 
 TAI_TEST_MODULE_LOCATION = os.environ.get("TAI_TEST_MODULE_LOCATION", "")
 if not TAI_TEST_MODULE_LOCATION:
@@ -27,7 +28,7 @@ def output_reader(proc):
         print("taish-server: {}".format(line.decode("utf-8")), end="")
 
 
-class TestTAI(unittest.TestCase):
+class TestTAI(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         if TAI_TEST_NO_LOCAL_TAISH_SERVER:
             return
@@ -45,13 +46,17 @@ class TestTAI(unittest.TestCase):
         self.d.join()
         self.proc.stdout.close()
 
-    def test_list(self):
-        cli = taish.Client(TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT)
-        m = cli.list()
+    async def test_list(self):
+        cli = taish.AsyncClient(
+            TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT
+        )
+        m = await cli.list()
         self.assertNotEqual(m, None)
         self.assertTrue(TAI_TEST_MODULE_LOCATION in m)
         module = m[TAI_TEST_MODULE_LOCATION]
         print("module oid: 0x{:x}".format(module.oid))
+
+        await cli.close()
 
     def test_taish_list(self):
         output = sp.run(
@@ -70,106 +75,145 @@ class TestTAI(unittest.TestCase):
         self.assertNotEqual(output.stdout.decode(), "")
         self.assertEqual(output.stderr.decode(), "")
 
-    def test_get_module(self):
-        cli = taish.Client(TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT)
-        m = cli.get_module(TAI_TEST_MODULE_LOCATION)
+    async def test_get_module(self):
+        cli = taish.AsyncClient(
+            TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT
+        )
+        m = await cli.get_module(TAI_TEST_MODULE_LOCATION)
         self.assertNotEqual(m, None)
         self.assertEqual(m.location, TAI_TEST_MODULE_LOCATION)
         print("module oid: 0x{:x}".format(m.oid))
+        await cli.close()
 
-    def test_get_netif(self):
-        cli = taish.Client(TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT)
-        m = cli.get_module(TAI_TEST_MODULE_LOCATION)
+    async def test_get_netif(self):
+        cli = taish.AsyncClient(
+            TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT
+        )
+        m = await cli.get_module(TAI_TEST_MODULE_LOCATION)
         self.assertNotEqual(m, None)
         netif = m.get_netif()
         self.assertNotEqual(netif, None)
         self.assertEqual(netif.index, 0)
         print("netif oid: 0x{:x}".format(netif.oid))
+        await cli.close()
 
-    def test_get_hostif(self):
-        cli = taish.Client(TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT)
-        m = cli.get_module(TAI_TEST_MODULE_LOCATION)
+    async def test_get_hostif(self):
+        cli = taish.AsyncClient(
+            TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT
+        )
+        m = await cli.get_module(TAI_TEST_MODULE_LOCATION)
         self.assertNotEqual(m, None)
         hostif = m.get_hostif()
         self.assertNotEqual(hostif, None)
         self.assertEqual(hostif.index, 0)
         print("hostif oid: 0x{:x}".format(hostif.oid))
+        await cli.close()
 
-    def test_module(self):
-        cli = taish.Client(TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT)
-        m = cli.get_module(TAI_TEST_MODULE_LOCATION)
-        for metadata in m.list_attribute_metadata():
+    async def test_module(self):
+        cli = taish.AsyncClient(
+            TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT
+        )
+        m = await cli.get_module(TAI_TEST_MODULE_LOCATION)
+        for metadata in await m.list_attribute_metadata():
             try:
-                v = m.get(metadata)
+                v = await m.get(metadata)
             except taish.TAIException as e:
                 v = e.msg
             print("{}: {}".format(metadata.short_name, v))
 
-    def test_netif(self):
-        cli = taish.Client(TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT)
-        m = cli.get_module(TAI_TEST_MODULE_LOCATION)
+        await cli.close()
+
+    async def test_netif(self):
+        cli = taish.AsyncClient(
+            TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT
+        )
+        m = await cli.get_module(TAI_TEST_MODULE_LOCATION)
         netif = m.get_netif()
-        for metadata in netif.list_attribute_metadata():
+        for metadata in await netif.list_attribute_metadata():
             try:
-                v = netif.get(metadata)
+                v = await netif.get(metadata)
             except taish.TAIException as e:
                 v = e.msg
             print("{}: {}".format(metadata.short_name, v))
 
-    def test_netif_set_output_power(self):
-        cli = taish.Client(TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT)
-        m = cli.get_module(TAI_TEST_MODULE_LOCATION)
-        netif = m.get_netif()
-        netif.set("output-power", "-4")
-        self.assertEqual(round(float(netif.get("output-power"))), -4)
-        netif.set("output-power", "-5")
-        self.assertEqual(round(float(netif.get("output-power"))), -5)
+        await cli.close()
 
-    def test_netif_set_modulation_format(self):
-        cli = taish.Client(TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT)
-        m = cli.get_module(TAI_TEST_MODULE_LOCATION)
+    async def test_netif_set_output_power(self):
+        cli = taish.AsyncClient(
+            TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT
+        )
+        m = await cli.get_module(TAI_TEST_MODULE_LOCATION)
         netif = m.get_netif()
-        netif.set("modulation-format", "dp-64-qam")
-        self.assertEqual(netif.get("modulation-format"), "dp-64-qam")
-        netif.set("modulation-format", "dp-qpsk")
-        self.assertEqual(netif.get("modulation-format"), "dp-qpsk")
+        await netif.set("output-power", "-4")
+        self.assertEqual(round(float(await netif.get("output-power"))), -4)
+        await netif.set("output-power", "-5")
+        self.assertEqual(round(float(await netif.get("output-power"))), -5)
 
-    def test_hostif(self):
-        cli = taish.Client(TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT)
-        m = cli.get_module(TAI_TEST_MODULE_LOCATION)
+        await cli.close()
+
+    async def test_netif_set_modulation_format(self):
+        cli = taish.AsyncClient(
+            TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT
+        )
+        m = await cli.get_module(TAI_TEST_MODULE_LOCATION)
+        netif = m.get_netif()
+        await netif.set("modulation-format", "dp-64-qam")
+        self.assertEqual(await netif.get("modulation-format"), "dp-64-qam")
+        await netif.set("modulation-format", "dp-qpsk")
+        self.assertEqual(await netif.get("modulation-format"), "dp-qpsk")
+
+        await cli.close()
+
+    async def test_hostif(self):
+        cli = taish.AsyncClient(
+            TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT
+        )
+        m = await cli.get_module(TAI_TEST_MODULE_LOCATION)
         hostif = m.get_hostif()
-        for metadata in hostif.list_attribute_metadata():
+        for metadata in await hostif.list_attribute_metadata():
             try:
-                v = hostif.get(metadata)
+                v = await hostif.get(metadata)
             except taish.TAIException as e:
                 v = e.msg
             print("{}: {}".format(metadata.short_name, v))
 
-    def test_hostif_set_fec(self):
-        cli = taish.Client(TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT)
-        m = cli.get_module(TAI_TEST_MODULE_LOCATION)
-        hostif = m.get_hostif()
-        hostif.set("fec-type", "rs")
-        self.assertEqual(hostif.get("fec-type"), "rs")
-        hostif.set("fec-type", "fc")
-        self.assertEqual(hostif.get("fec-type"), "fc")
-        hostif.set("fec-type", "none")
-        self.assertEqual(hostif.get("fec-type"), "none")
+        await cli.close()
 
-    def test_hostif_set_loopback(self):
-        cli = taish.Client(TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT)
-        m = cli.get_module(TAI_TEST_MODULE_LOCATION)
+    async def test_hostif_set_fec(self):
+        cli = taish.AsyncClient(
+            TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT
+        )
+        m = await cli.get_module(TAI_TEST_MODULE_LOCATION)
         hostif = m.get_hostif()
-        hostif.set("loopback-type", "shallow")
-        self.assertEqual(hostif.get("loopback-type"), "shallow")
-        hostif.set("loopback-type", "deep")
-        self.assertEqual(hostif.get("loopback-type"), "deep")
-        hostif.set("loopback-type", "none")
-        self.assertEqual(hostif.get("loopback-type"), "none")
+        await hostif.set("fec-type", "rs")
+        self.assertEqual(await hostif.get("fec-type"), "rs")
+        await hostif.set("fec-type", "fc")
+        self.assertEqual(await hostif.get("fec-type"), "fc")
+        await hostif.set("fec-type", "none")
+        self.assertEqual(await hostif.get("fec-type"), "none")
 
-    def test_remove(self):
-        cli = taish.Client(TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT)
-        l = cli.list()
+        await cli.close()
+
+    async def test_hostif_set_loopback(self):
+        cli = taish.AsyncClient(
+            TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT
+        )
+        m = await cli.get_module(TAI_TEST_MODULE_LOCATION)
+        hostif = m.get_hostif()
+        await hostif.set("loopback-type", "shallow")
+        self.assertEqual(await hostif.get("loopback-type"), "shallow")
+        await hostif.set("loopback-type", "deep")
+        self.assertEqual(await hostif.get("loopback-type"), "deep")
+        await hostif.set("loopback-type", "none")
+        self.assertEqual(await hostif.get("loopback-type"), "none")
+
+        await cli.close()
+
+    async def test_remove(self):
+        cli = taish.AsyncClient(
+            TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT
+        )
+        l = await cli.list()
         self.assertNotEqual(l, None)
         self.assertTrue(TAI_TEST_MODULE_LOCATION in l)
         module = l[TAI_TEST_MODULE_LOCATION]
@@ -177,37 +221,41 @@ class TestTAI(unittest.TestCase):
         self.assertEqual(len(module.netifs), 1)
         self.assertEqual(len(module.hostifs), 2)
 
-        m = cli.get_module(TAI_TEST_MODULE_LOCATION)
+        m = await cli.get_module(TAI_TEST_MODULE_LOCATION)
         netif = m.get_netif()
-        cli.remove(netif.oid)
-        l = cli.list()
+        await cli.remove(netif.oid)
+        l = await cli.list()
         module = l[TAI_TEST_MODULE_LOCATION]
         self.assertEqual(len(module.netifs), 0)
 
         hostif = m.get_hostif()
-        cli.remove(hostif.oid)
-        l = cli.list()
+        await cli.remove(hostif.oid)
+        l = await cli.list()
         module = l[TAI_TEST_MODULE_LOCATION]
         self.assertEqual(len(module.hostifs), 1)
 
         hostif = m.get_hostif(1)
-        cli.remove(hostif.oid)
-        l = cli.list()
+        await cli.remove(hostif.oid)
+        l = await cli.list()
         module = l[TAI_TEST_MODULE_LOCATION]
         self.assertEqual(len(module.hostifs), 0)
 
-        cli.remove(module.oid)
-        l = cli.list()
+        await cli.remove(module.oid)
+        l = await cli.list()
         module = l[TAI_TEST_MODULE_LOCATION]
         self.assertEqual(module.oid, 0)
 
-    def test_create(self):
-        self.test_remove()
-        cli = taish.Client(TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT)
+        await cli.close()
+
+    async def test_create(self):
+        await self.test_remove()
+        cli = taish.AsyncClient(
+            TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT
+        )
         with self.assertRaises(Exception):
-            cli.get_module(TAI_TEST_MODULE_LOCATION)
-        cli.create("module", [("location", TAI_TEST_MODULE_LOCATION)])
-        l = cli.list()
+            await cli.get_module(TAI_TEST_MODULE_LOCATION)
+        await cli.create("module", [("location", TAI_TEST_MODULE_LOCATION)])
+        l = await cli.list()
         self.assertNotEqual(l, None)
         self.assertTrue(TAI_TEST_MODULE_LOCATION in l)
         module = l[TAI_TEST_MODULE_LOCATION]
@@ -215,43 +263,47 @@ class TestTAI(unittest.TestCase):
         self.assertEqual(len(module.netifs), 0)
         self.assertEqual(len(module.hostifs), 0)
 
-        m = cli.get_module(TAI_TEST_MODULE_LOCATION)
-        self.assertEqual(int(m.get("num-network-interfaces")), 1)
-        self.assertEqual(int(m.get("num-host-interfaces")), 2)
+        m = await cli.get_module(TAI_TEST_MODULE_LOCATION)
+        self.assertEqual(int(await m.get("num-network-interfaces")), 1)
+        self.assertEqual(int(await m.get("num-host-interfaces")), 2)
 
-        cli.create("netif", [("index", 0)], m.oid)
-        l = cli.list()
+        await cli.create("netif", [("index", 0)], m.oid)
+        l = await cli.list()
         module = l[TAI_TEST_MODULE_LOCATION]
         self.assertEqual(len(module.netifs), 1)
 
-        cli.create("hostif", [("index", 0)], m.oid)
-        l = cli.list()
+        await cli.create("hostif", [("index", 0)], m.oid)
+        l = await cli.list()
         module = l[TAI_TEST_MODULE_LOCATION]
         self.assertEqual(len(module.hostifs), 1)
 
-        cli.create("hostif", [("index", 1)], m.oid)
-        l = cli.list()
+        await cli.create("hostif", [("index", 1)], m.oid)
+        l = await cli.list()
         module = l[TAI_TEST_MODULE_LOCATION]
         self.assertEqual(len(module.hostifs), 2)
 
-    def test_get_set_multiple(self):
-        cli = taish.Client(TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT)
-        m = cli.get_module(TAI_TEST_MODULE_LOCATION)
+        await cli.close()
+
+    async def test_get_set_multiple(self):
+        cli = taish.AsyncClient(
+            TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT
+        )
+        m = await cli.get_module(TAI_TEST_MODULE_LOCATION)
         hostif = m.get_hostif()
-        v = hostif.get_multiple(["loopback-type", "fec-type"])
+        v = await hostif.get_multiple(["loopback-type", "fec-type"])
         self.assertEqual(len(v), 2)
         self.assertEqual(v[0], "none")
         self.assertEqual(v[1], "none")
 
-        hostif.set_multiple([("loopback-type", "shallow"), ("fec-type", "rs")])
+        await hostif.set_multiple([("loopback-type", "shallow"), ("fec-type", "rs")])
 
-        v = hostif.get_multiple(["loopback-type", "fec-type"])
+        v = await hostif.get_multiple(["loopback-type", "fec-type"])
         self.assertEqual(len(v), 2)
         self.assertEqual(v[0], "shallow")
         self.assertEqual(v[1], "rs")
 
 
-class TestTAIWithConfig(unittest.TestCase):
+class TestTAIWithConfig(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         if TAI_TEST_NO_LOCAL_TAISH_SERVER:
             return
@@ -263,47 +315,59 @@ class TestTAIWithConfig(unittest.TestCase):
         self.proc = proc
         time.sleep(5)  # wait for the server to be ready
 
-    def test_set_admin_status_attribute_module(self):
-        cli = taish.Client(TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT)
-        m = cli.get_module(TAI_TEST_MODULE_LOCATION)
+    async def test_set_admin_status_attribute_module(self):
+        cli = taish.AsyncClient(
+            TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT
+        )
+        m = await cli.get_module(TAI_TEST_MODULE_LOCATION)
         self.assertNotEqual(m, None)
         print("module oid: 0x{:x}".format(m.oid))
 
-        self.assertEqual(m.get("admin-status"), "down")
+        self.assertEqual(await m.get("admin-status"), "down")
 
-        m.set("admin-status", "up")
+        await m.set("admin-status", "up")
 
-        self.assertEqual(m.get("admin-status"), "up")
+        self.assertEqual(await m.get("admin-status"), "up")
+        await cli.close()
 
-    def test_set_custom_attribute_module(self):
-        cli = taish.Client(TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT)
-        m = cli.get_module(TAI_TEST_MODULE_LOCATION)
+    async def test_set_custom_attribute_module(self):
+        cli = taish.AsyncClient(
+            TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT
+        )
+        m = await cli.get_module(TAI_TEST_MODULE_LOCATION)
         self.assertNotEqual(m, None)
         print("module oid: 0x{:x}".format(m.oid))
 
-        self.assertEqual(m.get("custom"), "true")
+        self.assertEqual(await m.get("custom"), "true")
 
-        m.set("custom", "false")
+        await m.set("custom", "false")
 
-        self.assertEqual(m.get("custom"), "false")
+        self.assertEqual(await m.get("custom"), "false")
+        await cli.close()
 
-    def test_set_custom_list_attribute_module(self):
-        cli = taish.Client(TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT)
-        m = cli.get_module(TAI_TEST_MODULE_LOCATION)
+    async def test_set_custom_list_attribute_module(self):
+        cli = taish.AsyncClient(
+            TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT
+        )
+        m = await cli.get_module(TAI_TEST_MODULE_LOCATION)
         self.assertNotEqual(m, None)
         print("module oid: 0x{:x}".format(m.oid))
 
-        m.set("custom-list", "1,2,3,4")
+        await m.set("custom-list", "1,2,3,4")
 
-        self.assertEqual(m.get("custom-list"), "1,2,3,4")
+        self.assertEqual(await m.get("custom-list"), "1,2,3,4")
 
-        m.set("custom-list", "")
-        self.assertEqual(m.get("custom-list"), "")
+        await m.set("custom-list", "")
+        self.assertEqual(await m.get("custom-list"), "")
 
-    def test_set_custom_list_attribute_module_taish(self):
+        await cli.close()
 
-        cli = taish.Client(TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT)
-        m = cli.get_module(TAI_TEST_MODULE_LOCATION)
+    async def test_set_custom_list_attribute_module_taish(self):
+
+        cli = taish.AsyncClient(
+            TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT
+        )
+        m = await cli.get_module(TAI_TEST_MODULE_LOCATION)
 
         output = sp.run(
             [
@@ -319,7 +383,7 @@ class TestTAIWithConfig(unittest.TestCase):
         )
 
         self.assertEqual(output.returncode, 0)
-        self.assertEqual(m.get("custom-list"), "1,2,3,4")
+        self.assertEqual(await m.get("custom-list"), "1,2,3,4")
 
         output = sp.run(
             [
@@ -334,7 +398,9 @@ class TestTAIWithConfig(unittest.TestCase):
             capture_output=True,
         )
         self.assertEqual(output.returncode, 0)
-        self.assertEqual(m.get("custom-list"), "")
+        self.assertEqual(await m.get("custom-list"), "")
+
+        await cli.close()
 
     def tearDown(self):
         if TAI_TEST_NO_LOCAL_TAISH_SERVER:
@@ -345,7 +411,7 @@ class TestTAIWithConfig(unittest.TestCase):
         self.proc.stdout.close()
 
 
-class TestTAIWithoutObjectCreation(unittest.TestCase):
+class TestTAIWithoutObjectCreation(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         if TAI_TEST_NO_LOCAL_TAISH_SERVER:
             return
@@ -355,13 +421,17 @@ class TestTAIWithoutObjectCreation(unittest.TestCase):
         self.proc = proc
         time.sleep(5)  # wait for the server to be ready
 
-    def test_list(self):
-        cli = taish.Client(TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT)
-        m = cli.list()
+    async def test_list(self):
+        cli = taish.AsyncClient(
+            TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT
+        )
+        m = await cli.list()
         self.assertNotEqual(m, None)
         self.assertTrue(TAI_TEST_MODULE_LOCATION in m)
         module = m[TAI_TEST_MODULE_LOCATION]
         print("module oid: 0x{:x}".format(module.oid))
+
+        await cli.close()
 
     def test_taish_list(self):
         output = sp.run(
