@@ -14,12 +14,21 @@ endif
 
 LDFLAGS ?= -shared
 
-SRCS ?= $(TAI_META_OUT_DIR)/taimetadata.c $(filter-out taimetadata.c,$(wildcard *.c))
-HEADERS ?= $(TAI_META_OUT_DIR)/taimetadata.h $(filter-out taimetadata.h,$(wildcard *.h))
+_SRCS ?= $(addprefix $(TAI_META_OUT_DIR)/,$(filter-out taimetadata.c,$(wildcard *.c)))
+_HEADERS ?= $(addprefix $(TAI_META_OUT_DIR)/,$(filter-out taimetadata.h,$(wildcard *.h)))
+
+SRCS ?= $(TAI_META_OUT_DIR)/taimetadata.c $(_SRCS)
+HEADERS ?= $(TAI_META_OUT_DIR)/taimetadata.h $(_HEADERS)
 OBJS = $(addsuffix .o,$(basename $(SRCS)))
 
 $(TAI_META_OUT_DIR)/libmetatai.so: $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS)
+
+$(_SRCS): $(_HEADERS)
+	if [ $(TAI_META_OUT_DIR) != $(abspath .) ]; then cp $(notdir $@) $(TAI_META_OUT_DIR)/; fi
+
+$(_HEADERS):
+	if [ $(TAI_META_OUT_DIR) != $(abspath .) ]; then cp $(notdir $@) $(TAI_META_OUT_DIR)/; fi
 
 $(TAI_META_OUT_DIR)/taimetadata.c $(TAI_META_OUT_DIR)/taimetadata.h: $(TAI_META_CUSTOM_FILES) $(wildcard ../inc/*)
 	tai_meta_generator --out-dir $(TAI_META_OUT_DIR) ../inc/tai.h $(TAI_META_CUSTOM_FILES)
@@ -30,4 +39,4 @@ test:
 	LD_LIBRARY_PATH=$(abspath sample) ./test/test
 
 clean:
-	$(RM) $(addprefix $(TAI_META_OUT_DIR)/,libmetatai.so taimetadata.c taimetadata.h) *.o
+	$(RM) $(addprefix $(TAI_META_OUT_DIR)/,libmetatai.so taimetadata.c taimetadata.h) *.o $(_SRCS) $(_HEADERS)
