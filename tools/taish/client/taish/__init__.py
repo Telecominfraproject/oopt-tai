@@ -165,14 +165,14 @@ class AsyncClient(object):
         self.channel = aio.insecure_channel(f"{address}:{port}")
         self.stub = taish_pb2_grpc.TAIStub(self.channel)
 
-    def close(self):
-        self.channel.close()
+    async def close(self):
+        await self.channel.close()
 
-    def __enter__(self):
+    async def __aenter__(self):
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.close()
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        await self.close()
 
     async def list(self):
         req = taish_pb2.ListModuleRequest()
