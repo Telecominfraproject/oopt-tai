@@ -396,6 +396,61 @@ static tai_module_api_t module_api = {
     .get_module_capabilities = get_module_capabilities
 };
 
+static tai_status_t create_object(tai_object_id_t *oid, tai_object_type_t object_type, tai_object_id_t module_id, uint32_t attr_count, const tai_attribute_t *attr_list) {
+    if (g_platform == nullptr) {
+        return TAI_STATUS_UNINITIALIZED;
+    }
+    return g_platform->create(object_type, module_id, attr_count, attr_list, oid);
+}
+
+static tai_status_t remove_object(tai_object_id_t oid) {
+    if (g_platform == nullptr) {
+        return TAI_STATUS_UNINITIALIZED;
+    }
+    return g_platform->remove(oid);
+}
+
+static tai_status_t set_object_attributes(tai_object_id_t oid, uint32_t attr_count, const tai_attribute_t *attr_list) {
+    if (g_platform == nullptr) {
+        return TAI_STATUS_UNINITIALIZED;
+    }
+    auto object = g_platform->get(oid);
+    if (object == nullptr) {
+        return TAI_STATUS_ITEM_NOT_FOUND;
+    }
+    return object->set_attributes(attr_count, attr_list);
+}
+
+static tai_status_t get_object_attributes(tai_object_id_t oid, uint32_t attr_count, tai_attribute_t *attr_list) {
+    if (g_platform == nullptr) {
+        return TAI_STATUS_UNINITIALIZED;
+    }
+    auto object = g_platform->get(oid);
+    if (object == nullptr) {
+        return TAI_STATUS_ITEM_NOT_FOUND;
+    }
+    return object->get_attributes(attr_count, attr_list);
+}
+
+static tai_status_t get_object_capabilities(tai_object_id_t oid, uint32_t count, tai_attribute_capability_t *list) {
+    if ( g_platform == nullptr ) {
+        return TAI_STATUS_UNINITIALIZED;
+    }
+    auto obj = g_platform->get(oid);
+    if ( obj == nullptr ) {
+        return TAI_STATUS_ITEM_NOT_FOUND;
+    }
+    return obj->get_capabilities(count, list);
+}
+
+static tai_object_api_t object_api = {
+    .create_object = create_object,
+    .remove_object = remove_object,
+    .set_object_attributes = set_object_attributes,
+    .get_object_attributes = get_object_attributes,
+    .get_object_capabilities = get_object_capabilities,
+};
+
 static tai_status_t list_metadata(const tai_metadata_key_t *const key, uint32_t *count, const tai_attr_metadata_t * const **list) {
     return g_platform->list_metadata(key, count, list);
 }
@@ -457,6 +512,9 @@ tai_status_t tai_api_query(tai_api_t tai_api_id, void** api_method_table) {
         break;
     case TAI_API_META:
         *api_method_table = &meta_api;
+        break;
+    case TAI_API_OBJECT:
+        *api_method_table = &object_api;
         break;
     default:
         return TAI_STATUS_NOT_SUPPORTED;
