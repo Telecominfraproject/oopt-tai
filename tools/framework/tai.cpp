@@ -463,10 +463,15 @@ static const tai_object_type_info_t* get_object_info(const tai_metadata_key_t *c
     return g_platform->get_object_info(key);
 }
 
+static tai_status_t list_object_info(const tai_metadata_key_t *const key, uint32_t *count, const tai_object_type_info_t * const **list) {
+    return g_platform->list_object_info(key, count, list);
+}
+
 static tai_meta_api_t meta_api = {
-    .list_metadata = list_metadata,
-    .get_attr_metadata  = get_attr_metadata,
-    .get_object_info = get_object_info,
+    .list_metadata     = list_metadata,
+    .get_attr_metadata = get_attr_metadata,
+    .get_object_info   = get_object_info,
+    .list_object_info  = list_object_info,
 };
 
 tai_status_t tai_api_initialize(uint64_t flags, const tai_service_method_table_t* services) {
