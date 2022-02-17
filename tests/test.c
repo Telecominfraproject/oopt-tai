@@ -7,6 +7,7 @@ tai_module_api_t *module_api;
 tai_network_interface_api_t *network_interface_api;
 tai_host_interface_api_t *host_interface_api;
 tai_meta_api_t *meta_api;
+tai_object_api_t *object_api;
 
 #define TAI_MAX_HOST_IFS    8
 #define TAI_MAX_NET_IFS     8
@@ -187,7 +188,6 @@ int main() {
     if ( meta_api != NULL ) {
         uint32_t count;
         const tai_attr_metadata_t * const *list;
-        const tai_attr_metadata_t *meta;
         tai_metadata_key_t key;
         key.oid = g_module_ids[0];
         status = meta_api->list_metadata(&key, &count, &list);
@@ -197,16 +197,78 @@ int main() {
         status = meta_api->list_metadata(&key, &count, &list);
         printf("netif list metadata: status: %d, count: %u, list: %p\n", status, count, list);
 
-        meta = meta_api->get_attr_metadata(&key, TAI_NETWORK_INTERFACE_ATTR_INDEX);
-        if ( meta == NULL ) {
-            printf("failed to get TAI_NETWORK_INTERFACE_ATTR_INDEX metadata\n");
+        {
+            const tai_attr_metadata_t *meta;
+            meta = meta_api->get_attr_metadata(&key, TAI_NETWORK_INTERFACE_ATTR_INDEX);
+            if ( meta == NULL ) {
+                printf("failed to get TAI_NETWORK_INTERFACE_ATTR_INDEX metadata\n");
+                return 1;
+            }
+            if (!meta->ismandatoryoncreate) {
+                printf("wrong TAI_NETWORK_INTERFACE_ATTR_INDEX metadata. must be MANDATORY_ON_CREATE\n");
+                return 1;
+            }
+        }
+
+        {
+            uint32_t count;
+            const tai_object_type_info_t * const *list;
+            status = meta_api->list_object_info(&key, &count, &list);
+            printf("netif list object info: status: %d, count: %u, list: %p\n", status, count, list);
+            if (status != TAI_STATUS_SUCCESS) {
+                printf("failed to list object info\n");
+                return 1;
+            }
+            int i;
+            for (i = 0; i < count; i++) {
+                printf("object type: %s\n", list[i]->objecttypename);
+            }
+        }
+    }
+
+    status = tai_api_query(TAI_API_OBJECT, (void**)&object_api);
+    if (status != TAI_STATUS_SUCCESS) {
+        printf("no api for TAI_API_OBJECT\n");
+    }
+
+    printf("object_api: %p\n", object_api);
+    if (object_api) {
+        tai_object_id_t oid = g_netif_ids[0][0];
+        tai_attribute_t attr;
+        attr.id = TAI_NETWORK_INTERFACE_ATTR_INDEX;
+        status = object_api->get_object_attributes(oid, 1, &attr);
+        if (status != TAI_STATUS_SUCCESS) {
+            printf("failed to get netif attribute\n");
             return 1;
         }
-        if (!meta->ismandatoryoncreate) {
-            printf("wrong TAI_NETWORK_INTERFACE_ATTR_INDEX metadata. must be MANDATORY_ON_CREATE\n");
+        printf("netif index: %d\n", attr.value.u32);
+        uint32_t index = attr.value.u32;
+
+        status = object_api->remove_object(g_netif_ids[0][0]);
+        if (status != TAI_STATUS_SUCCESS) {
+            printf("failed to remove netif with the object API\n");
             return 1;
         }
- 
+
+        status = object_api->create_object(&oid, TAI_OBJECT_TYPE_NETWORKIF, g_module_ids[0], 1, &attr);
+        if (status != TAI_STATUS_SUCCESS) {
+            printf("failed to create netif with the object API\n");
+            return 1;
+        }
+
+        status = object_api->create_object(&oid, TAI_OBJECT_TYPE_NETWORKIF, 0x0, 1, &attr);
+        if (status == TAI_STATUS_SUCCESS) {
+            printf("failed to fail creating netif with the object API\n");
+            return 1;
+        }
+
+        attr.id = TAI_NETWORK_INTERFACE_ATTR_OUTPUT_POWER;
+        attr.value.flt = -10;
+        status = object_api->set_object_attributes(oid, 1, &attr);
+        if (status != TAI_STATUS_SUCCESS) {
+            printf("failed to set netif attribute with the object API\n");
+            return 1;
+        }
     }
 
     status = tai_api_uninitialize();
