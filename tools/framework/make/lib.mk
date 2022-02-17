@@ -13,8 +13,8 @@ TAI_LIB_DIR ?= $(TAI_DIR)/tools/lib
 
 TAI_META_OUT_DIR ?= $(abspath .)
 
-SRCS ?= $(wildcard *.cpp $(TAI_LIB_DIR)/*.cpp $(TAI_FRAMEWORK_DIR)/*.cpp $(TAI_META_OUT_DIR)/*.c)
-HEADERS ?= $(wildcard *.hpp $(TAI_LIB_DIR)/*.hpp $(TAI_FRAMEWORK_DIR)/*.hpp $(TAI_META_OUT_DIR)/*.h) $(TAI_META_CUSTOM_FILES)
+SRCS    ?= $(wildcard *.cpp $(TAI_LIB_DIR)/*.cpp $(TAI_FRAMEWORK_DIR)/*.cpp) $(sort $(addprefix $(TAI_META_OUT_DIR)/,$(notdir $(wildcard $(TAI_DIR)/meta/*.c)) taimetadata.c)) $(VENDOR_SRC)
+HEADERS ?= $(wildcard *.hpp $(TAI_LIB_DIR)/*.hpp $(TAI_FRAMEWORK_DIR)/*.hpp) $(sort $(addprefix $(TAI_META_OUT_DIR)/,$(notdir $(wildcard $(TAI_DIR)/meta/*.h)) taimetadata.h)) $(TAI_META_CUSTOM_FILES) $(VENDOR_HEADERS)
 OBJS = $(addsuffix .o,$(basename $(SRCS)))
 
 INCLUDE ?= $(VENDOR_INCLUDE) -I $(TAI_META_OUT_DIR) -I $(TAI_DIR)/inc -I $(TAI_DIR)/meta -I $(TAI_LIB_DIR) -I $(TAI_FRAMEWORK_DIR)
