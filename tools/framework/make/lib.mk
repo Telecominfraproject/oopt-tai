@@ -30,9 +30,7 @@ CFLAGS ?= $(VENDOR_CFLAGS) -DTAI_EXPOSE_PLATFORM -fPIC $(INCLUDE) -Wall -Werror
 CFLAGS += -fno-gnu-unique
 
 ifdef DEBUG
-    CFLAGS += -g3 -O0
-else
-    CFLAGS += -O2
+    CFLAGS += -g3
 endif
 
 CXXFLAGS ?= $(VENDOR_CXXFLAGS) $(CFLAGS) -std=c++17 -include $(TAI_FRAMEWORK_PLATFORM_HEADER)
