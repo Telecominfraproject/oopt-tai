@@ -282,13 +282,12 @@ class Root(Object):
             except TAIException as e:
                 print("err: {} (code: {:x})".format(e.msg, e.code))
 
-    async def _init(self):
         async def oids():
             return [
                 "0x{:x}".format(elem.oid)
                 for elem in chain.from_iterable(
                     [v] + list(v.netifs) + list(v.hostifs)
-                    for v in await self.client.list().values()
+                    for v in (await self.client.list()).values()
                     if v.oid > 0
                 )
             ]

@@ -73,7 +73,43 @@ class TestTAI(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(output.returncode, 0)
         self.assertNotEqual(output.stdout.decode(), "")
+
+    async def test_taish_remove(self):
+        cli = taish.AsyncClient(
+            TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT
+        )
+        m = await cli.list()
+        self.assertNotEqual(m, None)
+        self.assertTrue(TAI_TEST_MODULE_LOCATION in m)
+        module = m[TAI_TEST_MODULE_LOCATION]
+        self.assertEqual(len(module.netifs), 1)
+        netif = module.netifs[0]
+        oid = netif.oid
+
+        cmd = f"remove 0x{oid:x}"
+
+        output = sp.run(
+            [
+                "taish",
+                "--port",
+                TAI_TEST_TAISH_SERVER_PORT,
+                "--addr",
+                TAI_TEST_TAISH_SERVER_ADDRESS,
+                "-c",
+                cmd,
+            ],
+            capture_output=True,
+        )
+
+        self.assertEqual(output.returncode, 0)
         self.assertEqual(output.stderr.decode(), "")
+        self.assertEqual(output.stdout.decode(), "")
+
+        m = await cli.list()
+        module = m[TAI_TEST_MODULE_LOCATION]
+        self.assertEqual(len(module.netifs), 0)
+
+        await cli.close()
 
     async def test_get_module(self):
         cli = taish.AsyncClient(
