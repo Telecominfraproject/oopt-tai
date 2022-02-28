@@ -322,9 +322,6 @@ class TAIShell(object):
         self.completer = TAIShellCompleter(self.context)
         self.default_input = ""
 
-    async def _init(self):
-        await self.context._init()
-
     def prompt(self):
         c = self.context
         l = [str(c)]
@@ -364,7 +361,6 @@ async def loop(addr, port):
     prompt = default_prompt
 
     shell = TAIShell(addr, port)
-    await shell._init()
 
     while True:
         c = shell.completer
