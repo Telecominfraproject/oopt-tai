@@ -123,11 +123,11 @@ class Module(TAIObject):
 
     @property
     def netifs(self):
-        return [self.get_netif(i) for i in range(len(self.obj.netifs))]
+        return [NetIf(self.client, obj, self) for obj in self.obj.netifs]
 
     @property
     def hostifs(self):
-        return [self.get_hostif(i) for i in range(len(self.obj.hostifs))]
+        return [HostIf(self.client, obj, self) for obj in self.obj.hostifs]
 
     @property
     def present(self):
@@ -137,11 +137,23 @@ class Module(TAIObject):
     def location(self):
         return self.obj.location
 
+    def _get_if(self, index, objs, cls):
+        for obj in objs:
+            if obj.index == index:
+                return cls(self.client, obj, self)
+        return None
+
     def get_netif(self, index=0):
-        return NetIf(self.client, self.obj.netifs[index], self)
+        obj = self._get_if(index, self.obj.netifs, NetIf)
+        if not obj:
+            raise TAIException(-1, f"netif {index} not found")
+        return obj
 
     def get_hostif(self, index=0):
-        return HostIf(self.client, self.obj.hostifs[index], self)
+        obj = self._get_if(index, self.obj.hostifs, HostIf)
+        if not obj:
+            raise TAIException(-1, f"hostif {index} not found")
+        return obj
 
     async def create_netif(self, index=0, attrs=None):
         if attrs is None:

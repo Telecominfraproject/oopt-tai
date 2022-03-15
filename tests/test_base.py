@@ -246,6 +246,19 @@ class TestTAI(unittest.IsolatedAsyncioTestCase):
         await cli.close()
 
     async def test_remove(self):
+
+        output = sp.run(
+            [
+                "taish",
+                "--port",
+                TAI_TEST_TAISH_SERVER_PORT,
+                "--addr",
+                TAI_TEST_TAISH_SERVER_ADDRESS,
+                "-c",
+                "list",
+            ],
+        )
+
         cli = taish.AsyncClient(
             TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT
         )
@@ -280,6 +293,31 @@ class TestTAI(unittest.IsolatedAsyncioTestCase):
         l = await cli.list()
         module = l[TAI_TEST_MODULE_LOCATION]
         self.assertEqual(module.oid, 0)
+
+        await cli.close()
+
+    async def test_get_hostif(self):
+        cli = taish.AsyncClient(
+            TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT
+        )
+        m = await cli.get_module(TAI_TEST_MODULE_LOCATION)
+        with self.assertRaises(taish.TAIException):
+            m.get_hostif(10)
+
+        hostif = m.get_hostif(0)
+        self.assertNotEqual(hostif, None)
+        await cli.remove(hostif.oid)
+
+        hostif = m.get_hostif(1)
+        self.assertNotEqual(hostif, None)
+
+        # need to get module again for refresh
+        m = await cli.get_module(TAI_TEST_MODULE_LOCATION)
+        with self.assertRaises(taish.TAIException):
+            m.get_hostif(0)
+
+        hostif = m.get_hostif(1)
+        self.assertNotEqual(hostif, None)
 
         await cli.close()
 
