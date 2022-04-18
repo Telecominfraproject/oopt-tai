@@ -167,7 +167,7 @@ static tai_serialize_option_t convert_serialize_option(const taish::SerializeOpt
 ::grpc::Status TAIServiceImpl::ListAttributeMetadata(::grpc::ServerContext* context, const taish::ListAttributeMetadataRequest* request, ::grpc::ServerWriter< taish::ListAttributeMetadataResponse>* writer) {
     auto res = taish::ListAttributeMetadataResponse();
     auto object_type = request->object_type();
-    auto info = tai_metadata_all_object_type_infos[object_type];
+    auto info = tai_metadata_get_object_type_info(static_cast<tai_object_type_t>(object_type));
     auto oid = request->oid();
     uint32_t count;
     tai_attr_metadata_t const * const *list;
@@ -180,8 +180,8 @@ static tai_serialize_option_t convert_serialize_option(const taish::SerializeOpt
             return Status::OK;
         }
     } else if ( info == nullptr ) {
-        count = tai_metadata_attr_sorted_by_id_name_count;
-        list = tai_metadata_attr_sorted_by_id_name;
+        count = tai_metadata_get_attr_sorted_by_id_name_count();
+        list = tai_metadata_get_attr_sorted_by_id_name();
     } else {
         count = info->attrmetadatalength;
         list = info->attrmetadata;

@@ -200,6 +200,14 @@ const tai_object_type_info_t* tai_metadata_get_object_type_info(
     return NULL;
 }
 
+const tai_attr_metadata_t* const * tai_metadata_get_attr_sorted_by_id_name() {
+    return tai_metadata_attr_sorted_by_id_name;
+}
+
+const size_t tai_metadata_get_attr_sorted_by_id_name_count() {
+    return tai_metadata_attr_sorted_by_id_name_count;
+}
+
 bool tai_metadata_is_object_type_valid(
         _In_ tai_object_type_t object_type)
 {
