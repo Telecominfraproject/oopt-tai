@@ -111,20 +111,6 @@ extern const tai_object_type_info_t* tai_metadata_get_object_type_info(
         _In_ tai_object_type_t object_type);
 
 /**
- * @brief Gets the list of all attribute metadata
- *
- * @return the list of all attribute metadata
- */
-extern const tai_attr_metadata_t* const* tai_metadata_get_attr_sorted_by_id_name();
-
-/**
- * @brief Gets the size of the list of all attribute metadata
- *
- * @return the size of the list of all attribute metadata
- */
-extern size_t tai_metadata_get_attr_sorted_by_id_name_count();
-
-/**
  * @brief Checks if object type is valid
  *
  * @param[in] object_type Object type

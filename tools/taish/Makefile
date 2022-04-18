@@ -14,7 +14,7 @@ else
     CFLAGS += -O2
 endif
 
-LDFLAGS ?= -static-libstdc++ `pkg-config --libs protobuf grpc++ grpc` -L ../../meta -lmetatai -L. -ltai -L ../../meta/ -lgrpc++_reflection -lpthread
+LDFLAGS ?= -static-libstdc++ `pkg-config --libs protobuf grpc++ grpc` -L. -ltai -L ../../meta/ -lmetatai -lgrpc++_reflection -lpthread
 INCLUDE ?= -I $(TAI_META_DIR) -I $(TAI_DIR)/inc -I ./include -I ./lib -I $(TAI_LIB_DIR)
 
 LIB_GRPC_SRCS := lib/taish.grpc.pb.cc lib/taish.pb.cc
