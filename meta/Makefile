@@ -30,7 +30,7 @@ $(_SRCS): $(_HEADERS)
 $(_HEADERS):
 	if [ $(TAI_META_OUT_DIR) != $(abspath .) ]; then cp $(notdir $@) $(TAI_META_OUT_DIR)/; fi
 
-$(TAI_META_OUT_DIR)/taimetadata.c $(TAI_META_OUT_DIR)/taimetadata.h: $(TAI_META_CUSTOM_FILES) $(wildcard ../inc/*)
+$(TAI_META_OUT_DIR)/taimetadata.c $(TAI_META_OUT_DIR)/taimetadata.h: $(TAI_META_CUSTOM_FILES) $(wildcard ../inc/*) $(_HEADERS)
 	tai_meta_generator --out-dir $(TAI_META_OUT_DIR) ../inc/tai.h $(TAI_META_CUSTOM_FILES)
 
 test:
@@ -39,4 +39,5 @@ test:
 	LD_LIBRARY_PATH=$(abspath sample) ./test/test
 
 clean:
-	$(RM) $(addprefix $(TAI_META_OUT_DIR)/,libmetatai.so taimetadata.c taimetadata.h) *.o $(_SRCS) $(_HEADERS)
+	$(RM) $(addprefix $(TAI_META_OUT_DIR)/,libmetatai.so taimetadata.c taimetadata.h) *.o
+	if [ $(TAI_META_OUT_DIR) != $(abspath .) ]; then $(RM) $(_SRCS) $(_HEADERS); fi
