@@ -250,13 +250,13 @@ int main() {
             return 1;
         }
 
-        status = object_api->create_object(&oid, TAI_OBJECT_TYPE_NETWORKIF, g_module_ids[0], 1, &attr);
+        status = object_api->create_object(&oid, TAI_OBJECT_TYPE_NETWORK_INTERFACE, g_module_ids[0], 1, &attr);
         if (status != TAI_STATUS_SUCCESS) {
             printf("failed to create netif with the object API\n");
             return 1;
         }
 
-        status = object_api->create_object(&oid, TAI_OBJECT_TYPE_NETWORKIF, 0x0, 1, &attr);
+        status = object_api->create_object(&oid, TAI_OBJECT_TYPE_NETWORK_INTERFACE, 0x0, 1, &attr);
         if (status == TAI_STATUS_SUCCESS) {
             printf("failed to fail creating netif with the object API\n");
             return 1;

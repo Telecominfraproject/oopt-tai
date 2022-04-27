@@ -210,7 +210,7 @@ namespace tai::basic {
     };
 
 
-    class NetIf : public Object<TAI_OBJECT_TYPE_NETWORKIF> {
+    class NetIf : public Object<TAI_OBJECT_TYPE_NETWORK_INTERFACE> {
         public:
             NetIf(S_Module module, uint32_t count, const tai_attribute_t *list) : Object(count, list, module->fsm()) {
                 int index = -1;
@@ -226,11 +226,11 @@ namespace tai::basic {
                 if ( index >= BASIC_NUM_NETIF ) {
                     throw Exception(TAI_STATUS_INVALID_PARAMETER);
                 }
-                m_id = static_cast<tai_object_id_t>(uint64_t(TAI_OBJECT_TYPE_NETWORKIF) << OBJECT_TYPE_SHIFT | (module->id() & 0xff) << 8 | index);
+                m_id = static_cast<tai_object_id_t>(uint64_t(TAI_OBJECT_TYPE_NETWORK_INTERFACE) << OBJECT_TYPE_SHIFT | (module->id() & 0xff) << 8 | index);
             }
     };
 
-    class HostIf : public Object<TAI_OBJECT_TYPE_HOSTIF> {
+    class HostIf : public Object<TAI_OBJECT_TYPE_HOST_INTERFACE> {
         public:
             HostIf(S_Module module, uint32_t count, const tai_attribute_t *list) : Object(count, list, module->fsm()) {
                 int index = -1;
@@ -246,7 +246,7 @@ namespace tai::basic {
                 if ( index >= BASIC_NUM_HOSTIF ) {
                     throw Exception(TAI_STATUS_INVALID_PARAMETER);
                 }
-                m_id = static_cast<tai_object_id_t>(uint64_t(TAI_OBJECT_TYPE_HOSTIF) << OBJECT_TYPE_SHIFT | (module->id() & 0xff) << 8 | index);
+                m_id = static_cast<tai_object_id_t>(uint64_t(TAI_OBJECT_TYPE_HOST_INTERFACE) << OBJECT_TYPE_SHIFT | (module->id() & 0xff) << 8 | index);
             }
     };
 

@@ -76,10 +76,10 @@ static int load_config(const json& config, std::vector<tai::S_Attribute>& list, 
             case TAI_OBJECT_TYPE_MODULE:
                 ret = tai_deserialize_module_attr(a.key().c_str(), &attr_id, &option);
                 break;
-            case TAI_OBJECT_TYPE_HOSTIF:
+            case TAI_OBJECT_TYPE_HOST_INTERFACE:
                 ret = tai_deserialize_host_interface_attr(a.key().c_str(), &attr_id, &option);
                 break;
-            case TAI_OBJECT_TYPE_NETWORKIF:
+            case TAI_OBJECT_TYPE_NETWORK_INTERFACE:
                 ret = tai_deserialize_network_interface_attr(a.key().c_str(), &attr_id, &option);
                 break;
             default:
@@ -197,7 +197,7 @@ int module::create_hostif(uint32_t num, const json& config, const std::string& l
         attr.id = TAI_HOST_INTERFACE_ATTR_INDEX;
         attr.value.u32 = i;
 
-        auto meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_HOSTIF, attr.id);
+        auto meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_HOST_INTERFACE, attr.id);
         if ( meta == nullptr ) {
             throw std::runtime_error("failed to get metadata for index attribute");
         }
@@ -208,7 +208,7 @@ int module::create_hostif(uint32_t num, const json& config, const std::string& l
             ss << i;
             auto cc = c->find(ss.str());
             if ( cc != c->end() ) {
-                load_config(*cc, list, TAI_OBJECT_TYPE_HOSTIF, location);
+                load_config(*cc, list, TAI_OBJECT_TYPE_HOST_INTERFACE, location);
             }
         }
 
@@ -237,7 +237,7 @@ int module::create_netif(uint32_t num, const json& config, const std::string& lo
         attr.id = TAI_NETWORK_INTERFACE_ATTR_INDEX;
         attr.value.u32 = i;
 
-        auto meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORKIF, attr.id);
+        auto meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORK_INTERFACE, attr.id);
         if ( meta == nullptr ) {
             throw std::runtime_error("failed to get metadata for index attribute");
         }
@@ -248,7 +248,7 @@ int module::create_netif(uint32_t num, const json& config, const std::string& lo
             ss << i;
             auto cc = c->find(ss.str());
             if ( cc != c->end() ) {
-                load_config(*cc, list, TAI_OBJECT_TYPE_NETWORKIF, location);
+                load_config(*cc, list, TAI_OBJECT_TYPE_NETWORK_INTERFACE, location);
             }
         }
 
@@ -322,9 +322,9 @@ void object_update(tai_object_type_t type, tai_object_id_t oid, int index, bool 
             continue;
         }
 
-        if (type == TAI_OBJECT_TYPE_HOSTIF) {
+        if (type == TAI_OBJECT_TYPE_HOST_INTERFACE) {
             v = &m.second->hostifs;
-        } else if (type == TAI_OBJECT_TYPE_NETWORKIF) {
+        } else if (type == TAI_OBJECT_TYPE_NETWORK_INTERFACE) {
             v = &m.second->netifs;
         }
 

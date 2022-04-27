@@ -72,8 +72,8 @@ namespace tai::basic {
                     obj = m;
                 }
                 break;
-            case TAI_OBJECT_TYPE_NETWORKIF:
-            case TAI_OBJECT_TYPE_HOSTIF:
+            case TAI_OBJECT_TYPE_NETWORK_INTERFACE:
+            case TAI_OBJECT_TYPE_HOST_INTERFACE:
                 {
                     auto t = static_cast<tai_object_type_t>(module_id >> OBJECT_TYPE_SHIFT);
                     if ( t != TAI_OBJECT_TYPE_MODULE ) {
@@ -84,7 +84,7 @@ namespace tai::basic {
                         return TAI_STATUS_UNINITIALIZED;
                     }
                     auto module = std::dynamic_pointer_cast<Module>(it->second);
-                    if ( type == TAI_OBJECT_TYPE_NETWORKIF ) {
+                    if ( type == TAI_OBJECT_TYPE_NETWORK_INTERFACE ) {
                         auto netif = std::make_shared<NetIf>(module, count, list);
                         module->fsm()->set_netif(netif);
                         obj = netif;
@@ -132,8 +132,8 @@ namespace tai::basic {
                 }
             }
             break;
-        case TAI_OBJECT_TYPE_NETWORKIF:
-        case TAI_OBJECT_TYPE_HOSTIF:
+        case TAI_OBJECT_TYPE_NETWORK_INTERFACE:
+        case TAI_OBJECT_TYPE_HOST_INTERFACE:
             {
                 auto module_id = get_module_id(id);
                 auto it = m_objects.find(module_id);
@@ -142,7 +142,7 @@ namespace tai::basic {
                 }
                 auto module = std::dynamic_pointer_cast<Module>(it->second);
                 auto fsm = module->fsm();
-                if ( type == TAI_OBJECT_TYPE_NETWORKIF ) {
+                if ( type == TAI_OBJECT_TYPE_NETWORK_INTERFACE ) {
                     ret = fsm->remove_netif();
                 } else {
                     auto idx = id & 0xff;
@@ -168,8 +168,8 @@ namespace tai::basic {
         auto type = static_cast<tai_object_type_t>(id >> OBJECT_TYPE_SHIFT);
         switch (type) {
         case TAI_OBJECT_TYPE_MODULE:
-        case TAI_OBJECT_TYPE_NETWORKIF:
-        case TAI_OBJECT_TYPE_HOSTIF:
+        case TAI_OBJECT_TYPE_NETWORK_INTERFACE:
+        case TAI_OBJECT_TYPE_HOST_INTERFACE:
             return type;
         default:
             return TAI_OBJECT_TYPE_NULL;
@@ -185,8 +185,8 @@ namespace tai::basic {
         switch (type) {
         case TAI_OBJECT_TYPE_MODULE:
             return id;
-        case TAI_OBJECT_TYPE_NETWORKIF:
-        case TAI_OBJECT_TYPE_HOSTIF:
+        case TAI_OBJECT_TYPE_NETWORK_INTERFACE:
+        case TAI_OBJECT_TYPE_HOST_INTERFACE:
             {
                 auto idx = ((id >> 8) & 0xff);
                 auto module_id = static_cast<tai_object_id_t>(uint64_t(TAI_OBJECT_TYPE_MODULE) << OBJECT_TYPE_SHIFT | idx);
@@ -506,8 +506,8 @@ namespace tai::basic {
     //    In this example, we are passing a FSM object as the context in the Module/NetIf/HostIf constructor.
 
     using M = tai::framework::AttributeInfo<TAI_OBJECT_TYPE_MODULE>;
-    using N = tai::framework::AttributeInfo<TAI_OBJECT_TYPE_NETWORKIF>;
-    using H = tai::framework::AttributeInfo<TAI_OBJECT_TYPE_HOSTIF>;
+    using N = tai::framework::AttributeInfo<TAI_OBJECT_TYPE_NETWORK_INTERFACE>;
+    using H = tai::framework::AttributeInfo<TAI_OBJECT_TYPE_HOST_INTERFACE>;
 
     static const tai_attribute_value_t default_tai_module_vendor_name_value = {
         .charlist = {5, (char*)"BASIC"},
@@ -574,7 +574,7 @@ namespace tai::basic {
         .flt = 1,
     };
 
-    template <> const AttributeInfoMap<TAI_OBJECT_TYPE_NETWORKIF> Config<TAI_OBJECT_TYPE_NETWORKIF>::m_info {
+    template <> const AttributeInfoMap<TAI_OBJECT_TYPE_NETWORK_INTERFACE> Config<TAI_OBJECT_TYPE_NETWORK_INTERFACE>::m_info {
         basic::N(TAI_NETWORK_INTERFACE_ATTR_INDEX),
         basic::N(TAI_NETWORK_INTERFACE_ATTR_TX_DIS)
             .set_setter(tai::basic::netif_tx_dis_setter)
@@ -587,7 +587,7 @@ namespace tai::basic {
             .set_valid_enums({TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_QPSK, TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_16_QAM, TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_64_QAM})
     };
 
-    template <> const AttributeInfoMap<TAI_OBJECT_TYPE_HOSTIF> Config<TAI_OBJECT_TYPE_HOSTIF>::m_info {
+    template <> const AttributeInfoMap<TAI_OBJECT_TYPE_HOST_INTERFACE> Config<TAI_OBJECT_TYPE_HOST_INTERFACE>::m_info {
         basic::H(TAI_HOST_INTERFACE_ATTR_INDEX),
     };
 

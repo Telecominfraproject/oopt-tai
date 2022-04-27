@@ -90,7 +90,7 @@ namespace tai::stub {
             tai_object_id_t m_id;
     };
 
-    class NetIf : public tai::framework::Object<TAI_OBJECT_TYPE_NETWORKIF> {
+    class NetIf : public tai::framework::Object<TAI_OBJECT_TYPE_NETWORK_INTERFACE> {
         public:
             NetIf(tai_object_id_t module_id, uint32_t count, const tai_attribute_t *list) : Object(count, list) {
                 int index = -1;
@@ -103,7 +103,7 @@ namespace tai::stub {
                 if ( index < 0 ) {
                     throw Exception(TAI_STATUS_MANDATORY_ATTRIBUTE_MISSING);
                 }
-                m_id = static_cast<tai_object_id_t>(uint64_t(TAI_OBJECT_TYPE_NETWORKIF) << OBJECT_TYPE_SHIFT | (module_id & 0xff) << 8 | index);
+                m_id = static_cast<tai_object_id_t>(uint64_t(TAI_OBJECT_TYPE_NETWORK_INTERFACE) << OBJECT_TYPE_SHIFT | (module_id & 0xff) << 8 | index);
             }
             tai_object_id_t id() const {
                 return m_id;
@@ -112,7 +112,7 @@ namespace tai::stub {
             tai_object_id_t m_id;
     };
 
-    class HostIf : public tai::framework::Object<TAI_OBJECT_TYPE_HOSTIF> {
+    class HostIf : public tai::framework::Object<TAI_OBJECT_TYPE_HOST_INTERFACE> {
         public:
             HostIf(tai_object_id_t module_id, uint32_t count, const tai_attribute_t *list) : Object(count, list) {
                 int index = -1;
@@ -125,7 +125,7 @@ namespace tai::stub {
                 if ( index < 0 ) {
                     throw Exception(TAI_STATUS_MANDATORY_ATTRIBUTE_MISSING);
                 }
-                m_id = static_cast<tai_object_id_t>(uint64_t(TAI_OBJECT_TYPE_HOSTIF) << OBJECT_TYPE_SHIFT | (module_id & 0xff) << 8 | index);
+                m_id = static_cast<tai_object_id_t>(uint64_t(TAI_OBJECT_TYPE_HOST_INTERFACE) << OBJECT_TYPE_SHIFT | (module_id & 0xff) << 8 | index);
             }
             tai_object_id_t id() const {
                 return m_id;

@@ -249,7 +249,7 @@ static tai_status_t stub_get_host_interface_attribute(
     stub_object_id_t id = *(stub_object_id_t*)&host_interface_id;
     stub_object_t object;
     const tai_attr_metadata_t* meta;
-    if ( id.type != TAI_OBJECT_TYPE_HOSTIF ) {
+    if ( id.type != TAI_OBJECT_TYPE_HOST_INTERFACE ) {
         return TAI_STATUS_INVALID_PARAMETER;
     }
     if ( id.module >= STUB_NUM_MODULE ) {
@@ -264,7 +264,7 @@ static tai_status_t stub_get_host_interface_attribute(
     }
 
     TAI_SYSLOG_DEBUG("Retrieving host interface attribute: %d", attr->id);
-    meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_HOSTIF, attr->id);
+    meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_HOST_INTERFACE, attr->id);
     if ( meta == NULL ) {
         return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
     }
@@ -312,7 +312,7 @@ static tai_status_t stub_set_host_interface_attribute(
     stub_object_id_t id = *(stub_object_id_t*)&host_interface_id;
     stub_object_t* object;
     const tai_attr_metadata_t* meta;
-    if ( id.type != TAI_OBJECT_TYPE_HOSTIF ) {
+    if ( id.type != TAI_OBJECT_TYPE_HOST_INTERFACE ) {
         return TAI_STATUS_INVALID_PARAMETER;
     }
     if ( id.module >= STUB_NUM_MODULE ) {
@@ -327,7 +327,7 @@ static tai_status_t stub_set_host_interface_attribute(
     }
 
     TAI_SYSLOG_DEBUG("Setting host interface attribute: %d", attr->id);
-    meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_HOSTIF, attr->id);
+    meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_HOST_INTERFACE, attr->id);
     if ( meta == NULL ) {
         return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
     }
@@ -383,7 +383,7 @@ static tai_status_t stub_create_host_interface(
     const tai_attribute_value_t * hostif_addr;
     int i;
     bool found = false;
-    stub_object_id_t id = { .type = TAI_OBJECT_TYPE_HOSTIF };
+    stub_object_id_t id = { .type = TAI_OBJECT_TYPE_HOST_INTERFACE };
 
     hostif_addr = find_attribute_in_list(TAI_HOST_INTERFACE_ATTR_INDEX, attr_count, attr_list);
     if (NULL == hostif_addr) {
@@ -440,7 +440,7 @@ static tai_status_t stub_remove_host_interface(_In_ tai_object_id_t host_interfa
     tai_attr_node_t *p, *next;
     const tai_attr_metadata_t* meta;
     tai_status_t ret;
-    if ( id.type != TAI_OBJECT_TYPE_HOSTIF ) {
+    if ( id.type != TAI_OBJECT_TYPE_HOST_INTERFACE ) {
         return TAI_STATUS_INVALID_PARAMETER;
     }
     if ( id.module >= STUB_NUM_MODULE ) {
@@ -455,7 +455,7 @@ static tai_status_t stub_remove_host_interface(_In_ tai_object_id_t host_interfa
     }
     p = object->head;
     while ( p != NULL ) {
-        meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_HOSTIF, p->attr.id);
+        meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_HOST_INTERFACE, p->attr.id);
         ret = tai_metadata_free_attr_value(meta, &p->attr, NULL);
         if ( ret != TAI_STATUS_SUCCESS ) {
             return ret;
@@ -506,7 +506,7 @@ static tai_status_t stub_get_network_interface_attribute(
     stub_object_id_t id = *(stub_object_id_t*)&network_interface_id;
     stub_object_t object;
     const tai_attr_metadata_t* meta;
-    if ( id.type != TAI_OBJECT_TYPE_NETWORKIF ) {
+    if ( id.type != TAI_OBJECT_TYPE_NETWORK_INTERFACE ) {
         return TAI_STATUS_INVALID_PARAMETER;
     }
     if ( id.module >= STUB_NUM_MODULE ) {
@@ -521,7 +521,7 @@ static tai_status_t stub_get_network_interface_attribute(
     }
 
     TAI_SYSLOG_DEBUG("Retrieving network interface attribute: %d", attr->id);
-    meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORKIF, attr->id);
+    meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORK_INTERFACE, attr->id);
     if ( meta == NULL ) {
         return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
     }
@@ -569,7 +569,7 @@ static tai_status_t stub_set_network_interface_attribute(
     stub_object_id_t id = *(stub_object_id_t*)&network_interface_id;
     stub_object_t *object;
     const tai_attr_metadata_t* meta;
-    if ( id.type != TAI_OBJECT_TYPE_NETWORKIF ) {
+    if ( id.type != TAI_OBJECT_TYPE_NETWORK_INTERFACE ) {
         return TAI_STATUS_INVALID_PARAMETER;
     }
     if ( id.module >= STUB_NUM_MODULE ) {
@@ -584,7 +584,7 @@ static tai_status_t stub_set_network_interface_attribute(
     }
 
     TAI_SYSLOG_DEBUG("Setting network interface attribute: %d", attr->id);
-    meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORKIF, attr->id);
+    meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORK_INTERFACE, attr->id);
     if ( meta == NULL ) {
         return TAI_STATUS_ATTR_NOT_SUPPORTED_0;
     }
@@ -640,7 +640,7 @@ static tai_status_t stub_create_network_interface(
     const tai_attribute_value_t * netif_addr;
     int i;
     bool found = false;
-    stub_object_id_t id = { .type = TAI_OBJECT_TYPE_NETWORKIF };
+    stub_object_id_t id = { .type = TAI_OBJECT_TYPE_NETWORK_INTERFACE };
 
     netif_addr = find_attribute_in_list(TAI_NETWORK_INTERFACE_ATTR_INDEX, attr_count, attr_list);
     if (NULL == netif_addr) {
@@ -698,7 +698,7 @@ static tai_status_t stub_remove_network_interface(_In_ tai_object_id_t network_i
     tai_attr_node_t *p, *next;
     const tai_attr_metadata_t* meta;
     tai_status_t ret;
-    if ( id.type != TAI_OBJECT_TYPE_NETWORKIF ) {
+    if ( id.type != TAI_OBJECT_TYPE_NETWORK_INTERFACE ) {
         return TAI_STATUS_INVALID_PARAMETER;
     }
     if ( id.module >= STUB_NUM_MODULE ) {
@@ -713,7 +713,7 @@ static tai_status_t stub_remove_network_interface(_In_ tai_object_id_t network_i
     }
     p = object->head;
     while ( p != NULL ) {
-        meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORKIF, p->attr.id);
+        meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORK_INTERFACE, p->attr.id);
         ret = tai_metadata_free_attr_value(meta, &p->attr, NULL);
         if ( ret != TAI_STATUS_SUCCESS ) {
             return ret;
@@ -1121,7 +1121,7 @@ tai_object_type_t tai_object_type_query(_In_ tai_object_id_t tai_object_id)
 tai_object_id_t tai_module_id_query(_In_ tai_object_id_t tai_object_id)
 {
     stub_object_id_t id = *(stub_object_id_t*)&tai_object_id;
-    if ( id.type != TAI_OBJECT_TYPE_NETWORKIF && id.type != TAI_OBJECT_TYPE_HOSTIF ) {
+    if ( id.type != TAI_OBJECT_TYPE_NETWORK_INTERFACE && id.type != TAI_OBJECT_TYPE_HOST_INTERFACE ) {
         return TAI_OBJECT_TYPE_NULL;
     }
     id.type = TAI_OBJECT_TYPE_MODULE;

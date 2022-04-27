@@ -22,7 +22,7 @@ static tai_status_t get_host_interface_attributes(
     if ( g_platform == nullptr ) {
         return TAI_STATUS_UNINITIALIZED;
     }
-    auto hostif = g_platform->get(id, TAI_OBJECT_TYPE_HOSTIF);
+    auto hostif = g_platform->get(id, TAI_OBJECT_TYPE_HOST_INTERFACE);
     if ( hostif == nullptr ) {
         return TAI_STATUS_ITEM_NOT_FOUND;
     }
@@ -59,7 +59,7 @@ static tai_status_t set_host_interface_attributes(
     if ( g_platform == nullptr ) {
         return TAI_STATUS_UNINITIALIZED;
     }
-    auto hostif = g_platform->get(id, TAI_OBJECT_TYPE_HOSTIF);
+    auto hostif = g_platform->get(id, TAI_OBJECT_TYPE_HOST_INTERFACE);
     if ( hostif == nullptr ) {
         return TAI_STATUS_ITEM_NOT_FOUND;
     }
@@ -101,7 +101,7 @@ static tai_status_t create_host_interface(
     if ( g_platform == nullptr ) {
         return TAI_STATUS_UNINITIALIZED;
     }
-    return g_platform->create(TAI_OBJECT_TYPE_HOSTIF, module_id, attr_count, attr_list, host_interface_id);
+    return g_platform->create(TAI_OBJECT_TYPE_HOST_INTERFACE, module_id, attr_count, attr_list, host_interface_id);
 }
 
 /**
@@ -128,7 +128,7 @@ static tai_status_t clear_host_interface_attributes(
     if ( g_platform == nullptr ) {
         return TAI_STATUS_UNINITIALIZED;
     }
-    auto hostif = g_platform->get(id, TAI_OBJECT_TYPE_HOSTIF);
+    auto hostif = g_platform->get(id, TAI_OBJECT_TYPE_HOST_INTERFACE);
     if ( hostif == nullptr ) {
         return TAI_STATUS_ITEM_NOT_FOUND;
     }
@@ -144,7 +144,7 @@ static tai_status_t get_host_interface_capabilities(tai_object_id_t oid, uint32_
     if ( g_platform == nullptr ) {
         return TAI_STATUS_UNINITIALIZED;
     }
-    auto obj = g_platform->get(oid, TAI_OBJECT_TYPE_HOSTIF);
+    auto obj = g_platform->get(oid, TAI_OBJECT_TYPE_HOST_INTERFACE);
     if ( obj == nullptr ) {
         return TAI_STATUS_ITEM_NOT_FOUND;
     }
@@ -190,7 +190,7 @@ static tai_status_t get_network_interface_attributes(
     if ( g_platform == nullptr ) {
         return TAI_STATUS_UNINITIALIZED;
     }
-    auto netif = g_platform->get(id, TAI_OBJECT_TYPE_NETWORKIF);
+    auto netif = g_platform->get(id, TAI_OBJECT_TYPE_NETWORK_INTERFACE);
     if ( netif == nullptr ) {
         return TAI_STATUS_ITEM_NOT_FOUND;
     }
@@ -229,7 +229,7 @@ static tai_status_t set_network_interface_attributes(
     if ( g_platform == nullptr ) {
         return TAI_STATUS_UNINITIALIZED;
     }
-    auto netif = g_platform->get(id, TAI_OBJECT_TYPE_NETWORKIF);
+    auto netif = g_platform->get(id, TAI_OBJECT_TYPE_NETWORK_INTERFACE);
     if ( netif == nullptr ) {
         return TAI_STATUS_ITEM_NOT_FOUND;
     }
@@ -256,7 +256,7 @@ static tai_status_t get_network_interface_capabilities(tai_object_id_t oid, uint
     if ( g_platform == nullptr ) {
         return TAI_STATUS_UNINITIALIZED;
     }
-    auto obj = g_platform->get(oid, TAI_OBJECT_TYPE_NETWORKIF);
+    auto obj = g_platform->get(oid, TAI_OBJECT_TYPE_NETWORK_INTERFACE);
     if ( obj == nullptr ) {
         return TAI_STATUS_ITEM_NOT_FOUND;
     }
@@ -290,7 +290,7 @@ static tai_status_t create_network_interface(
     if ( g_platform == nullptr ) {
         return TAI_STATUS_UNINITIALIZED;
     }
-    return g_platform->create(TAI_OBJECT_TYPE_NETWORKIF, module_id, attr_count, attr_list, network_interface_id);
+    return g_platform->create(TAI_OBJECT_TYPE_NETWORK_INTERFACE, module_id, attr_count, attr_list, network_interface_id);
 }
 
 /**

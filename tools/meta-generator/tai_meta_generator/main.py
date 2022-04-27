@@ -196,8 +196,8 @@ class TAIAttribute(object):
 class TAIObject(object):
     OBJECT_MAP = {
         "module": "TAI_OBJECT_TYPE_MODULE",
-        "host_interface": "TAI_OBJECT_TYPE_HOSTIF",
-        "network_interface": "TAI_OBJECT_TYPE_NETWORKIF",
+        "host_interface": "TAI_OBJECT_TYPE_HOST_INTERFACE",
+        "network_interface": "TAI_OBJECT_TYPE_NETWORK_INTERFACE",
     }
 
     def __init__(self, name, taiheader):
