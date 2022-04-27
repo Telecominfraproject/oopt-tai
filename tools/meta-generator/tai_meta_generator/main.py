@@ -194,16 +194,11 @@ class TAIAttribute(object):
 
 
 class TAIObject(object):
-    OBJECT_MAP = {
-        "module": "TAI_OBJECT_TYPE_MODULE",
-        "host_interface": "TAI_OBJECT_TYPE_HOST_INTERFACE",
-        "network_interface": "TAI_OBJECT_TYPE_NETWORK_INTERFACE",
-    }
-
-    def __init__(self, name, taiheader):
-        self.name = name
+    def __init__(self, object_type, taiheader):
+        assert object_type.startswith("TAI_OBJECT_TYPE_")
+        self.name = object_type.replace("TAI_OBJECT_TYPE_", "").lower()
         self.taiheader = taiheader
-        self.object_type = self.OBJECT_MAP.get(name, None)
+        self.object_type = object_type
         a = self.taiheader.get_enum("tai_{}_attr_t".format(self.name))
         self.attrs = [TAIAttribute(e, self) for e in a.value_nodes.values()]
         self.custom_range = [0, 0]
@@ -299,11 +294,18 @@ class TAIHeader(Header):
             key = "bool" if f.displayname == "booldata" else f.type.spelling
             self.attr_value_map[key] = f.displayname
 
-        self.objects = [
-            TAIObject(name, self)
-            for name in ["module", "host_interface", "network_interface"]
-        ]
+        self._objects = {}
+        v = self.get_enum("tai_object_type_t").value_names()
+        for object_type in v:
+            if object_type in ["TAI_OBJECT_TYPE_NULL", "TAI_OBJECT_TYPE_MAX"]:
+                continue
+            self._objects[object_type] = TAIObject(object_type, self)
+
         self.custom_headers = []
+
+    @property
+    def objects(self):
+        return self._objects.values()
 
     def add_custom(self, filename):
         h = Header(filename, args=["-I{}".format(os.path.dirname(self.filename))])
