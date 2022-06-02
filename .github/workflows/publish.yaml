@@ -1,59 +1,68 @@
 name: publish
 
 on:
-    push:
-        branches:
-        - master
+  workflow_dispatch:
+  push:
+    branches:
+      - 'master'
+      - 'releases/v*'
+    tags:
+      - 'v*'
+  pull_request:
+
 jobs:
-    job:
-        runs-on: ubuntu-latest
-        steps:
-        - 
-          name: Checkout
-          uses: actions/checkout@v2
-        - run: |
-            import os
-            ref = os.environ['GITHUB_REF']
-            branch = ref[11:]
-            with open(os.environ['GITHUB_ENV'], "a") as f:
-                tag = "latest" if branch == "master" else branch
-                f.write(f"DOCKER_IMAGE_TAG={tag}\n")
-          shell: python
-        - 
-          name: Set up Docker Buildx
-          uses: docker/setup-buildx-action@v1
-        - 
-          name: Set up QEMU
-          uses: docker/setup-qemu-action@v1
-        - 
-          name: Login to GitHub Container Registry
-          uses: docker/login-action@v1
-          with:
-            username: ${{ secrets.DOCKER_USER }}
-            password: ${{ secrets.DOCKER_PASSWORD }}
-        - 
-          name: Build builder
-          uses: docker/build-push-action@v2
-          with:
-            context: .
-            platforms: linux/amd64,linux/arm64
-            file: ./docker/builder.Dockerfile
-            tags: |
-                docker.io/microsonic/tai-builder:${{ env.DOCKER_IMAGE_TAG }}
-            push: true
-            cache-from: type=registry,ref=docker.io/microsonic/tai-builder:latest
-            cache-to: type=inline
-        - 
-          name: Build container
-          uses: docker/build-push-action@v2
-          with:
-            context: .
-            build-args: |
-                TAI_DOCKER_BUILDER_IMAGE=docker.io/microsonic/tai-builder:${{ env.DOCKER_IMAGE_TAG }}
-            platforms: linux/amd64,linux/arm64
-            file: ./docker/run.Dockerfile
-            tags: |
-                docker.io/microsonic/tai:${{ env.DOCKER_IMAGE_TAG }}
-            push: true
-            cache-from: type=registry,ref=docker.io/microsonic/tai:latest
-            cache-to: type=inline
+  job:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Docker meta for the builder
+        id: meta-builder
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            ghcr.io/telecominfraproject/tai/tai-builder
+      -
+        name: Docker meta for the image
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            ghcr.io/telecominfraproject/tai/tai
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          install: true
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      -
+        name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      -
+        name: Build builder
+        uses: docker/build-push-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+          push: true
+          file: ./docker/builder.Dockerfile
+          tags: ${{ steps.meta-builder.outputs.tags }}
+          labels: ${{ steps.meta-builer.outputs.labels }}
+      -
+        name: Build container
+        uses: docker/build-push-action@v2
+        with:
+          build-args: |
+            TAI_DOCKER_BUILDER_IMAGE=docker.io/microsonic/tai-builder:${{ steps.meta-builder.outputs.tags }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          file: ./docker/run.Dockerfile
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
