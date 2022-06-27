@@ -160,7 +160,7 @@ class Module(TAIObject):
             attrs = []
         attrs.append(("index", index))
         await self.client.create(taish_pb2.NETIF, attrs, self.oid)
-        self.obj = (await self.client.list())[self.location]
+        self.obj = (await self.client.list())[self.location].obj
         return self.get_netif(index)
 
     async def create_hostif(self, index=0, attrs=None):
@@ -168,7 +168,7 @@ class Module(TAIObject):
             attrs = []
         attrs.append(("index", index))
         await self.client.create(taish_pb2.HOSTIF, attrs, self.oid)
-        self.obj = (await self.client.list())[self.location]
+        self.obj = (await self.client.list())[self.location].obj
         return self.get_hostif(index)
 
 

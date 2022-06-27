@@ -346,7 +346,7 @@ class TestTAI(unittest.IsolatedAsyncioTestCase):
         module = l[TAI_TEST_MODULE_LOCATION]
         self.assertEqual(len(module.netifs), 1)
 
-        await cli.create("hostif", [("index", 0)], m.oid)
+        hostif = await cli.create("hostif", [("index", 0)], m.oid)
         l = await cli.list()
         module = l[TAI_TEST_MODULE_LOCATION]
         self.assertEqual(len(module.hostifs), 1)
@@ -357,6 +357,15 @@ class TestTAI(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(module.hostifs), 2)
 
         await cli.close()
+
+    async def test_module_create_hostif(self):
+        await self.test_remove()
+        cli = taish.AsyncClient(
+            TAI_TEST_TAISH_SERVER_ADDRESS, TAI_TEST_TAISH_SERVER_PORT
+        )
+        m = await cli.create_module(TAI_TEST_MODULE_LOCATION)
+        hostif = await m.create_hostif(index=0)
+        self.assertEqual(hostif.obj.module_oid, m.oid)
 
     async def test_get_set_multiple(self):
         cli = taish.AsyncClient(
