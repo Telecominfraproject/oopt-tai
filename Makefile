@@ -20,6 +20,7 @@ stub:
 	$(MAKE) -C ./stub
 
 test:
+	TAI_TEST_TARGET=$(abspath ./stub/libtai.so) $(MAKE) -C ./tests c
 	$(MAKE) -C ./tests
 
 cmd:

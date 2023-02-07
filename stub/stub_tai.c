@@ -1016,7 +1016,7 @@ tai_status_t tai_api_initialize(_In_ uint64_t flags,
     }
 
     memcpy(&adapter_host_fns, services, sizeof(adapter_host_fns));
-    memset(g_modules, 0, sizeof(g_modules) * STUB_NUM_MODULE);
+    memset(g_modules, 0, sizeof(g_modules));
     initialized = true; 
 
     if ( services->module_presence != NULL ) {
