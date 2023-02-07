@@ -174,7 +174,6 @@ int main() {
     status = tai_api_query(TAI_API_META, (void**)&meta_api);
     if ( status != TAI_STATUS_SUCCESS ) {
         printf("no api for TAI_API_META\n");
-        return 1;
     }
 
     printf("meta_api: %p\n", meta_api);

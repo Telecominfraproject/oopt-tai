@@ -1,6 +1,4 @@
-ifndef TAI_TEST_TARGET
-    TAI_TEST_TARGET :=  ../tools/framework/examples/basic/libtai.so
-endif
+TAI_TEST_TARGET ?=  ../tools/framework/examples/basic/libtai.so
 
 ifndef TAI_TEST_CASE
     TAI_TEST_CASE := test_base.py
