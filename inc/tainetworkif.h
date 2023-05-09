@@ -104,6 +104,9 @@ typedef enum _tai_network_interface_modulation_format_t
     TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_32_QAM,
     TAI_NETWORK_INTERFACE_MODULATION_FORMAT_64_QAM,
     TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_64_QAM,
+    TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_16_QAM_PS, /*Probabilistic Shaping*/
+    TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_32_QAM_PS, /*Probabilistic Shaping*/
+    TAI_NETWORK_INTERFACE_MODULATION_FORMAT_DP_64_QAM_PS, /*Probabilistic Shaping*/
     TAI_NETWORK_INTERFACE_MODULATION_FORMAT_MAX
 } tai_network_interface_modulation_format_t;
 
@@ -114,6 +117,7 @@ typedef enum _tai_network_interface_fec_type_t
     TAI_NETWORK_INTERFACE_FEC_TYPE_SC_FEC,
     TAI_NETWORK_INTERFACE_FEC_TYPE_CFEC,
     TAI_NETWORK_INTERFACE_FEC_TYPE_OFEC,
+    TAI_NETWORK_INTERFACE_FEC_TYPE_NONE,
 } tai_network_interface_fec_type_t;
 
 /** @brief The client signal mapping type */
