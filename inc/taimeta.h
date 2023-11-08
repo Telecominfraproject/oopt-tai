@@ -63,13 +63,28 @@ typedef const tai_object_type_info_t* (*tai_meta_get_object_info_fn)(
         _In_ const tai_metadata_key_t *const key);
 
 /**
+ * @brief List object info of the given metadata key
+ *
+ * @param[in] key Metadata key
+ * @param[out] count Number of object info
+ * @param[out] list Array of object info
+ *
+ * @return #TAI_STATUS_SUCCESS on success, failure status code on error
+ */
+typedef tai_status_t (*tai_meta_list_object_info_fn)(
+        _In_ const tai_metadata_key_t *const key,
+        _Out_ uint32_t *count,
+        _Out_ const tai_object_type_info_t* const **list);
+
+/**
  * @brief Meta methods table retrieved with tai_api_query()
  */
 typedef struct _tai_meta_api_t
 {
-    tai_meta_list_metadata_fn               list_metadata;
-    tai_meta_get_attr_metadata_fn           get_attr_metadata;
-    tai_meta_get_object_info_fn             get_object_info;
+    tai_meta_list_metadata_fn     list_metadata;
+    tai_meta_get_attr_metadata_fn get_attr_metadata;
+    tai_meta_get_object_info_fn   get_object_info;
+    tai_meta_list_object_info_fn  list_object_info;
 } tai_meta_api_t;
 
 /**

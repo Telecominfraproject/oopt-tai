@@ -270,12 +270,12 @@ static tai_serialize_option_t convert_serialize_option(const taish::SerializeOpt
                 return TAI_STATUS_NOT_SUPPORTED;
             }
             return m_api->module_api->get_module_capability(oid, cap);
-        case TAI_OBJECT_TYPE_NETWORKIF:
+        case TAI_OBJECT_TYPE_NETWORK_INTERFACE:
             if ( m_api->netif_api->get_network_interface_capability == nullptr ) {
                 return TAI_STATUS_NOT_SUPPORTED;
             }
             return m_api->netif_api->get_network_interface_capability(oid, cap);
-        case TAI_OBJECT_TYPE_HOSTIF:
+        case TAI_OBJECT_TYPE_HOST_INTERFACE:
             if ( m_api->hostif_api->get_host_interface_capability == nullptr ) {
                 return TAI_STATUS_NOT_SUPPORTED;
             }
@@ -322,9 +322,9 @@ static tai_serialize_option_t convert_serialize_option(const taish::SerializeOpt
             switch (type) {
             case TAI_OBJECT_TYPE_MODULE:
                 return m_api->module_api->get_module_attribute(oid, attr);
-            case TAI_OBJECT_TYPE_NETWORKIF:
+            case TAI_OBJECT_TYPE_NETWORK_INTERFACE:
                 return m_api->netif_api->get_network_interface_attribute(oid, attr);
-            case TAI_OBJECT_TYPE_HOSTIF:
+            case TAI_OBJECT_TYPE_HOST_INTERFACE:
                 return m_api->hostif_api->get_host_interface_attribute(oid, attr);
             default:
                 return TAI_STATUS_NOT_SUPPORTED;
@@ -377,10 +377,10 @@ static tai_serialize_option_t convert_serialize_option(const taish::SerializeOpt
         case TAI_OBJECT_TYPE_MODULE:
             ret = m_api->module_api->set_module_attributes(oid, attrs.size(), attrs.data());
             break;
-        case TAI_OBJECT_TYPE_NETWORKIF:
+        case TAI_OBJECT_TYPE_NETWORK_INTERFACE:
             ret = m_api->netif_api->set_network_interface_attributes(oid, attrs.size(), attrs.data());
             break;
-        case TAI_OBJECT_TYPE_HOSTIF:
+        case TAI_OBJECT_TYPE_HOST_INTERFACE:
             ret = m_api->hostif_api->set_host_interface_attributes(oid, attrs.size(), attrs.data());
             break;
         default:
@@ -401,7 +401,7 @@ static tai_serialize_option_t convert_serialize_option(const taish::SerializeOpt
     std::unique_lock<std::mutex> lk(m_mtx);
 
     switch (type) {
-    case TAI_OBJECT_TYPE_HOSTIF:
+    case TAI_OBJECT_TYPE_HOST_INTERFACE:
         ret = m_api->hostif_api->clear_host_interface_attribute(oid, id);
         break;
     default:
@@ -470,10 +470,10 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
         attr.id = nid;
 
         switch (type) {
-        case TAI_OBJECT_TYPE_NETWORKIF:
+        case TAI_OBJECT_TYPE_NETWORK_INTERFACE:
             ret = m_api->netif_api->get_network_interface_attribute(oid, &attr);
             break;
-        case TAI_OBJECT_TYPE_HOSTIF:
+        case TAI_OBJECT_TYPE_HOST_INTERFACE:
             ret = m_api->hostif_api->get_host_interface_attribute(oid, &attr);
             break;
         case TAI_OBJECT_TYPE_MODULE:
@@ -494,10 +494,10 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
             attr.value.notification.notify = monitor_callback;
             attr.value.notification.context = notifier.get();
             switch (type) {
-            case TAI_OBJECT_TYPE_NETWORKIF:
+            case TAI_OBJECT_TYPE_NETWORK_INTERFACE:
                 ret = m_api->netif_api->set_network_interface_attribute(oid, &attr);
                 break;
-            case TAI_OBJECT_TYPE_HOSTIF:
+            case TAI_OBJECT_TYPE_HOST_INTERFACE:
                 ret = m_api->hostif_api->set_host_interface_attribute(oid, &attr);
                 break;
             case TAI_OBJECT_TYPE_MODULE:
@@ -567,10 +567,10 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
             attr.value.notification.notify = nullptr;
             attr.value.notification.context = nullptr;
             switch (type) {
-            case TAI_OBJECT_TYPE_NETWORKIF:
+            case TAI_OBJECT_TYPE_NETWORK_INTERFACE:
                 ret = m_api->netif_api->set_network_interface_attribute(oid, &attr);
                 break;
-            case TAI_OBJECT_TYPE_HOSTIF:
+            case TAI_OBJECT_TYPE_HOST_INTERFACE:
                 ret = m_api->hostif_api->set_host_interface_attribute(oid, &attr);
                 break;
             case TAI_OBJECT_TYPE_MODULE:
@@ -616,11 +616,11 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
         create = m_api->module_api->create_module;
         break;
     case taish::NETIF:
-        type = TAI_OBJECT_TYPE_NETWORKIF;
+        type = TAI_OBJECT_TYPE_NETWORK_INTERFACE;
         create = std::bind(m_api->netif_api->create_network_interface, std::placeholders::_1, mid, std::placeholders::_2, std::placeholders::_3);
         break;
     case taish::HOSTIF:
-        type = TAI_OBJECT_TYPE_HOSTIF;
+        type = TAI_OBJECT_TYPE_HOST_INTERFACE;
         create = std::bind(m_api->hostif_api->create_host_interface, std::placeholders::_1, mid, std::placeholders::_2, std::placeholders::_3);
         break;
     default:
@@ -671,9 +671,9 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
             auto attr = std::make_shared<tai::Attribute>(meta, v, &option);
             attrs.emplace_back(attr);
 
-            if (type == TAI_OBJECT_TYPE_HOSTIF && attr->id() == TAI_HOST_INTERFACE_ATTR_INDEX) {
+            if (type == TAI_OBJECT_TYPE_HOST_INTERFACE && attr->id() == TAI_HOST_INTERFACE_ATTR_INDEX) {
                 index = attr->raw()->value.u32;
-            } else if (type == TAI_OBJECT_TYPE_NETWORKIF && attr->id() == TAI_NETWORK_INTERFACE_ATTR_INDEX) {
+            } else if (type == TAI_OBJECT_TYPE_NETWORK_INTERFACE && attr->id() == TAI_NETWORK_INTERFACE_ATTR_INDEX) {
                 index = attr->raw()->value.u32;
             }
         }
@@ -713,10 +713,10 @@ void monitor_callback(void* context, tai_object_id_t oid, uint32_t attr_count, t
         case TAI_OBJECT_TYPE_MODULE:
             ret = m_api->module_api->remove_module(oid);
             break;
-        case TAI_OBJECT_TYPE_NETWORKIF:
+        case TAI_OBJECT_TYPE_NETWORK_INTERFACE:
             ret = m_api->netif_api->remove_network_interface(oid);
             break;
-        case TAI_OBJECT_TYPE_HOSTIF:
+        case TAI_OBJECT_TYPE_HOST_INTERFACE:
             ret = m_api->hostif_api->remove_host_interface(oid);
             break;
         default:

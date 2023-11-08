@@ -29,6 +29,7 @@ extern "C" {
 #include "taistatus.h"
 #include "taitypes.h"
 #include "taimeta.h"
+#include "taiobject.h"
 
 /**
  * @defgroup TAI TAI - Entry point specific API definitions.
@@ -50,6 +51,7 @@ typedef enum _tai_api_t
     TAI_API_HOSTIF,             /**< #tai_host_interface_api_t */
     TAI_API_NETWORKIF,          /**< #tai_network_interface_api_t */
     TAI_API_META     ,          /**< #tai_meta_api_t */
+    TAI_API_OBJECT,             /**< #tai_object_api_t */
     TAI_API_MAX                 /**< total number of APIs */
 } tai_api_t;
 

@@ -67,6 +67,13 @@ namespace tai::framework {
                 return tai_metadata_get_object_type_info(type);
             }
 
+            virtual tai_status_t list_object_info(const tai_metadata_key_t *const key, uint32_t *count, const tai_object_type_info_t * const **list) {
+                // the head element is empty
+                *count = tai_metadata_attr_by_object_type_count;
+                *list = tai_metadata_all_object_type_infos + 1;
+                return TAI_STATUS_SUCCESS;
+            }
+
         protected:
             const tai_service_method_table_t * m_services;
             // we don't need a lock to access m_objects/m_fsms since TAI API is not thread-safe

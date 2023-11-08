@@ -80,7 +80,7 @@ int testSerializeAttributeEnumList() {
         .valueonly = false,
         .human = true,
     };
-    const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORKIF, TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS);
+    const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORK_INTERFACE, TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS);
     int32_t list[] = {
         TAI_NETWORK_INTERFACE_TX_ALIGN_STATUS_LOSS,
         TAI_NETWORK_INTERFACE_TX_ALIGN_STATUS_OUT
@@ -129,7 +129,7 @@ int testDeserializeNetworkInterfaceAttr() {
 }
 
 int testDeepcopyAttrValue() {
-    const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORKIF, TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS);
+    const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORK_INTERFACE, TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS);
     tai_attribute_t src = {0}, dst = {0};
     tai_status_t status;
     status = tai_metadata_alloc_attr_value(meta, &src, NULL);
@@ -796,7 +796,7 @@ int testDeserializeJSONEnumList() {
         .json = true,
         .human = true,
     };
-    const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORKIF, TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS);
+    const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORK_INTERFACE, TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS);
     int ret = tai_deserialize_enumlist("[ \"loss\", \"out\" ]", meta->enummetadata, &value, &option);
     if ( ret != 0 ) {
         return -1;
@@ -842,7 +842,7 @@ int testDeserializeJSONAttrList2() {
         .human = true,
         .json = true,
     };
-    const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_HOSTIF, TAI_HOST_INTERFACE_ATTR_LANE_FAULT);
+    const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_HOST_INTERFACE, TAI_HOST_INTERFACE_ATTR_LANE_FAULT);
 
     if ( tai_metadata_alloc_attr_value(meta, &attr, NULL) < 0 ) {
         printf("failed to alloc\n");
@@ -896,7 +896,7 @@ int testDeserializeJSONBufferOverflow2() {
         .json = true,
         .human = true,
     };
-    const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORKIF, TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS);
+    const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORK_INTERFACE, TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS);
     int ret = tai_deserialize_enumlist("[ \"loss\", \"out\" ]", meta->enummetadata, &value, &option);
     if ( ret != TAI_STATUS_BUFFER_OVERFLOW || value.count != 2 ) {
         return -1;
@@ -956,7 +956,7 @@ int testSerializeAttrValueType() {
 }
 
 int testDeepequalAttrValue() {
-    const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORKIF, TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS);
+    const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORK_INTERFACE, TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS);
     tai_attribute_t src = {.id = TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS}, dst = {.id=TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS};
     tai_status_t status;
     status = tai_metadata_alloc_attr_value(meta, &src, NULL);
@@ -1031,7 +1031,7 @@ int testDeepequalAttrValue() {
 
 int testSerializeJSONEnumList() {
     tai_serialize_option_t option = {true, true, true};
-    const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_HOSTIF, TAI_HOST_INTERFACE_ATTR_TX_PCS_ALARM);
+    const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_HOST_INTERFACE, TAI_HOST_INTERFACE_ATTR_TX_PCS_ALARM);
     tai_attribute_t attr = {0};
     tai_status_t status = tai_metadata_alloc_attr_value(meta, &attr, NULL);
     if ( status != TAI_STATUS_SUCCESS ) {
@@ -1093,7 +1093,7 @@ int testDeserializeJSONCharlist() {
 }
 
 int testClearAttrValue() {
-    const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORKIF, TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS);
+    const tai_attr_metadata_t* meta = tai_metadata_get_attr_metadata(TAI_OBJECT_TYPE_NETWORK_INTERFACE, TAI_NETWORK_INTERFACE_ATTR_TX_ALIGN_STATUS);
     tai_attribute_t attr = {0};
     tai_status_t status;
     tai_alloc_info_t info = { .list_size = 5 };

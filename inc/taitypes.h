@@ -110,11 +110,11 @@ typedef enum _tai_common_api_t
  */
 typedef enum _tai_object_type_t
 {
-    TAI_OBJECT_TYPE_NULL                     =  0, /**< invalid object type */
-    TAI_OBJECT_TYPE_MODULE                   =  1,
-    TAI_OBJECT_TYPE_HOSTIF                   =  2,
-    TAI_OBJECT_TYPE_NETWORKIF                =  3,
-    TAI_OBJECT_TYPE_MAX                      =  4,
+    TAI_OBJECT_TYPE_NULL              = 0, /**< invalid object type */
+    TAI_OBJECT_TYPE_MODULE            = 1,
+    TAI_OBJECT_TYPE_HOST_INTERFACE    = 2,
+    TAI_OBJECT_TYPE_NETWORK_INTERFACE = 3,
+    TAI_OBJECT_TYPE_MAX               = 4,
 } tai_object_type_t;
 
 typedef struct _tai_char_list_t

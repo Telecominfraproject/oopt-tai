@@ -23,7 +23,7 @@ namespace tai::stub {
             case TAI_OBJECT_TYPE_MODULE:
                 obj = std::make_shared<Module>(attr_count, attr_list);
                 break;
-            case TAI_OBJECT_TYPE_NETWORKIF:
+            case TAI_OBJECT_TYPE_NETWORK_INTERFACE:
                 {
                     auto t = get_object_type(module_id);
                     if ( t != TAI_OBJECT_TYPE_MODULE ) {
@@ -32,7 +32,7 @@ namespace tai::stub {
                     obj = std::make_shared<NetIf>(module_id, attr_count, attr_list);
                 }
                 break;
-            case TAI_OBJECT_TYPE_HOSTIF:
+            case TAI_OBJECT_TYPE_HOST_INTERFACE:
                 {
                     auto t = get_object_type(module_id);
                     if ( t != TAI_OBJECT_TYPE_MODULE ) {
@@ -66,8 +66,8 @@ namespace tai::stub {
         auto type = static_cast<tai_object_type_t>(id >> OBJECT_TYPE_SHIFT);
         switch (type) {
         case TAI_OBJECT_TYPE_MODULE:
-        case TAI_OBJECT_TYPE_NETWORKIF:
-        case TAI_OBJECT_TYPE_HOSTIF:
+        case TAI_OBJECT_TYPE_NETWORK_INTERFACE:
+        case TAI_OBJECT_TYPE_HOST_INTERFACE:
             return type;
         default:
             return TAI_OBJECT_TYPE_NULL;
@@ -83,8 +83,8 @@ namespace tai::stub {
         switch (type) {
         case TAI_OBJECT_TYPE_MODULE:
             return id;
-        case TAI_OBJECT_TYPE_NETWORKIF:
-        case TAI_OBJECT_TYPE_HOSTIF:
+        case TAI_OBJECT_TYPE_NETWORK_INTERFACE:
+        case TAI_OBJECT_TYPE_HOST_INTERFACE:
             {
                 auto idx = ((id >> 8) & 0xff);
                 auto module_id = static_cast<tai_object_id_t>(uint64_t(TAI_OBJECT_TYPE_MODULE) << OBJECT_TYPE_SHIFT | idx);
@@ -134,8 +134,8 @@ namespace tai::stub {
     };
 
     using M = AttributeInfo<TAI_OBJECT_TYPE_MODULE>;
-    using N = AttributeInfo<TAI_OBJECT_TYPE_NETWORKIF>;
-    using H = AttributeInfo<TAI_OBJECT_TYPE_HOSTIF>;
+    using N = AttributeInfo<TAI_OBJECT_TYPE_NETWORK_INTERFACE>;
+    using H = AttributeInfo<TAI_OBJECT_TYPE_HOST_INTERFACE>;
 
     // sadly 'auto' can't be used here
     template <> const AttributeInfoMap<TAI_OBJECT_TYPE_MODULE> Config<TAI_OBJECT_TYPE_MODULE>::m_info {
@@ -152,14 +152,14 @@ namespace tai::stub {
         stub::M(TAI_MODULE_ATTR_MODULE_STATE_CHANGE_NOTIFY),
     };
 
-    template <> const AttributeInfoMap<TAI_OBJECT_TYPE_NETWORKIF> Config<TAI_OBJECT_TYPE_NETWORKIF>::m_info {
+    template <> const AttributeInfoMap<TAI_OBJECT_TYPE_NETWORK_INTERFACE> Config<TAI_OBJECT_TYPE_NETWORK_INTERFACE>::m_info {
         stub::N(TAI_NETWORK_INTERFACE_ATTR_INDEX),
         stub::N(TAI_NETWORK_INTERFACE_ATTR_TX_DIS),
         stub::N(TAI_NETWORK_INTERFACE_ATTR_TX_LASER_FREQ),
         stub::N(TAI_NETWORK_INTERFACE_ATTR_OUTPUT_POWER),
     };
 
-    template <> const AttributeInfoMap<TAI_OBJECT_TYPE_HOSTIF> Config<TAI_OBJECT_TYPE_HOSTIF>::m_info {
+    template <> const AttributeInfoMap<TAI_OBJECT_TYPE_HOST_INTERFACE> Config<TAI_OBJECT_TYPE_HOST_INTERFACE>::m_info {
         stub::H(TAI_HOST_INTERFACE_ATTR_INDEX),
     };
 }
