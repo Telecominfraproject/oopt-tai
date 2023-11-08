@@ -323,6 +323,27 @@ typedef enum _tai_network_interface_attr_t
     TAI_NETWORK_INTERFACE_ATTR_CLIENT_SIGNAL_MAPPING_TYPE,
 
     /**
+     * @brief The implementation templates
+     *
+     * Implementation templates represent the list of transmission modes
+     * supported by the network interface. Implementation templates are
+     * described as a list of enum lists, and each transmission mode is
+     * expressed as a combination of enum values. Each enum list has an enum id
+     * (attribute id) and a list of enum values. The i-th transmission mode is a
+     * combination of i-th values of each enum list.
+     *
+     * Implementation templates also represent the preference among the
+     * transmission modes. When only a part of the parameters corresponds to the
+     * transmission mode is configured, then the first mode that matches the
+     * current configured value will be used. Therefore the head of the list is
+     * the default mode.
+     *
+     * @type #tai_attr_value_list_t #tai_enum_list_t
+     * @flags READ_ONLY
+     */
+    TAI_NETWORK_INTERFACE_ATTR_IMPLEMENTATION_TEMPLATES,
+
+    /**
      * @brief The current pre-FEC bit error rate
      *
      * @type #tai_float_t
